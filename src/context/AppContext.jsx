@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback, useState, useEffect } from 'react';
 import { PRODUCTS, BRANCHES, STAFF, MOCK_SALES, INITIAL_ORDERS, EXTRAS } from '../data/mockData';
 
 const AppContext = createContext(null);
@@ -30,6 +30,14 @@ const initialState = {
 
 const TAX_RATE = 0.16;
 
+const calculateItemPrice = (basePrice, size, extras = []) => {
+  let multiplier = 1;
+  if (size === 'Mediana') multiplier = 1.3;
+  if (size === 'Familiar') multiplier = 1.6;
+  const extrasCost = extras.reduce((sum, e) => sum + e.price, 0);
+  return (basePrice * multiplier) + extrasCost;
+};
+
 function reducer(state, action) {
   switch (action.type) {
     // ── CART ──────────────────────────────────────────────────
@@ -48,7 +56,7 @@ function reducer(state, action) {
         productId: product.id,
         name: product.name,
         basePrice: product.price,
-        price: product.price,
+        price: calculateItemPrice(product.price, size || null, []),
         size: size || null,
         qty: 1,
         extras: [],
@@ -66,9 +74,14 @@ function reducer(state, action) {
     }
 
     case 'UPDATE_ITEM_SIZE': {
-      const items = state.currentOrder.items.map(item =>
-        item.id === action.payload.id ? { ...item, size: action.payload.size } : item
-      );
+      const items = state.currentOrder.items.map(item => {
+        if (item.id !== action.payload.id) return item;
+        return { 
+          ...item, 
+          size: action.payload.size, 
+          price: calculateItemPrice(item.basePrice, action.payload.size, item.extras) 
+        };
+      });
       return { ...state, currentOrder: { ...state.currentOrder, items } };
     }
 
@@ -80,13 +93,12 @@ function reducer(state, action) {
       
       if (item.qty > 1 && extras.length > 0) {
         const originalItem = { ...item, qty: item.qty - 1 };
-        const extrasCost = extras.reduce((sum, e) => sum + e.price, 0);
         const newItem = { 
           ...item, 
           id: `item-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, 
           qty: 1, 
           extras, 
-          price: item.basePrice + extrasCost 
+          price: calculateItemPrice(item.basePrice, item.size, extras) 
         };
         const newItems = [...state.currentOrder.items];
         newItems.splice(itemIndex, 1, originalItem, newItem);
@@ -94,8 +106,7 @@ function reducer(state, action) {
       } else {
         const items = state.currentOrder.items.map(i => {
           if (i.id !== id) return i;
-          const extrasCost = extras.reduce((sum, e) => sum + e.price, 0);
-          return { ...i, extras, price: i.basePrice + extrasCost };
+          return { ...i, extras, price: calculateItemPrice(i.basePrice, i.size, extras) };
         });
         return { ...state, currentOrder: { ...state.currentOrder, items } };
       }
@@ -250,6 +261,28 @@ export function AppProvider({ children }) {
   const addStaff = useCallback((member) => dispatch({ type: 'ADD_STAFF', payload: member }), []);
   const deleteStaff = useCallback((id) => dispatch({ type: 'DELETE_STAFF', payload: { id } }), []);
 
+  const [exchangeRate, setExchangeRate] = useState(0);
+
+  // Fetch exchange rate on mount
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const res = await fetch('https://api.now.com.ve/price-rate-bcv');
+        const data = await res.json();
+        if (data && data.PriceRateBCV) {
+          setExchangeRate(data.PriceRateBCV);
+        }
+      } catch (error) {
+        console.error('Error fetching exchange rate', error);
+      }
+    };
+    fetchRate();
+  }, []);
+
+  const updateExchangeRate = useCallback((rate) => {
+    setExchangeRate(parseFloat(rate));
+  }, []);
+
   const login = useCallback((email) => {
     const user = state.staff.find(s => s.email.toLowerCase() === email.toLowerCase());
     if (user) {
@@ -273,6 +306,7 @@ export function AppProvider({ children }) {
       addProduct, updateProduct, deleteProduct,
       addBranch, deleteBranch, addStaff, deleteStaff,
       login, logout,
+      exchangeRate, updateExchangeRate,
     }}>
       {children}
     </AppContext.Provider>

@@ -31,6 +31,11 @@ export const PRODUCTS = {
     { id: 'i5', category: 'icecream', name: 'Milkshake Fresa', price: 5.00, description: 'Batido cremoso de fresa natural', sizes: [], emoji: '🍓', available: true },
     { id: 'i6', category: 'icecream', name: 'Milkshake Oreo', price: 5.50, description: 'Batido con galleta Oreo triturada', sizes: [], emoji: '🖤', available: true },
   ],
+  combos: [
+    { id: 'c1', category: 'combos', name: 'Combo Pareja', price: 18.00, description: '1 Pizza Mediana + 2 Bebidas', sizes: [], emoji: '💑', image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?q=80&w=400&auto=format&fit=crop', available: true },
+    { id: 'c2', category: 'combos', name: 'Combo Familiar', price: 28.00, description: '1 Pizza Familiar + 1 Pizza Personal + Bebida Grande', sizes: [], emoji: '👨‍👩‍👧‍👦', image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?q=80&w=400&auto=format&fit=crop', available: true },
+    { id: 'c3', category: 'combos', name: 'Combo Fiesta', price: 45.00, description: '3 Pizzas Familiares + 2 Bebidas Grandes', sizes: [], emoji: '🎉', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop', available: true },
+  ],
 };
 
 export const EXTRAS = [

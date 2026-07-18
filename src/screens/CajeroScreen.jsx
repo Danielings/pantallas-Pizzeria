@@ -1,49 +1,57 @@
 import { useState } from 'react';
-import ProductCatalog from '../components/cajero/ProductCatalog';
-import OrderPanel from '../components/cajero/OrderPanel';
-import PaymentModal from '../components/cajero/PaymentModal';
-import CrudModal from '../components/cajero/CrudModal';
-import { Settings } from 'lucide-react';
+import MenuGrid from '../components/cajero/MenuGrid';
+import OrderTicket from '../components/cajero/OrderTicket';
+import JobQueue from '../components/cajero/JobQueue';
+import FastCustomerForm from '../components/cajero/FastCustomerForm';
+import CategoryFilter from '../components/cajero/CategoryFilter';
+import CheckoutModal from '../components/cajero/CheckoutModal';
+import ExchangeRateWidget from '../components/cajero/ExchangeRateWidget';
 
-export default function CashierScreen() {
-  const [showPayment, setShowPayment] = useState(false);
-  const [showCrud, setShowCrud] = useState(false);
+export default function CajeroScreen() {
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   return (
-    <div className="flex h-full bg-white">
-      {/* Left: Catalogo */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-pizza-gray-3 bg-white">
-          <div>
-            <h1 className="text-pizza-dark font-bold text-lg leading-tight">Punto de Venta</h1>
-            <p className="text-pizza-muted text-xs">
-              {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
+    <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto w-full h-full">
+      {/* Cabecera y Filtros */}
+      <header className="flex flex-wrap lg:flex-nowrap gap-4 justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100 shrink-0">
+         <div className="flex items-center gap-6">
+           <div>
+             <h1 className="text-2xl font-bold tracking-tight text-slate-800">Punto de Venta</h1>
+             <p className="text-sm text-slate-500 capitalize">
+               {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+             </p>
+           </div>
+           <ExchangeRateWidget />
+         </div>
+         <CategoryFilter selected={selectedCategory} onSelect={setSelectedCategory} />
+      </header>
+
+      <div className="flex flex-1 gap-6 min-h-0 flex-col xl:flex-row">
+        {/* Grilla de Productos y Cola de Trabajos */}
+        <div className="flex-1 flex flex-col gap-6 min-w-0">
+          <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
+            <MenuGrid category={selectedCategory} />
           </div>
-          <button
-            onClick={() => setShowCrud(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-pizza-gray-2 border border-pizza-gray-3 hover:bg-pizza-gray-3 text-pizza-muted hover:text-pizza-dark transition-all text-sm font-medium"
-          >
-            <Settings className="w-4 h-4" />
-            Gestión de Productos
-          </button>
+          
+          <div className="h-64 bg-white rounded-xl shadow-sm border border-slate-100 p-4 shrink-0 flex flex-col overflow-hidden">
+            <h2 className="text-lg font-bold text-slate-800 mb-3 shrink-0">Cola de Trabajos Activos</h2>
+            <div className="flex-1 overflow-x-auto overflow-y-hidden">
+              <JobQueue />
+            </div>
+          </div>
         </div>
 
-        {/* Catalog */}
-        <div className="flex-1 overflow-hidden">
-          <ProductCatalog />
-        </div>
+        {/* Ticket de Orden y Registro de Cliente */}
+        <aside className="w-full xl:w-[400px] bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col shrink-0 overflow-hidden h-[600px] xl:h-auto">
+          <FastCustomerForm />
+          <div className="flex-1 overflow-hidden bg-slate-50 border-t border-slate-100">
+            <OrderTicket onCheckout={() => setShowCheckout(true)} />
+          </div>
+        </aside>
       </div>
 
-      {/* Right: Order panel */}
-      <div className="w-80 xl:w-96 flex-shrink-0">
-        <OrderPanel onPay={() => setShowPayment(true)} />
-      </div>
-
-      {/* Modals */}
-      {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
-      {showCrud && <CrudModal onClose={() => setShowCrud(false)} />}
+      {showCheckout && <CheckoutModal onClose={() => setShowCheckout(false)} />}
     </div>
   );
 }

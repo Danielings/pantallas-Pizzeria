@@ -184,16 +184,16 @@ export default function StaffManagement() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-5 overflow-y-auto h-full bg-white">
+    <div className="flex-1 flex flex-col gap-6 p-6 overflow-y-auto h-full bg-slate-50 hide-scrollbar">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-pizza-dark font-bold text-xl">Personal y Sucursales</h2>
-          <p className="text-pizza-muted text-sm">{branches.length} sucursales · {staff.length} empleados</p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Personal y Sucursales</h2>
+          <p className="text-slate-500 text-sm">{branches.length} sucursales · {staff.length} empleados activos</p>
         </div>
         <button
           onClick={() => setShowAddBranch(s => !s)}
-          className="btn-primary flex items-center gap-2"
+          className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"
         >
           <Plus className="w-4 h-4" /> Nueva Sucursal
         </button>
@@ -201,53 +201,56 @@ export default function StaffManagement() {
 
       {/* Add branch form */}
       {showAddBranch && (
-        <div className="card p-5 border border-pizza-red/30 bg-pizza-gray-2 animate-fade-in">
-          <h3 className="text-pizza-dark font-semibold mb-3 flex items-center gap-2">
+        <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm animate-fade-in flex flex-col gap-4">
+          <h3 className="text-slate-800 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
             <Building2 className="w-4 h-4 text-pizza-red" /> Nueva Sucursal
           </h3>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <input
                 type="text"
                 placeholder="Nombre de la sucursal"
                 value={newBranch.name}
                 onChange={e => { setNewBranch(p => ({ ...p, name: e.target.value })); setBranchError(''); }}
-                className={`input-field ${branchError ? 'border-pizza-red' : ''}`}
+                className={`w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all ${branchError ? 'border-pizza-red' : ''}`}
                 autoFocus
               />
-              {branchError && <p className="text-pizza-red text-xs mt-1">{branchError}</p>}
+              {branchError && <p className="text-pizza-red text-xs mt-1 font-semibold">{branchError}</p>}
             </div>
             <input
               type="text"
               placeholder="Dirección (opcional)"
               value={newBranch.address}
               onChange={e => setNewBranch(p => ({ ...p, address: e.target.value }))}
-              className="input-field flex-1"
+              className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all flex-1"
             />
-            <button onClick={handleAddBranch} className="btn-primary px-5">Crear</button>
-            <button onClick={() => setShowAddBranch(false)} className="btn-secondary px-4">✕</button>
+            <div className="flex gap-2">
+              <button onClick={handleAddBranch} className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex-1">Crear</button>
+              <button onClick={() => setShowAddBranch(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold transition-all">Cancelar</button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Legend */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-2 flex-wrap bg-white border border-slate-100 p-3 rounded-xl shadow-sm">
+        <span className="text-slate-400 text-xs font-bold uppercase tracking-wider flex items-center mr-2">Roles:</span>
         {ROLES.map(r => (
-          <div key={r} className={`badge border ${ROLE_CONFIG[r].color} px-3 py-1`}>
+          <div key={r} className={`border ${ROLE_CONFIG[r].color.replace('bg-','bg-opacity-10 bg-')} border-slate-200 px-3 py-1 rounded-full text-xs font-bold`}>
             {ROLE_CONFIG[r].label}
           </div>
         ))}
       </div>
 
       {/* Branches */}
-      <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {branches.map(branch => (
           <BranchCard key={branch.id} branch={branch} />
         ))}
         {branches.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-pizza-muted gap-2">
+          <div className="xl:col-span-2 flex flex-col items-center justify-center py-20 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 gap-2">
             <Building2 className="w-12 h-12 opacity-20" />
-            <p>No hay sucursales registradas</p>
+            <p className="font-semibold">No hay sucursales registradas</p>
           </div>
         )}
       </div>
