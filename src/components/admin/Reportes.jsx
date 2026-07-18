@@ -152,10 +152,6 @@ export default function SalesReport() {
           <div className="text-pizza-muted text-sm">Ingresos</div>
           <div className="text-pizza-red font-extrabold text-xl">${totalRevenue.toFixed(2)}</div>
         </div>
-        <div className="card px-5 py-3 flex items-center gap-3">
-          <div className="text-pizza-muted text-sm">Ticket Prom.</div>
-          <div className="text-pizza-dark font-extrabold text-xl">${totalCount > 0 ? (totalRevenue / totalCount).toFixed(2) : '0.00'}</div>
-        </div>
       </div>
 
       {/* Table */}

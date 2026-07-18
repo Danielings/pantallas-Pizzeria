@@ -1,7 +1,7 @@
-import KanbanBoard from '../components/kitchen/KanbanBoard';
+import KanbanBoard from '../components/cocinero/KanbanBoard';
 import { useApp } from '../context/AppContext';
 
-export default function KitchenScreen() {
+export default function CocineroScreen() {
   const { orders } = useApp();
   const pending = orders.filter(o => o.status === 'pending').length;
   const preparing = orders.filter(o => o.status === 'preparing').length;

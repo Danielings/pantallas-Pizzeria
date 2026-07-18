@@ -51,6 +51,7 @@ export const BRANCHES = [
 ];
 
 export const STAFF = [
+  { id: 's0', name: 'Admin General', role: 'admin', branchId: 'all', email: 'admin@pizzeria.com' },
   { id: 's1', name: 'Carlos Rodríguez', role: 'cashier', branchId: 'b1', email: 'carlos@pizzeria.com' },
   { id: 's2', name: 'María López', role: 'chef', branchId: 'b1', email: 'maria@pizzeria.com' },
   { id: 's3', name: 'José Martínez', role: 'waiter', branchId: 'b1', email: 'jose@pizzeria.com' },

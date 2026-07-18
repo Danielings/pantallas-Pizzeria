@@ -48,14 +48,6 @@ export default function OrderPanel({ onPay }) {
       {items.length > 0 && (
         <div className="border-t border-pizza-gray-3 p-4 flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between text-sm text-pizza-muted">
-              <span>Subtotal</span>
-              <span className="text-pizza-dark font-semibold">${subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-pizza-muted">
-              <span>IVA (16%)</span>
-              <span className="text-pizza-dark font-semibold">${tax.toFixed(2)}</span>
-            </div>
             <div className="flex justify-between items-center pt-2 border-t border-pizza-gray-3 mt-1">
               <span className="text-pizza-dark font-bold text-base">Total</span>
               <span className="text-pizza-red font-extrabold text-xl">${total.toFixed(2)}</span>

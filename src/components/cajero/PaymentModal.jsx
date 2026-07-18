@@ -185,7 +185,7 @@ export default function PaymentModal({ onClose }) {
               </div>
 
               <button onClick={handleApply} className="btn-primary py-3.5 font-bold text-base">
-                Abonar ${parseFloat(amountInput || 0).toFixed(2)}
+                Pagar ${parseFloat(amountInput || 0).toFixed(2)}
               </button>
             </div>
           )}

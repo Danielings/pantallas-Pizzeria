@@ -4,6 +4,9 @@ import { PRODUCTS, BRANCHES, STAFF, MOCK_SALES, INITIAL_ORDERS, EXTRAS } from '.
 const AppContext = createContext(null);
 
 const initialState = {
+  // Authentication
+  currentUser: null,
+
   // Products (editable via CRUD)
   products: PRODUCTS,
   extras: EXTRAS,
@@ -205,6 +208,12 @@ function reducer(state, action) {
       return { ...state, staff: state.staff.filter(s => s.id !== action.payload.id) };
     }
 
+    // ── AUTHENTICATION ─────────────────────────────────────────
+    case 'LOGIN':
+      return { ...state, currentUser: action.payload };
+    case 'LOGOUT':
+      return { ...state, currentUser: null };
+
     default:
       return state;
   }
@@ -241,6 +250,19 @@ export function AppProvider({ children }) {
   const addStaff = useCallback((member) => dispatch({ type: 'ADD_STAFF', payload: member }), []);
   const deleteStaff = useCallback((id) => dispatch({ type: 'DELETE_STAFF', payload: { id } }), []);
 
+  const login = useCallback((email) => {
+    const user = state.staff.find(s => s.email.toLowerCase() === email.toLowerCase());
+    if (user) {
+      dispatch({ type: 'LOGIN', payload: user });
+      return { success: true, user };
+    }
+    return { success: false, message: 'Usuario no encontrado' };
+  }, [state.staff]);
+
+  const logout = useCallback(() => {
+    dispatch({ type: 'LOGOUT' });
+  }, []);
+
   return (
     <AppContext.Provider value={{
       ...state,
@@ -250,6 +272,7 @@ export function AppProvider({ children }) {
       updateOrderStatus, archiveOrder,
       addProduct, updateProduct, deleteProduct,
       addBranch, deleteBranch, addStaff, deleteStaff,
+      login, logout,
     }}>
       {children}
     </AppContext.Provider>

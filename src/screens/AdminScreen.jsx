@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Dashboard from '../components/admin/Dashboard';
-import SalesReport from '../components/admin/SalesReport';
-import StaffManagement from '../components/admin/StaffManagement';
+import SalesReport from '../components/admin/Reportes';
+import StaffManagement from '../components/admin/Gestion_de_Personal';
 import { LayoutDashboard, Receipt, Users } from 'lucide-react';
 
 const TABS = [

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import ProductCatalog from '../components/cashier/ProductCatalog';
-import OrderPanel from '../components/cashier/OrderPanel';
-import PaymentModal from '../components/cashier/PaymentModal';
-import CrudModal from '../components/cashier/CrudModal';
+import ProductCatalog from '../components/cajero/ProductCatalog';
+import OrderPanel from '../components/cajero/OrderPanel';
+import PaymentModal from '../components/cajero/PaymentModal';
+import CrudModal from '../components/cajero/CrudModal';
 import { Settings } from 'lucide-react';
 
 export default function CashierScreen() {
@@ -11,7 +11,7 @@ export default function CashierScreen() {
 
   return (
     <div className="flex h-full bg-white">
-      {/* Left: Catalog */}
+      {/* Left: Catalogo */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-pizza-gray-3 bg-white">
