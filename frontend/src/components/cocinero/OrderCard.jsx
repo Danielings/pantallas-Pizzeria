@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { useApp } from "../../context/AppContext";
-import { Clock, ChefHat, CheckCheck, Archive } from "lucide-react";
+import { Clock } from "lucide-react";
 
 function useTimer(createdAt) {
   const [elapsed, setElapsed] = useState("");
@@ -22,63 +21,100 @@ function useTimer(createdAt) {
   return elapsed;
 }
 
+// Estilos base por status (cuando no se pasa variant)
 const STATUS_CONFIG = {
   pending: {
     border: "border-l-status-pending",
-    badge:
-      "bg-status-pending/20 text-status-pending border border-status-pending/30",
+    badge: "bg-status-pending/20 text-status-pending border border-status-pending/30",
     dot: "bg-status-pending animate-pulse",
-    label: "Por Preparar",
-    btnLabel: "Preparar",
-    btnNext: "preparing",
-    btnClass: "bg-status-pending hover:bg-red-600 text-white",
-    icon: ChefHat,
+    primaryBtn: "bg-status-pending hover:bg-red-600 text-white",
   },
   preparing: {
     border: "border-l-status-preparing",
-    badge:
-      "bg-status-preparing/20 text-status-preparing border border-status-preparing/30",
+    badge: "bg-status-preparing/20 text-status-preparing border border-status-preparing/30",
     dot: "bg-status-preparing animate-pulse",
-    label: "En Preparación",
-    btnLabel: "✓ Listo",
-    btnNext: "ready",
-    btnClass: "bg-status-preparing hover:bg-amber-500 text-white",
-    icon: Clock,
+    primaryBtn: "bg-status-preparing hover:bg-amber-500 text-white",
   },
   ready: {
     border: "border-l-status-ready",
     badge: "bg-status-ready/20 text-status-ready border border-status-ready/30",
     dot: "bg-status-ready",
-    label: "Completado",
-    btnLabel: "Completado",
-    btnNext: "archive",
-    btnClass: "bg-status-ready hover:bg-emerald-500 text-white",
-    icon: CheckCheck,
+    primaryBtn: "bg-status-ready hover:bg-emerald-500 text-white",
+  },
+  delivered: {
+    border: "border-l-emerald-600",
+    badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    dot: "bg-emerald-600",
+    primaryBtn: "bg-emerald-600 hover:bg-emerald-700 text-white",
   },
 };
 
-export function OrderCard({ order }) {
-  const { updateOrderStatus, archiveOrder } = useApp();
-  const elapsed = useTimer(order.createdAt);
-  const cfg = STATUS_CONFIG[order.status];
-  const Icon = cfg.icon;
+// Estilos temáticos por variante de columna
+const VARIANT_CONFIG = {
+  yellow: {
+    border: "border-l-amber-400",
+    badge: "bg-amber-100 text-amber-700 border border-amber-200",
+    dot: "bg-amber-400 animate-pulse",
+    primaryBtn: "bg-amber-400 hover:bg-amber-500 text-white",
+    secondaryBtn: "",
+  },
+  orange: {
+    border: "border-l-orange-400",
+    badge: "bg-orange-100 text-orange-700 border border-orange-200",
+    dot: "bg-orange-400 animate-pulse",
+    primaryBtn: "bg-orange-500 hover:bg-orange-600 text-white",
+    secondaryBtn: "",
+  },
+  green: {
+    border: "border-l-emerald-500",
+    badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    dot: "bg-emerald-500",
+    primaryBtn: "bg-emerald-500 hover:bg-emerald-600 text-white",
+    secondaryBtn:
+      "bg-white border border-orange-400 text-orange-600 hover:bg-orange-50",
+  },
+};
 
-  const handleAction = () => {
-    if (cfg.btnNext === "archive") {
-      archiveOrder(order.id);
-    } else {
-      updateOrderStatus(order.id, cfg.btnNext);
-    }
-  };
+/**
+ * OrderCard — componente reutilizable para el flujo de cocina/despacho.
+ *
+ * Props:
+ *  - order          : objeto de pedido
+ *  - isFirst        : bool — si false, el botón primario queda deshabilitado (lógica secuencial)
+ *  - variant        : 'yellow' | 'orange' | 'green' | null  — tema de color de la columna
+ *  - primaryBtnLabel: texto del botón principal
+ *  - onPrimary      : handler del botón principal
+ *  - secondaryBtnLabel: texto del botón secundario (opcional)
+ *  - onSecondary    : handler del botón secundario (opcional)
+ */
+export function OrderCard({
+  order,
+  isFirst = true,
+  variant = null,
+  primaryBtnLabel,
+  onPrimary,
+  secondaryBtnLabel,
+  onSecondary,
+}) {
+  const elapsed = useTimer(order.createdAt);
+
+  const statusCfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+  const variantCfg = variant ? VARIANT_CONFIG[variant] : null;
+
+  const borderClass = variantCfg ? variantCfg.border : statusCfg.border;
+  const badgeClass  = variantCfg ? variantCfg.badge  : statusCfg.badge;
+  const dotClass    = variantCfg ? variantCfg.dot    : statusCfg.dot;
+  const primaryBtnClass   = variantCfg ? variantCfg.primaryBtn   : statusCfg.primaryBtn;
+  const secondaryBtnClass = variantCfg ? variantCfg.secondaryBtn : "";
 
   return (
     <div
-      className={`bg-white rounded-xl border border-pizza-gray-3 border-l-4 ${cfg.border} p-4 flex flex-col gap-3 animate-card-move shadow-card`}
+      className={`bg-white rounded-xl border border-pizza-gray-3 border-l-4 ${borderClass} p-4 flex flex-col gap-3 animate-card-move shadow-card`}
     >
-      {/* Header */}
+      {/* Header: ID + timer */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
+          <div className={`w-2.5 h-2.5 rounded-full ${dotClass}`} />
           <span className="text-pizza-dark font-bold text-sm">{order.id}</span>
         </div>
         <div className="flex items-center gap-1.5 text-pizza-muted">
@@ -87,7 +123,7 @@ export function OrderCard({ order }) {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Mesa / tipo de orden */}
       {order.table && (
         <div className="text-pizza-muted text-xs">{order.table}</div>
       )}
@@ -115,7 +151,11 @@ export function OrderCard({ order }) {
                   {item.extras.map((e) => (
                     <span
                       key={e.id}
-                      className={`${e.isNew ? "text-yellow-700 bg-yellow-50 px-1 rounded-sm" : "text-pizza-red"} mr-1`}
+                      className={`${
+                        e.isNew
+                          ? "text-yellow-700 bg-yellow-50 px-1 rounded-sm"
+                          : "text-pizza-red"
+                      } mr-1`}
                     >
                       {e.name}
                     </span>
@@ -130,21 +170,31 @@ export function OrderCard({ order }) {
         ))}
       </div>
 
-      {/* Total */}
-      <div className="flex justify-between items-center text-xs text-pizza-muted pt-1 border-t border-pizza-gray-3">
-        <span>{order.items.reduce((s, i) => s + i.qty, 0)} artículos</span>
-        <span className="text-pizza-dark font-semibold">
-          ${order.total.toFixed(2)}
-        </span>
-      </div>
+      {/* Botones de acción */}
+      <div className="flex flex-col gap-2">
+        {/* Botón secundario (opcional, ej: "Pendiente" en columna Despacho) */}
+        {secondaryBtnLabel && onSecondary && (
+          <button
+            onClick={onSecondary}
+            className={`w-full py-2 rounded-lg font-bold text-sm transition-all duration-200 active:scale-95 ${secondaryBtnClass}`}
+          >
+            {secondaryBtnLabel}
+          </button>
+        )}
 
-      {/* Action button */}
-      <button
-        onClick={handleAction}
-        className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-200 active:scale-95 ${cfg.btnClass}`}
-      >
-        {cfg.btnLabel}
-      </button>
+        {/* Botón primario — deshabilitado si no es el primero en la cola */}
+        {primaryBtnLabel && onPrimary && (
+          <button
+            onClick={onPrimary}
+            disabled={!isFirst}
+            className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-200 active:scale-95 ${primaryBtnClass} ${
+              !isFirst ? "opacity-40 cursor-not-allowed" : ""
+            }`}
+          >
+            {primaryBtnLabel}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

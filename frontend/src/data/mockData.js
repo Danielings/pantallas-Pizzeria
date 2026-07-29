@@ -303,69 +303,15 @@ export const BRANCHES = [
 ];
 
 export const STAFF = [
-  {
-    id: "s0",
-    name: "Admin General",
-    role: "admin",
-    branchId: "all",
-    email: "admin@pizzeria.com",
-  },
-  {
-    id: "s1",
-    name: "Carlos Rodríguez",
-    role: "cashier",
-    branchId: "b1",
-    email: "carlos@pizzeria.com",
-  },
-  {
-    id: "s2",
-    name: "María López",
-    role: "chef",
-    branchId: "b1",
-    email: "maria@pizzeria.com",
-  },
-  {
-    id: "s3",
-    name: "José Martínez",
-    role: "waiter",
-    branchId: "b1",
-    email: "jose@pizzeria.com",
-  },
-  {
-    id: "s4",
-    name: "Ana García",
-    role: "cashier",
-    branchId: "b2",
-    email: "ana@pizzeria.com",
-  },
-  {
-    id: "s5",
-    name: "Luis Hernández",
-    role: "chef",
-    branchId: "b2",
-    email: "luis@pizzeria.com",
-  },
-  {
-    id: "s6",
-    name: "Sofia Torres",
-    role: "waiter",
-    branchId: "b2",
-    email: "sofia@pizzeria.com",
-  },
-  {
-    id: "s7",
-    name: "Pedro Sánchez",
-    role: "chef",
-    branchId: "b3",
-    email: "pedro@pizzeria.com",
-  },
-  {
-    id: "s8",
-    name: "Laura Jiménez",
-    role: "cashier",
-    branchId: "b3",
-    email: "laura@pizzeria.com",
-  },
+  { id: 's0', name: 'Admin General', role: 'admin', branchId: 'all', email: 'admin@pizzeria.com' },
+  { id: 's1', name: 'Carlos Rodríguez', role: 'cashier', branchId: 'b1', email: 'carlos@pizzeria.com' },
+  { id: 's2', name: 'María López', role: 'chef', branchId: 'b1', email: 'maria@pizzeria.com' },
+  { id: 's3', name: 'José Martínez', role: 'waiter', branchId: 'b1', email: 'jose@pizzeria.com' },
+  { id: 's4', name: 'Ana García', role: 'cashier', branchId: 'b2', email: 'ana@pizzeria.com' },
+  { id: 's5', name: 'Luis Hernández', role: 'chef', branchId: 'b2', email: 'luis@pizzeria.com' },
+  { id: 's6', name: 'Sofia Torres', role: 'waiter', branchId: 'b2', email: 'sofia@pizzeria.com' },
+  { id: 's7', name: 'Pedro Sánchez', role: 'chef', branchId: 'b3', email: 'pedro@pizzeria.com' },
+  { id: 's8', name: 'Laura Jiménez', role: 'despachador', branchId: 'b3', email: 'laura@pizzeria.com' },
 ];
 
 // Generate realistic mock sales for the past 30 days
