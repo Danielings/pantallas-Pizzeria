@@ -3,12 +3,12 @@ import { X, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import PaymentEntryModal from "./PaymentEntryModal";
 
-const SIZE_OPTIONS = ["Personal", "Mediana", "Familiar"];
+const SIZE_OPTIONS = ["Normal", "Familiar", "Gigante"];
 
 const calculateItemPrice = (basePrice, size, extras = []) => {
   let multiplier = 1;
-  if (size === "Mediana") multiplier = 1.3;
-  if (size === "Familiar") multiplier = 1.6;
+  if (size === "Familiar") multiplier = 1.3;
+  if (size === "Gigante") multiplier = 1.6;
   const extrasCost = extras.reduce((sum, e) => sum + e.price, 0);
   return basePrice * multiplier + extrasCost;
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { Minus, Plus, Trash2, ChevronDown, Edit3 } from "lucide-react";
 
-const SIZE_OPTIONS = ["Personal", "Mediana", "Familiar"];
+const SIZE_OPTIONS = ["Normal", "Familiar", "Gigante"];
 
 function ExtrasModal({ item, extras, onClose, onSave }) {
   const [selected, setSelected] = useState(item.extras.map((e) => e.id));
