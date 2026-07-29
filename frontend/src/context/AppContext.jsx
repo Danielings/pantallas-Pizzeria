@@ -29,6 +29,11 @@ const initialState = {
   currentOrder: {
     items: [],
     payments: [],
+    orderType: null,      // 'local' | 'takeaway' | 'delivery' | 'pickup'
+    paymentStatus: null,  // 'paid' | 'partial' | 'pending'  (only for delivery/pickup)
+    advanceAmount: 0,     // monto abonado si paymentStatus === 'partial'
+    customer: null,       // { id?, name, cedula, phone? }
+    phoneLastDigits: '',  // últimos 4 dígitos del teléfono (delivery)
   },
 
   // Kitchen orders
@@ -198,7 +203,22 @@ function reducer(state, action) {
     }
 
     case "CLEAR_CART":
-      return { ...state, currentOrder: { items: [], payments: [] } };
+      return { ...state, currentOrder: { items: [], payments: [], orderType: null, paymentStatus: null, advanceAmount: 0, customer: null, phoneLastDigits: '' } };
+
+    case "SET_ORDER_TYPE": {
+      const { orderType, paymentStatus, advanceAmount, customer, phoneLastDigits } = action.payload;
+      return {
+        ...state,
+        currentOrder: {
+          ...state.currentOrder,
+          orderType,
+          paymentStatus: paymentStatus || null,
+          advanceAmount: advanceAmount || 0,
+          customer: customer || null,
+          phoneLastDigits: phoneLastDigits || '',
+        },
+      };
+    }
 
     // ── PAYMENT ───────────────────────────────────────────────
     case "ADD_PAYMENT": {
@@ -359,13 +379,13 @@ function reducer(state, action) {
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // Cart totals
+  // Cart totals — sin IVA
   const subtotal = state.currentOrder.items.reduce(
     (sum, i) => sum + i.price * i.qty,
     0,
   );
-  const tax = subtotal * TAX_RATE;
-  const total = subtotal + tax;
+  const tax = 0; // IVA eliminado
+  const total = subtotal; // total = subtotal, sin impuestos
   const amountPaid = state.currentOrder.payments.reduce(
     (sum, p) => sum + p.amount,
     0,
@@ -399,6 +419,11 @@ export function AppProvider({ children }) {
     [],
   );
   const clearCart = useCallback(() => dispatch({ type: "CLEAR_CART" }), []);
+  const setOrderType = useCallback(
+    (orderType, paymentStatus, advanceAmount) =>
+      dispatch({ type: "SET_ORDER_TYPE", payload: { orderType, paymentStatus, advanceAmount } }),
+    [],
+  );
   const addPayment = useCallback(
     (payment) => dispatch({ type: "ADD_PAYMENT", payload: payment }),
     [],
@@ -517,6 +542,7 @@ export function AppProvider({ children }) {
         updateItemNote,
         removeItem,
         clearCart,
+        setOrderType,
         addPayment,
         confirmSale,
         updateOrderStatus,
