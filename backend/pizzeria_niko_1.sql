@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 29-07-2026 a las 17:32:03
+-- Tiempo de generación: 29-07-2026 a las 18:13:06
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -44,6 +44,15 @@ CREATE TABLE `categoria_pizza` (
   `id_categoria_pizza` int(11) NOT NULL,
   `categoria` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+--
+-- Volcado de datos para la tabla `categoria_pizza`
+--
+
+INSERT INTO `categoria_pizza` (`id_categoria_pizza`, `categoria`) VALUES
+(1, 'Normal'),
+(2, 'Familiar'),
+(3, 'Gigante');
 
 -- --------------------------------------------------------
 
@@ -123,6 +132,13 @@ CREATE TABLE `pizza` (
   `id_categoria_pizza` int(11) NOT NULL,
   `estado` enum('Activo','Inactivo') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+--
+-- Volcado de datos para la tabla `pizza`
+--
+
+INSERT INTO `pizza` (`id_pizza`, `nombre`, `precio`, `descripcion`, `id_categoria_pizza`, `estado`) VALUES
+(3, 'Pepe', 3, 'Quesito', 2, 'Activo');
 
 -- --------------------------------------------------------
 
@@ -308,7 +324,7 @@ ALTER TABLE `bebidas`
 -- AUTO_INCREMENT de la tabla `categoria_pizza`
 --
 ALTER TABLE `categoria_pizza`
-  MODIFY `id_categoria_pizza` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_categoria_pizza` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `clientes`
@@ -344,7 +360,7 @@ ALTER TABLE `heladeria`
 -- AUTO_INCREMENT de la tabla `pizza`
 --
 ALTER TABLE `pizza`
-  MODIFY `id_pizza` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_pizza` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `sucursal`
