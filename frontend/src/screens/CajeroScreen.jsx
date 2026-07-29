@@ -2,7 +2,6 @@ import { useState } from 'react';
 import MenuGrid from '../components/cajero/MenuGrid';
 import OrderTicket from '../components/cajero/OrderTicket';
 import JobQueue from '../components/cajero/JobQueue';
-import FastCustomerForm from '../components/cajero/FastCustomerForm';
 import CategoryFilter from '../components/cajero/CategoryFilter';
 import CheckoutModal from '../components/cajero/CheckoutModal';
 import ExchangeRateWidget from '../components/cajero/ExchangeRateWidget';
@@ -25,7 +24,7 @@ export default function CajeroScreen() {
            <ExchangeRateWidget />
          </div>
          <CategoryFilter selected={selectedCategory} onSelect={setSelectedCategory} />
-      </header>
+       </header>
 
       <div className="flex flex-1 gap-6 min-h-0 flex-col xl:flex-row">
         {/* Grilla de Productos y Cola de Trabajos */}
@@ -42,10 +41,9 @@ export default function CajeroScreen() {
           </div>
         </div>
 
-        {/* Ticket de Orden y Registro de Cliente */}
+        {/* Ticket de Orden */}
         <aside className="w-full xl:w-[400px] bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col shrink-0 overflow-hidden h-[600px] xl:h-auto">
-          <FastCustomerForm />
-          <div className="flex-1 overflow-hidden bg-slate-50 border-t border-slate-100">
+          <div className="flex-1 overflow-hidden bg-slate-50">
             <OrderTicket onCheckout={() => setShowCheckout(true)} />
           </div>
         </aside>

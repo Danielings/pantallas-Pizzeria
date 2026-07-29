@@ -1,11 +1,38 @@
 import { useApp } from "../../context/AppContext";
 import { Plus } from "lucide-react";
 import CrudModal from "./CrudModal";
+import OrderTypeModal from "./OrderTypeModal";
 import { useState } from "react";
 
 export default function MenuGrid({ category }) {
-  const { products, addToCart } = useApp();
+  const { products, addToCart, currentOrder } = useApp();
   const [showCrud, setShowCrud] = useState(false);
+  const [showOrderTypeModal, setShowOrderTypeModal] = useState(false);
+  const [pendingProduct, setPendingProduct] = useState(null); // { product, size }
+
+  const handleAddToCart = (product, size) => {
+    // Si el carrito está vacío y aún no se eligió tipo de pedido, interceptar
+    if (currentOrder.items.length === 0 && !currentOrder.orderType) {
+      setPendingProduct({ product, size });
+      setShowOrderTypeModal(true);
+    } else {
+      addToCart(product, size);
+    }
+  };
+
+  const handleOrderTypeConfirmed = () => {
+    setShowOrderTypeModal(false);
+    if (pendingProduct) {
+      addToCart(pendingProduct.product, pendingProduct.size);
+      setPendingProduct(null);
+    }
+  };
+
+  const handleOrderTypeClose = () => {
+    setShowOrderTypeModal(false);
+    setPendingProduct(null);
+  };
+
 
   // Mapear categorías de filtro a productos reales
   let displayedProducts = [];
@@ -51,7 +78,7 @@ export default function MenuGrid({ category }) {
           <div
             key={product.id}
             className="bg-white border border-slate-100 rounded-xl overflow-hidden hover:shadow-pizza hover:border-pizza-red/30 transition-all cursor-pointer group flex flex-col"
-            onClick={() => addToCart(product, product.sizes?.[0])}
+            onClick={() => handleAddToCart(product, product.sizes?.[0])}
           >
             {product.image ? (
               <div className="h-32 w-full shrink-0 overflow-hidden bg-slate-50 relative">
@@ -93,6 +120,12 @@ export default function MenuGrid({ category }) {
         ))}
       </div>
       {showCrud && <CrudModal onClose={() => setShowCrud(false)} />}
+      {showOrderTypeModal && (
+        <OrderTypeModal
+          onConfirm={handleOrderTypeConfirmed}
+          onClose={handleOrderTypeClose}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import MenuGrid from '../components/cajero/MenuGrid';
 import OrderTicket from '../components/cajero/OrderTicket';
-import FastCustomerForm from '../components/cajero/FastCustomerForm';
 import CategoryFilter from '../components/cajero/CategoryFilter';
 import CheckoutModal from '../components/cajero/CheckoutModal';
 import ExchangeRateWidget from '../components/cajero/ExchangeRateWidget';
@@ -33,10 +32,9 @@ export default function NuevaOrdenScreen() {
           <MenuGrid category={selectedCategory} />
         </div>
 
-        {/* Panel Lateral: Cliente + Ticket */}
+        {/* Panel Lateral: Ticket */}
         <aside className="w-full xl:w-[380px] bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col shrink-0 overflow-hidden">
-          <FastCustomerForm />
-          <div className="flex-1 overflow-hidden flex flex-col min-h-0 border-t border-slate-100 bg-slate-50">
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-slate-50">
             <OrderTicket onCheckout={() => setShowCheckout(true)} />
           </div>
         </aside>

@@ -40,18 +40,33 @@ const PAYMENT_METHODS = [
 export default function CheckoutModal({ onClose }) {
   const { total, currentOrder, confirmSale, exchangeRate } = useApp();
 
+  // Leer tipo de pedido y abono del contexto (seleccionados en OrderTypeModal)
+  const ctxOrderType = currentOrder.orderType;
+  const ctxPaymentStatus = currentOrder.paymentStatus;
+  const ctxAdvanceAmount = currentOrder.advanceAmount || 0;
+
   const ORDER_TYPE_LABELS = {
-    dine_in: "Local",
-    takeaway: "Llevar",
+    local:    "Local",
+    takeaway: "Para Llevar",
+    delivery: "Delivery",
+    pickup:   "Pickup",
+    // backward compat
+    dine_in:      "Local",
     delivery_call: "Delivery (Llamada)",
-    delivery_ws: "Delivery (WhatsApp)",
+    delivery_ws:   "Delivery (WhatsApp)",
   };
+
+  // Si ya hay un abono previo, precargarlo como pago inicial
+  const initialPayments =
+    ctxPaymentStatus === 'partial' && ctxAdvanceAmount > 0
+      ? [{ method: 'advance', label: 'Abono previo', amount: ctxAdvanceAmount }]
+      : [];
 
   // internal payments array to allow splits
   const [step, setStep] = useState(1); // 1 = select/orderType & methods, 2 = preview/confirmed
-  const [orderType, setOrderType] = useState(null);
+  const [orderType, setOrderType] = useState(ctxOrderType || null);
   const [selectedMethod, setSelectedMethod] = useState(null);
-  const [paymentsInternal, setPaymentsInternal] = useState([]);
+  const [paymentsInternal, setPaymentsInternal] = useState(initialPayments);
   const [currency, setCurrency] = useState("Bs");
   const [overrideTotalEnabled, setOverrideTotalEnabled] = useState(false);
   const [overrideTotal, setOverrideTotal] = useState("");
