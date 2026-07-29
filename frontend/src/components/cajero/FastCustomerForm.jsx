@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UserPlus, Search } from "lucide-react";
+import { UserPlus, Search, ChevronDown } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 
 const MOCK_CUSTOMERS = [
@@ -57,6 +57,7 @@ export default function FastCustomerForm() {
   const [saved, setSaved] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [customers, setCustomers] = useState(MOCK_CUSTOMERS);
+  const [isOpen, setIsOpen] = useState(true);
 
   const handleSearch = () => {
     if (!cedula) return;
@@ -106,6 +107,15 @@ export default function FastCustomerForm() {
           <UserPlus className="w-4 h-4 text-pizza-red" />
           Registro Express
         </h2>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="text-slate-500 hover:text-slate-700"
+        >
+          <ChevronDown
+            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          />
+        </button>
         {saved && (
           <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
             ¡Guardado!
@@ -113,56 +123,58 @@ export default function FastCustomerForm() {
         )}
       </div>
 
-      <form onSubmit={handleSave} className="flex flex-col gap-2">
-        {/* Fila 1: Buscador */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Cédula"
-              value={cedula}
-              onChange={(e) => setCedula(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red"
-            />
+      {isOpen && (
+        <form onSubmit={handleSave} className="flex flex-col gap-2">
+          {/* Fila 1: Buscador */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cédula"
+                value={cedula}
+                onChange={(e) => setCedula(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 text-sm rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md text-sm font-medium transition-colors"
+            >
+              Buscar
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleSearch}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md text-sm font-medium transition-colors"
-          >
-            Buscar
-          </button>
-        </div>
 
-        {/* Fila 2: Nombre */}
-        <input
-          type="text"
-          placeholder="Nombre Completo"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          className="w-full bg-slate-50 border border-slate-200 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red"
-          required
-        />
-
-        {/* Fila 3: Teléfono y botón Fijar */}
-        <div className="flex gap-2">
+          {/* Fila 2: Nombre */}
           <input
-            type="tel"
-            placeholder="Teléfono"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            className="flex-1 bg-slate-50 border border-slate-200 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red"
+            type="text"
+            placeholder="Nombre Completo"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red"
             required
           />
-          <button
-            type="submit"
-            className="bg-slate-800 hover:bg-slate-900 text-white px-4 rounded-lg text-sm font-bold transition-colors"
-          >
-            {isEditing ? "Actualizar" : "Guardar"}
-          </button>
-        </div>
-      </form>
+
+          {/* Fila 3: Teléfono y botón Fijar */}
+          <div className="flex gap-2">
+            <input
+              type="tel"
+              placeholder="Teléfono"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              className="flex-1 bg-slate-50 border border-slate-200 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red"
+              required
+            />
+            <button
+              type="submit"
+              className="bg-slate-800 hover:bg-slate-900 text-white px-4 rounded-lg text-sm font-bold transition-colors"
+            >
+              {isEditing ? "Actualizar" : "Guardar"}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
