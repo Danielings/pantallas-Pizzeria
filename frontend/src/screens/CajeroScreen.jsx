@@ -9,7 +9,7 @@ import ExchangeRateWidget from '../components/cajero/ExchangeRateWidget';
 
 export default function CajeroScreen() {
   const [showCheckout, setShowCheckout] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('tradicionales');
 
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto w-full h-full">

@@ -5,7 +5,6 @@ import CrudModal from "./CrudModal";
 export default function CategoryFilter({ selected, onSelect }) {
   const [show, setShow] = useState(false);
   const categories = [
-    { id: "all", name: "Todo", icon: null },
     {
       id: "tradicionales",
       name: "Tradicionales",
