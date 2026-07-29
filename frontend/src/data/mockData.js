@@ -64,7 +64,7 @@ export const STAFF = [
   { id: 's5', name: 'Luis Hernández', role: 'chef', branchId: 'b2', email: 'luis@pizzeria.com' },
   { id: 's6', name: 'Sofia Torres', role: 'waiter', branchId: 'b2', email: 'sofia@pizzeria.com' },
   { id: 's7', name: 'Pedro Sánchez', role: 'chef', branchId: 'b3', email: 'pedro@pizzeria.com' },
-  { id: 's8', name: 'Laura Jiménez', role: 'cashier', branchId: 'b3', email: 'laura@pizzeria.com' },
+  { id: 's8', name: 'Laura Jiménez', role: 'despachador', branchId: 'b3', email: 'laura@pizzeria.com' },
 ];
 
 // Generate realistic mock sales for the past 30 days
