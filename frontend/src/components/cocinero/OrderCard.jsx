@@ -75,6 +75,37 @@ const VARIANT_CONFIG = {
   },
 };
 
+// Mapeo principal: orderType técnico → etiqueta
+const ORDER_TYPE_LABELS = {
+  dine_in: "Local",
+  takeaway: "Para llevar",
+  delivery_call: "Delivery",
+  delivery_ws: "Delivery",
+  pickup: "Pickup",
+};
+
+// Mapeo de respaldo: order.table → etiqueta (para datos legacy)
+const TABLE_TO_LABEL = {
+  Mesa: "Local",
+  Llevar: "Para llevar",
+  Delivery: "Delivery",
+};
+
+// Helper que busca primero en orderType, luego en table
+const getOrderTypeLabel = (order) => {
+  // 1. orderType técnico (caso ideal: pedidos nuevos)
+  if (ORDER_TYPE_LABELS[order.orderType]) {
+    return ORDER_TYPE_LABELS[order.orderType];
+  }
+  // 2. Fallback desde order.table (caso: mock data sin orderType)
+  if (order.table) {
+    if (order.table.startsWith("Mesa")) return "Local";
+    if (order.table === "Llevar") return "Para llevar";
+    if (order.table === "Delivery") return "Delivery";
+  }
+  return null;
+};
+
 /**
  * OrderCard — componente reutilizable para el flujo de cocina/despacho.
  *
@@ -123,10 +154,22 @@ export function OrderCard({
         </div>
       </div>
 
-      {/* Mesa / tipo de orden */}
-      {order.table && (
-        <div className="text-pizza-muted text-xs">{order.table}</div>
+      {/* Etiqueta de Reasignación */}
+      {order.reassigned && (
+        <div className="bg-red-50 text-red-700 text-xs font-bold px-2.5 py-1 rounded-md border border-red-200 w-max shadow-sm animate-pulse">
+          ⚠️ Pedido Reasignado
+        </div>
       )}
+
+      {/* Mesa / tipo de orden */}
+      {getOrderTypeLabel(order) && (
+      <div className="text-pizza-muted text-xs font-semibold">
+      {getOrderTypeLabel(order)}
+      </div>
+      )}
+      {/* {order.table && (
+        <div className="text-pizza-muted text-xs">{order.table}</div>
+      )} */}
 
       {/* Items */}
       <div className="flex flex-col gap-1.5">
