@@ -7,22 +7,22 @@ import { useState } from 'react';
  */
 function Column({ title, icon, countClass, orders, renderCard }) {
   return (
-    <div className="flex flex-col flex-1 min-w-0 h-full">
+    <div className="flex flex-col flex-1 min-w-0 h-[500px] lg:h-full border-b lg:border-b-0 border-pizza-gray-3">
       {/* Encabezado */}
-      <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-pizza-gray-3 bg-white sticky top-0 z-10">
-        <span className="text-base">{icon}</span>
-        <h2 className="text-pizza-dark font-bold flex-1">{title}</h2>
-        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${countClass}`}>
+      <div className="flex items-center gap-2.5 px-4 lg:px-6 py-3.5 border-b border-pizza-gray-3 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
+        <span className="text-lg 3xl:text-xl">{icon}</span>
+        <h2 className="text-pizza-dark font-bold text-base 3xl:text-lg flex-1">{title}</h2>
+        <span className={`px-2.5 py-1 rounded-full text-xs 3xl:text-sm font-bold ${countClass}`}>
           {orders.length}
         </span>
       </div>
 
       {/* Cards */}
-      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto p-3 lg:p-4 3xl:p-6 flex flex-col gap-3 lg:gap-4 3xl:gap-6 custom-scrollbar">
         {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-pizza-muted gap-2">
-            <span className="text-3xl opacity-30">{icon}</span>
-            <p className="text-sm opacity-60">Sin pedidos</p>
+          <div className="flex flex-col items-center justify-center h-full min-h-[150px] text-pizza-muted gap-2">
+            <span className="text-4xl opacity-30">{icon}</span>
+            <p className="text-sm 3xl:text-base opacity-60">Sin pedidos</p>
           </div>
         ) : (
           orders.map((order, idx) => renderCard(order, idx))
@@ -79,7 +79,7 @@ export default function DespachoBoard() {
     const isSwapping = orderToSwap !== null;
 
   return (
-    <div className="flex h-full divide-x divide-pizza-gray-3">
+    <div className="flex flex-col lg:flex-row h-full lg:divide-x divide-pizza-gray-3 overflow-y-auto lg:overflow-hidden bg-pizza-gray-2 lg:bg-transparent">
 
       {/* ── Columna A: Horno (amarillo) — isFirst lógica ── */}
       <Column

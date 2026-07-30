@@ -76,12 +76,14 @@ const VARIANT_CONFIG = {
 };
 
 // Mapeo principal: orderType técnico → etiqueta
-const ORDER_TYPE_LABELS = {
-  dine_in: "Local",
-  takeaway: "Para llevar",
-  delivery_call: "Delivery",
-  delivery_ws: "Delivery",
-  pickup: "Pickup",
+const ORDER_TYPE_CONFIG = {
+  dine_in:        { label: "Local"},
+  local:          { label: "Local"}, // alias
+  takeaway:       { label: "Para llevar"},
+  delivery_call:  { label: "Delivery"},
+  delivery_ws:    { label: "Delivery"},
+  delivery:       { label: "Delivery"}, // alias
+  pickup:         { label: "Pickup"},
 };
 
 // Mapeo de respaldo: order.table → etiqueta (para datos legacy)
@@ -92,16 +94,19 @@ const TABLE_TO_LABEL = {
 };
 
 // Helper que busca primero en orderType, luego en table
-const getOrderTypeLabel = (order) => {
+const getOrderTypeConfig = (order) => {
   // 1. orderType técnico (caso ideal: pedidos nuevos)
-  if (ORDER_TYPE_LABELS[order.orderType]) {
-    return ORDER_TYPE_LABELS[order.orderType];
+  if (order.orderType && ORDER_TYPE_CONFIG[order.orderType]) {
+    return ORDER_TYPE_CONFIG[order.orderType];
   }
-  // 2. Fallback desde order.table (caso: mock data sin orderType)
+  // 2. Fallback desde order.table (mock data / datos legacy)
   if (order.table) {
-    if (order.table.startsWith("Mesa")) return "Local";
-    if (order.table === "Llevar") return "Para llevar";
-    if (order.table === "Delivery") return "Delivery";
+    if (order.table.startsWith("Mesa"))        return ORDER_TYPE_CONFIG.dine_in;
+    if (order.table === "Llevar")              return ORDER_TYPE_CONFIG.takeaway;
+    if (order.table === "Delivery")            return ORDER_TYPE_CONFIG.delivery_call;
+    if (order.table === "POS" || order.table === "Pickup") {
+      return ORDER_TYPE_CONFIG.pickup;
+    }
   }
   return null;
 };
@@ -126,6 +131,7 @@ export function OrderCard({
   onPrimary,
   secondaryBtnLabel,
   onSecondary,
+  itemsFilter = null,
 }) {
   const elapsed = useTimer(order.createdAt);
 
@@ -138,19 +144,23 @@ export function OrderCard({
   const primaryBtnClass   = variantCfg ? variantCfg.primaryBtn   : statusCfg.primaryBtn;
   const secondaryBtnClass = variantCfg ? variantCfg.secondaryBtn : "";
 
+  const visibleItems = itemsFilter && Array.isArray(itemsFilter)
+    ? order.items.filter((it) => it.category && itemsFilter.includes(it.category))
+    : order.items;
+
   return (
     <div
-      className={`bg-white rounded-xl border border-pizza-gray-3 border-l-4 ${borderClass} p-4 flex flex-col gap-3 animate-card-move shadow-card`}
+      className={`bg-white rounded-xl border border-pizza-gray-3 border-l-4 ${borderClass} p-4 3xl:p-6 flex flex-col gap-3 3xl:gap-5 animate-card-move shadow-card`}
     >
       {/* Header: ID + timer */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${dotClass}`} />
-          <span className="text-pizza-dark font-bold text-sm">{order.id}</span>
+          <div className={`w-2.5 h-2.5 3xl:w-3.5 3xl:h-3.5 rounded-full ${dotClass}`} />
+          <span className="text-pizza-dark font-bold text-sm 3xl:text-base">{order.id}</span>
         </div>
         <div className="flex items-center gap-1.5 text-pizza-muted">
-          <Clock className="w-3.5 h-3.5" />
-          <span className="text-xs font-mono font-bold">{elapsed}</span>
+          <Clock className="w-3.5 h-3.5 3xl:w-5 3xl:h-5" />
+          <span className="text-xs 3xl:text-sm font-mono font-bold">{elapsed}</span>
         </div>
       </div>
 
@@ -162,64 +172,83 @@ export function OrderCard({
       )}
 
       {/* Mesa / tipo de orden */}
-      {getOrderTypeLabel(order) && (
-      <div className="text-pizza-muted text-xs font-semibold">
-      {getOrderTypeLabel(order)}
-      </div>
-      )}
+{getOrderTypeConfig(order) && (
+  <div className="flex items-center gap-2 flex-wrap">
+    <div
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-bold w-max`}
+    >
+      <span aria-hidden>{getOrderTypeConfig(order).icon}</span>
+      <span>{getOrderTypeConfig(order).label}</span>
+    </div>
+    {/* Si es Local, mostramos también el # de mesa ("Mesa 4" → "#4") */}
+    {order.table && order.table.startsWith("Mesa ") && (
+      <span className="text-pizza-muted text-xs font-semibold">
+        {order.table.replace(/^Mesa\s+/, "Mesa ")}
+      </span>
+    )}
+  </div>
+)}
       {/* {order.table && (
         <div className="text-pizza-muted text-xs">{order.table}</div>
       )} */}
 
       {/* Items */}
-      <div className="flex flex-col gap-1.5">
-        {order.items.map((item, i) => (
-          <div
-            key={i}
-            className="flex items-start gap-2 bg-pizza-gray-2 border border-pizza-gray-3 rounded-lg px-3 py-2"
-          >
-            <span className="text-pizza-red font-bold text-sm w-5 flex-shrink-0">
-              {item.qty}×
-            </span>
-            <div className="min-w-0">
-              <p className="text-pizza-dark text-sm font-medium leading-tight">
-                {item.name}
-              </p>
-              {item.size && (
-                <p className="text-pizza-muted text-xs">{item.size}</p>
-              )}
-              {item.extras && item.extras.length > 0 && (
-                <p className="text-xs mt-0.5 font-medium">
-                  +{" "}
-                  {item.extras.map((e) => (
-                    <span
-                      key={e.id}
-                      className={`${
-                        e.isNew
-                          ? "text-yellow-700 bg-yellow-50 px-1 rounded-sm"
-                          : "text-pizza-red"
-                      } mr-1`}
-                    >
-                      {e.name}
-                    </span>
-                  ))}
-                </p>
-              )}
-              {item.note && (
-                <p className="text-xs text-slate-600 mt-1">Nota: {item.note}</p>
-              )}
-            </div>
+      <div className="flex flex-col gap-1.5 3xl:gap-2.5">
+                {visibleItems.length === 0 ? (
+          <div className="text-pizza-muted text-xs italic px-2 py-3 text-center border border-dashed border-pizza-gray-3 rounded-lg">
+            {itemsFilter
+              ? "Sin items de cocina en este pedido"
+              : "Pedido sin items"}
           </div>
-        ))}
+        ) : (
+          visibleItems.map((item, i) => (
+            <div
+              key={`${item.category || "x"}-${i}`}
+              className="flex items-start gap-2 bg-pizza-gray-2 border border-pizza-gray-3 rounded-lg px-3 py-2 3xl:px-4 3xl:py-3"
+            >
+              <span className="text-pizza-red font-bold 3xl:text-base text-sm w-5 3xl:w-7 flex-shrink-0">
+                {item.qty}x
+              </span>
+              <div className="min-w-0 flex-1">
+              <p className="text-pizza-dark text-sm 3xl:text-base font-medium leading-tight flex items-center gap-1.5">
+                  <span>{item.name}</span>
+                </p>
+                {item.size && (
+                  <p className="text-pizza-muted text-xs 3xl:text-sm">{item.size}</p>
+                )}
+                {item.extras && item.extras.length > 0 && (
+                  <p className="text-xs mt-0.5 font-medium">
+                    +{" "}
+                    {item.extras.map((e) => (
+                      <span
+                        key={e.id}
+                        className={`${
+                          e.isNew
+                            ? "text-yellow-700 bg-yellow-50 px-1 rounded-sm"
+                            : "text-pizza-red"
+                        } mr-1`}
+                      >
+                        {e.name}
+                      </span>
+                    ))}
+                  </p>
+                )}
+                {item.note && (
+                  <p className="text-xs text-slate-600 mt-1">Nota: {item.note}</p>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Botones de acción */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 3xl:gap-3">
         {/* Botón secundario (opcional, ej: "Pendiente" en columna Despacho) */}
         {secondaryBtnLabel && onSecondary && (
           <button
             onClick={onSecondary}
-            className={`w-full py-2 rounded-lg font-bold text-sm transition-all duration-200 active:scale-95 ${secondaryBtnClass}`}
+            className={`w-full py-2 3xl:py-3.5 rounded-lg font-bold text-sm 3xl:text-base transition-all duration-200 active:scale-95 ${secondaryBtnClass}`}
           >
             {secondaryBtnLabel}
           </button>

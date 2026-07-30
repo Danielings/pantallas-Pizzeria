@@ -6,6 +6,10 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        '3xl': '1920px', // Monitores Full HD grandes / 2K
+        '4xl': '2560px', // Monitores 4K
+      },
       colors: {
         pizza: {
           red: '#EA2A33',

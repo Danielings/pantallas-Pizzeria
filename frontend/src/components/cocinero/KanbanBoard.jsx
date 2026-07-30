@@ -7,16 +7,29 @@ import { OrderCard } from './OrderCard';
  * Layout centrado con cards de mayor ancho para mejor visibilidad.
  * Solo el primer pedido de la cola tiene el botón "Preparar" activo.
  */
+
+const KITCHEN_CATEGORIES = ["pizzas", "combos"];
+
 export default function KanbanBoard() {
   const { orders, updateOrderStatus } = useApp();
 
-  const pendingOrders = orders
+  const allPendingOrders = orders
     .filter((o) => o.status === 'pending')
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
+    const pendingOrders = allPendingOrders.filter((o) =>
+    o.items.some((it) => it.category && KITCHEN_CATEGORIES.includes(it.category)),
+  );
+
+  const nonKitchenPendingCount = allPendingOrders.length - pendingOrders.length;
+
+    // const pendingOrders = orders
+    //   .filter((o) => o.status === 'pending')
+    //   .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
   return (
-    <div className="flex justify-center h-full p-6">
-      <div className="w-full max-w-2xl flex flex-col h-full min-h-0">
+    <div className="flex justify-center h-full p-4 sm:p-6 3xl:p-10">
+      <div className="w-full max-w-md sm:max-w-2xl 3xl:max-w-4xl flex flex-col h-full min-h-0">
         {/* Encabezado de columna */}
         <div className="flex items-center gap-2.5 px-4 py-3.5 border border-pizza-gray-3 bg-white rounded-t-xl flex-shrink-0 shadow-sm">
           <span className="text-base">🔴</span>
@@ -41,6 +54,7 @@ export default function KanbanBoard() {
                 isFirst={idx === 0}
                 primaryBtnLabel="Preparar"
                 onPrimary={() => updateOrderStatus(order.id, 'preparing')}
+                itemsFilter={KITCHEN_CATEGORIES}
               />
             ))
           )}
