@@ -2,6 +2,8 @@ import express from "express";
 import pool from "./config/bd.js";
 import cors from "cors";
 import agregarProductos from "./apis/agregarProductos.js";
+import ventas from "./apis/ventas.js";
+import clientes from "./apis/clientes.js";
 
 const app = express();
 app.use(
@@ -17,6 +19,8 @@ app.use(express.json());
 
 // Rutitas
 app.use("/api", agregarProductos);
+app.use("/api", ventas);
+app.use("/api", clientes);
 
 app.listen(3001, () => {
   console.log("Escuchandoo, oh oh");

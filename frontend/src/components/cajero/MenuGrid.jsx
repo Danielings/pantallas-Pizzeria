@@ -33,26 +33,25 @@ export default function MenuGrid({ category }) {
     setPendingProduct(null);
   };
 
-
   // Mapear categorías de filtro a productos reales
   let displayedProducts = [];
 
   const allPizzas = products.pizzas || [];
-  const tradicionales = allPizzas.filter((p) => p.price < 15);
+  const normal = allPizzas.filter((p) => p.price < 15);
   const gourmet = allPizzas.filter((p) => p.price >= 15);
 
   switch (category) {
-    case "tradicionales":
-      displayedProducts = tradicionales;
+    case "Normal":
+      displayedProducts = normal;
       break;
-    case "gourmet":
+    case "Grande":
       displayedProducts = gourmet;
       break;
     case "bebidas":
       displayedProducts = products.drinks || [];
       break;
-    case "combos":
-      displayedProducts = products.combos || [];
+    case "Gigantes":
+      displayedProducts = products.gigantes || [];
       break;
     case "all":
     default:

@@ -54,6 +54,11 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       name: "Clientes Principales",
       icon: <Users className="w-5 h-5" />,
     },
+    {
+      id: "productos",
+      name: "Productos",
+      icon: <Package className="w-5 h-5" />,
+    },
   ];
 
   const links = module === "admin" ? adminLinks : cashierLinks;

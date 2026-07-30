@@ -6,15 +6,15 @@ export default function CategoryFilter({ selected, onSelect }) {
   const [show, setShow] = useState(false);
   const categories = [
     {
-      id: "tradicionales",
-      name: "Tradicionales",
+      id: "Normal",
+      name: "Normal",
       icon: <Pizza className="w-4 h-4" />,
     },
-    { id: "gourmet", name: "Gourmet", icon: <Star className="w-4 h-4" /> },
+    { id: "Grande", name: "Grande", icon: <Star className="w-4 h-4" /> },
     { id: "bebidas", name: "Bebidas", icon: <CupSoda className="w-4 h-4" /> },
     {
-      id: "combos",
-      name: "Combos Especiales",
+      id: "Gigantes",
+      name: "Gigantes",
       icon: <Sandwich className="w-4 h-4" />,
     },
   ];

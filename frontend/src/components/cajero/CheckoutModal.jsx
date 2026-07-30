@@ -38,7 +38,8 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutModal({ onClose }) {
-  const { total, currentOrder, confirmSale, exchangeRate } = useApp();
+  const { total, currentOrder, confirmSale, exchangeRate, clearCart } =
+    useApp();
 
   // Leer tipo de pedido y abono del contexto (seleccionados en OrderTypeModal)
   const ctxOrderType = currentOrder.orderType;
@@ -46,20 +47,20 @@ export default function CheckoutModal({ onClose }) {
   const ctxAdvanceAmount = currentOrder.advanceAmount || 0;
 
   const ORDER_TYPE_LABELS = {
-    local:    "Local",
+    local: "Local",
     takeaway: "Para Llevar",
     delivery: "Delivery",
-    pickup:   "Pickup",
+    pickup: "Pickup",
     // backward compat
-    dine_in:      "Local",
+    dine_in: "Local",
     delivery_call: "Delivery (Llamada)",
-    delivery_ws:   "Delivery (WhatsApp)",
+    delivery_ws: "Delivery (WhatsApp)",
   };
 
   // Si ya hay un abono previo, precargarlo como pago inicial
   const initialPayments =
-    ctxPaymentStatus === 'partial' && ctxAdvanceAmount > 0
-      ? [{ method: 'advance', label: 'Abono previo', amount: ctxAdvanceAmount }]
+    ctxPaymentStatus === "partial" && ctxAdvanceAmount > 0
+      ? [{ method: "advance", label: "Abono previo", amount: ctxAdvanceAmount }]
       : [];
 
   // internal payments array to allow splits
@@ -72,6 +73,7 @@ export default function CheckoutModal({ onClose }) {
   const [overrideTotal, setOverrideTotal] = useState("");
   const [amountInput, setAmountInput] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // overrideTotal may be entered in current `currency`. Convert to USD internally.
   const parsedOverride = !isNaN(parseFloat(overrideTotal))
@@ -105,6 +107,61 @@ export default function CheckoutModal({ onClose }) {
       return v / r;
     }
     return v;
+  };
+
+  const normalizeId = (value) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const numeric = value.replace(/\D/g, "");
+      return numeric ? Number(numeric) : value;
+    }
+    return value;
+  };
+
+  const mapOrderTypeToApiValue = (type) => {
+    switch (type) {
+      case "local":
+      case "dine_in":
+        return "Local";
+      case "takeaway":
+        return "Llevar";
+      case "delivery":
+      case "delivery_call":
+      case "delivery_ws":
+        return "Delivery";
+      case "pickup":
+        return "Pickup";
+      default:
+        return null;
+    }
+  };
+
+  const mapPaymentMethodToApi = (method) => {
+    switch (method) {
+      case "pos":
+        return "Punto";
+      case "cash":
+        return "Efectivo";
+      case "mobile":
+        return "Pago_Movil";
+      case "advance":
+        return "Abono";
+      default:
+        return method;
+    }
+  };
+
+  const getProductTypeForApi = (category) => {
+    switch (category) {
+      case "pizzas":
+        return "Pizza";
+      case "drinks":
+        return "Bebida";
+      case "icecream":
+        return "Helado";
+      default:
+        return "Pizza";
+    }
   };
 
   const handleSelectMethod = (method) => {
@@ -160,14 +217,115 @@ export default function CheckoutModal({ onClose }) {
     }
   };
 
+  const handleProcesarVenta = async () => {
+    setError("");
+
+    if (!currentOrder.items.length) {
+      setError("El carrito no debe estar vacío.");
+      return;
+    }
+
+    const despacho = mapOrderTypeToApiValue(orderType);
+    if (!despacho) {
+      setError("Debe seleccionar un tipo de despacho.");
+      return;
+    }
+
+    const paymentTotalUsd = paymentsInternal.reduce(
+      (sum, payment) => sum + payment.amount,
+      0,
+    );
+    if (paymentTotalUsd + 0.0001 < totalToUse) {
+      setError(
+        "La suma de los pagos debe igualar o superar el monto total en USD.",
+      );
+      return;
+    }
+    // Id del cliente Real, tan real como anuel aa. Brrr
+    const clienteIdReal = currentOrder.customer?.id
+      ? currentOrder.customer.id
+      : 1;
+
+    const payload = {
+      id_cliente: clienteIdReal,
+      id_usuario: 1,
+      despacho,
+      tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
+      monto_total_usd: Number(totalToUse.toFixed(2)),
+      monto_total_bs: Number((totalToUse * (exchangeRate || 0)).toFixed(2)),
+      pagos: paymentsInternal.map((payment) => ({
+        metodo: mapPaymentMethodToApi(payment.method),
+        monto_usd: Number(payment.amount.toFixed(2)),
+        monto_bs: Number((payment.amount * (exchangeRate || 0)).toFixed(2)),
+        referencia: null,
+      })),
+      detalles: currentOrder.items.map((item) => {
+        const idOrigen =
+          typeof item.productId === "string"
+            ? parseInt(item.productId.replace(/\D/g, ""))
+            : Number(item.productId);
+
+        return {
+          tipo_producto: getProductTypeForApi(item.category),
+          id_producto_origen: idOrigen,
+          cantidad: item.qty,
+          monto_total: Number((item.price * item.qty).toFixed(2)),
+          nota: item.note || "",
+          extras: item.extras
+            ? item.extras.map((extra) =>
+                typeof extra.id === "string"
+                  ? parseInt(extra.id.replace(/\D/g, ""))
+                  : Number(extra.id),
+              )
+            : [],
+        };
+      }),
+    };
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("http://localhost:3001/api/procesar-venta", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      // 1. Validar el tipo de contenido antes de intentar parsear a JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const textError = await response.text();
+        console.error("Respuesta del servidor (No JSON):", textError);
+        throw new Error(
+          "El servidor devolvió un formato incorrecto (HTML). Verifica que tu backend esté corriendo en el puerto 3001 y que la ruta exista.",
+        );
+      }
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Error procesando la venta.");
+      }
+
+      confirmSale({
+        total: totalToUse,
+        items: currentOrder.items,
+        payments: paymentsInternal,
+        orderType,
+      });
+      clearCart();
+      onClose();
+      alert("Venta procesada exitosamente.");
+    } catch (error) {
+      console.error("Error al procesar la venta:", error);
+      setError(error.message || "Error de conexión con el servidor.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleConfirmAndPrint = () => {
-    confirmSale({
-      total: totalToUse,
-      items: currentOrder.items,
-      payments: paymentsInternal,
-      orderType,
-    });
-    onClose();
+    handleProcesarVenta();
   };
 
   return (
@@ -396,12 +554,18 @@ export default function CheckoutModal({ onClose }) {
                 </div>
               </div>
 
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
               <button
                 onClick={handleConfirmAndPrint}
-                className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+                className={`w-full py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 text-slate-200 cursor-not-allowed" : "bg-slate-800 hover:bg-slate-900 text-white"}`}
               >
                 <Printer className="w-5 h-5" />
-                Imprimir y Cerrar
+                {isSubmitting ? "Procesando..." : "Imprimir y Cerrar"}
               </button>
             </div>
           )}
