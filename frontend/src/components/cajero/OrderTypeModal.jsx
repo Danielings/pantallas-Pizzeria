@@ -1,24 +1,89 @@
-import { useState, useRef, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useState, useRef, useEffect } from "react";
+import { useApp } from "../../context/AppContext";
 import {
-  UtensilsCrossed, ShoppingBag, Bike, Store,
-  CheckCircle2, CreditCard, Clock, X, ChevronRight,
-  ChevronLeft, DollarSign, Search, UserPlus, Phone,
-  User, IdCard,
-} from 'lucide-react';
+  UtensilsCrossed,
+  ShoppingBag,
+  Bike,
+  Store,
+  CheckCircle2,
+  CreditCard,
+  Clock,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  DollarSign,
+  Search,
+  UserPlus,
+  Phone,
+  User,
+  IdCard,
+} from "lucide-react";
 
 // ─── Configuración estática ───────────────────────────────────────────────────
 const ORDER_TYPES = [
-  { id: 'local',    label: 'Local',       sublabel: 'Mesa / Salón',          icon: UtensilsCrossed, colorLight: 'bg-blue-50 border-blue-200',    colorSelected: 'bg-blue-500 border-blue-500',    colorIcon: 'text-blue-500' },
-  { id: 'takeaway', label: 'Para Llevar', sublabel: 'Retira en el local',     icon: ShoppingBag,     colorLight: 'bg-amber-50 border-amber-200',   colorSelected: 'bg-amber-500 border-amber-500',   colorIcon: 'text-amber-500' },
-  { id: 'delivery', label: 'Delivery',    sublabel: 'Envío a domicilio',      icon: Bike,            colorLight: 'bg-red-50 border-red-200',       colorSelected: 'bg-red-500 border-red-500',       colorIcon: 'text-pizza-red' },
-  { id: 'pickup',   label: 'Pickup',      sublabel: 'Cliente pasa a buscar',  icon: Store,           colorLight: 'bg-emerald-50 border-emerald-200', colorSelected: 'bg-emerald-500 border-emerald-500', colorIcon: 'text-emerald-500' },
+  {
+    id: "local",
+    label: "Local",
+    sublabel: "Mesa / Salón",
+    icon: UtensilsCrossed,
+    colorLight: "bg-blue-50 border-blue-200",
+    colorSelected: "bg-blue-500 border-blue-500",
+    colorIcon: "text-blue-500",
+  },
+  {
+    id: "takeaway",
+    label: "Para Llevar",
+    sublabel: "Retira en el local",
+    icon: ShoppingBag,
+    colorLight: "bg-amber-50 border-amber-200",
+    colorSelected: "bg-amber-500 border-amber-500",
+    colorIcon: "text-amber-500",
+  },
+  {
+    id: "delivery",
+    label: "Delivery",
+    sublabel: "Envío a domicilio",
+    icon: Bike,
+    colorLight: "bg-red-50 border-red-200",
+    colorSelected: "bg-red-500 border-red-500",
+    colorIcon: "text-pizza-red",
+  },
+  {
+    id: "pickup",
+    label: "Pickup",
+    sublabel: "Cliente pasa a buscar",
+    icon: Store,
+    colorLight: "bg-emerald-50 border-emerald-200",
+    colorSelected: "bg-emerald-500 border-emerald-500",
+    colorIcon: "text-emerald-500",
+  },
 ];
 
 const PAYMENT_STATUS_OPTIONS = [
-  { id: 'paid',    label: 'Ya pagaron completo',       icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-300', selectedBg: 'bg-emerald-500 border-emerald-500' },
-  { id: 'partial', label: 'Hicieron un abono',         icon: CreditCard,   color: 'text-blue-600',    bg: 'bg-blue-50 border-blue-300',       selectedBg: 'bg-blue-500 border-blue-500' },
-  { id: 'pending', label: 'Pago totalmente pendiente', icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-50 border-amber-300',     selectedBg: 'bg-amber-500 border-amber-500' },
+  {
+    id: "paid",
+    label: "Ya pagaron completo",
+    icon: CheckCircle2,
+    color: "text-emerald-600",
+    bg: "bg-emerald-50 border-emerald-300",
+    selectedBg: "bg-emerald-500 border-emerald-500",
+  },
+  {
+    id: "partial",
+    label: "Hicieron un abono",
+    icon: CreditCard,
+    color: "text-blue-600",
+    bg: "bg-blue-50 border-blue-300",
+    selectedBg: "bg-blue-500 border-blue-500",
+  },
+  {
+    id: "pending",
+    label: "Pago totalmente pendiente",
+    icon: Clock,
+    color: "text-amber-600",
+    bg: "bg-amber-50 border-amber-300",
+    selectedBg: "bg-amber-500 border-amber-500",
+  },
 ];
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -30,24 +95,25 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
 
   // Paso 1 - Tipo de pedido y Estado de Pago
   const [selectedType, setSelectedType] = useState(null);
-  const [phoneLastDigits, setPhoneLastDigits] = useState('');
+  const [phoneLastDigits, setPhoneLastDigits] = useState("");
   const [paymentStatus, setPaymentStatus] = useState(null);
-  const [advanceCurrency, setAdvanceCurrency] = useState('USD');
-  const [advanceAmount, setAdvanceAmount] = useState('');
+  const [advanceCurrency, setAdvanceCurrency] = useState("USD");
+  const [advanceAmount, setAdvanceAmount] = useState("");
 
-  const needsPaymentInfo = selectedType === 'delivery' || selectedType === 'pickup';
+  const needsPaymentInfo =
+    selectedType === "delivery" || selectedType === "pickup";
   const advanceRaw = parseFloat(advanceAmount) || 0;
   const advanceUSD =
-    advanceCurrency === 'Bs' && exchangeRate > 0
+    advanceCurrency === "Bs" && exchangeRate > 0
       ? advanceRaw / exchangeRate
       : advanceRaw;
 
   // Paso 2 - Cliente
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [foundCustomer, setFoundCustomer] = useState(null);
   const [notFound, setNotFound] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newPhone, setNewPhone] = useState('');
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const searchRef = useRef(null);
 
   // Focus en la búsqueda al ir al paso 2
@@ -61,54 +127,123 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
   const handleTypeSelect = (typeId) => {
     setSelectedType(typeId);
     setPaymentStatus(null);
-    setAdvanceAmount('');
-    setPhoneLastDigits('');
+    setAdvanceAmount("");
+    setPhoneLastDigits("");
   };
 
-  // ── Buscar Cliente ──
-  const handleSearch = () => {
-    const q = searchQuery.trim().toLowerCase();
+  // ── Buscar Cliente (Actualizado para API) ──
+  const handleSearch = async () => {
+    const q = searchQuery.trim();
     if (!q) return;
-    const match = customers.find(
-      (c) =>
-        c.cedula.toLowerCase().replace(/[-v\s]/g, '') === q.replace(/[-v\s]/g, '') ||
-        c.name.toLowerCase().includes(q),
-    );
-    if (match) {
-      setFoundCustomer(match);
-      setNotFound(false);
-      setNewName('');
-      setNewPhone('');
-    } else {
-      setFoundCustomer(null);
-      setNotFound(true);
-      setNewName('');
-      setNewPhone('');
+
+    try {
+      // Ajusta la URL base según cómo tengas configurado tu backend
+      const response = await fetch(
+        `http://localhost:3001/api/buscar-clientes?q=${q}`,
+      );
+      const data = await response.json();
+
+      if (data.success && data.cliente) {
+        setFoundCustomer(data.cliente);
+        setNotFound(false);
+        setNewName("");
+        setNewPhone("");
+      } else {
+        setFoundCustomer(null);
+        setNotFound(true);
+        setNewName("");
+        setNewPhone("");
+      }
+    } catch (error) {
+      console.error("Error en la búsqueda del cliente:", error);
     }
   };
 
+  // ... (clearSearch y las validaciones se mantienen igual) ...
+
+  // ── Confirmar y Guardar (Actualizado para registrar en BD) ──
+  const handleConfirm = async () => {
+    let finalCustomer = selectedCustomer;
+
+    // Si el cliente es nuevo, lo registramos primero en la base de datos
+    if (selectedCustomer?.isNew) {
+      try {
+        const response = await fetch(
+          "http://localhost:3001/api/registrar-clientes",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cedula: selectedCustomer.cedula,
+              name: selectedCustomer.name,
+              phone: selectedCustomer.phone,
+            }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+          finalCustomer = data.cliente;
+
+          // Opcional: Actualizar el estado global si tu context lo requiere
+          addCustomer({
+            ...data.cliente,
+            lastVisit: new Date().toISOString().split("T")[0],
+          });
+        }
+      } catch (error) {
+        console.error("Error registrando al nuevo cliente:", error);
+        return; // Detenemos el proceso si falla el registro
+      }
+    }
+
+    setOrderType(
+      selectedType,
+      needsPaymentInfo ? paymentStatus : null,
+      paymentStatus === "partial" ? advanceUSD : 0,
+      finalCustomer
+        ? {
+            id: finalCustomer.id,
+            name: finalCustomer.name,
+            cedula: finalCustomer.cedula,
+            phone: finalCustomer.phone,
+          }
+        : null,
+      selectedType === "delivery" ? phoneLastDigits.trim() : "",
+    );
+    onConfirm?.();
+  };
+
   const clearSearch = () => {
-    setSearchQuery('');
+    setSearchQuery("");
     setFoundCustomer(null);
     setNotFound(false);
-    setNewName('');
-    setNewPhone('');
+    setNewName("");
+    setNewPhone("");
   };
 
   const selectedCustomer = foundCustomer
     ? foundCustomer
     : notFound && newName
-    ? { name: newName, cedula: searchQuery.trim(), phone: newPhone, isNew: true }
-    : null;
+      ? {
+          name: newName,
+          cedula: searchQuery.trim(),
+          phone: newPhone,
+          isNew: true,
+        }
+      : null;
 
   // ── Validaciones ──
   let step1Valid = false;
   if (selectedType !== null) {
     if (needsPaymentInfo) {
       const isPaymentStatusSelected = paymentStatus !== null;
-      const isAbonoValid = paymentStatus !== 'partial' || (parseFloat(advanceAmount) > 0);
-      const isPhoneValid = selectedType !== 'delivery' || phoneLastDigits.trim().length === 4;
-      
+      const isAbonoValid =
+        paymentStatus !== "partial" || parseFloat(advanceAmount) > 0;
+      const isPhoneValid =
+        selectedType !== "delivery" || phoneLastDigits.trim().length === 4;
+
       step1Valid = isPaymentStatusSelected && isAbonoValid && isPhoneValid;
     } else {
       step1Valid = true;
@@ -116,31 +251,6 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
   }
 
   const step2Valid = selectedCustomer !== null;
-
-  // ── Confirmar y Guardar ──
-  const handleConfirm = () => {
-    if (selectedCustomer?.isNew) {
-      addCustomer({
-        cedula: selectedCustomer.cedula,
-        name: selectedCustomer.name,
-        phone: selectedCustomer.phone,
-        orders: 0,
-        total: 0,
-        lastVisit: new Date().toISOString().split('T')[0],
-      });
-    }
-
-    setOrderType(
-      selectedType,
-      needsPaymentInfo ? paymentStatus : null,
-      paymentStatus === 'partial' ? advanceUSD : 0,
-      selectedCustomer
-        ? { id: selectedCustomer.id, name: selectedCustomer.name, cedula: selectedCustomer.cedula, phone: selectedCustomer.phone }
-        : null,
-      selectedType === 'delivery' ? phoneLastDigits.trim() : '',
-    );
-    onConfirm?.();
-  };
 
   const goNext = () => {
     if (step === 1 && step1Valid) {
@@ -167,10 +277,12 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-white font-extrabold text-xl tracking-tight">
-                  {step === 1 ? '¿Cómo es este pedido?' : 'Datos del cliente'}
+                  {step === 1 ? "¿Cómo es este pedido?" : "Datos del cliente"}
                 </h2>
                 <p className="text-slate-300 text-sm mt-0.5">
-                  {step === 1 ? 'Selecciona tipo de pedido y estado de pago' : 'Asocia o registra al cliente'}
+                  {step === 1
+                    ? "Selecciona tipo de pedido y estado de pago"
+                    : "Asocia o registra al cliente"}
                 </p>
               </div>
               <button
@@ -183,20 +295,32 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
 
             {/* Progreso de Pasos */}
             <div className="flex gap-2">
-              {['Tipo de Pedido', 'Cliente'].map((label, i) => (
+              {["Tipo de Pedido", "Cliente"].map((label, i) => (
                 <div key={i} className="flex items-center gap-1.5 flex-1">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    i + 1 < step ? 'bg-emerald-400 text-white' :
-                    i + 1 === step ? 'bg-white text-slate-800' :
-                    'bg-white/20 text-white/60'
-                  }`}>
-                    {i + 1 < step ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      i + 1 < step
+                        ? "bg-emerald-400 text-white"
+                        : i + 1 === step
+                          ? "bg-white text-slate-800"
+                          : "bg-white/20 text-white/60"
+                    }`}
+                  >
+                    {i + 1 < step ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : (
+                      i + 1
+                    )}
                   </div>
-                  <span className={`text-xs font-semibold ${i + 1 === step ? 'text-white' : 'text-white/50'}`}>
+                  <span
+                    className={`text-xs font-semibold ${i + 1 === step ? "text-white" : "text-white/50"}`}
+                  >
                     {label}
                   </span>
                   {i === 0 && (
-                    <div className={`flex-1 h-0.5 rounded-full ${step > 1 ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                    <div
+                      className={`flex-1 h-0.5 rounded-full ${step > 1 ? "bg-emerald-400" : "bg-white/20"}`}
+                    />
                   )}
                 </div>
               ))}
@@ -205,7 +329,6 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
 
           {/* Cuerpo */}
           <div className="p-6 flex flex-col gap-5">
-
             {/* ══ PASO 1: Tipo de pedido y Estado de pago ══ */}
             {step === 1 && (
               <div className="flex flex-col gap-5 animate-fade-in">
@@ -219,7 +342,9 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                         key={type.id}
                         onClick={() => handleTypeSelect(type.id)}
                         className={`relative flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all duration-200 active:scale-[0.97] cursor-pointer ${
-                          isSelected ? `${type.colorSelected} shadow-lg` : `${type.colorLight} hover:shadow-md`
+                          isSelected
+                            ? `${type.colorSelected} shadow-lg`
+                            : `${type.colorLight} hover:shadow-md`
                         }`}
                       >
                         {isSelected && (
@@ -227,12 +352,24 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                             <CheckCircle2 className="w-4 h-4 text-white drop-shadow" />
                           </span>
                         )}
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${isSelected ? 'bg-white/20' : 'bg-white'}`}>
-                          <Icon className={`w-7 h-7 ${isSelected ? 'text-white' : type.colorIcon}`} />
+                        <div
+                          className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${isSelected ? "bg-white/20" : "bg-white"}`}
+                        >
+                          <Icon
+                            className={`w-7 h-7 ${isSelected ? "text-white" : type.colorIcon}`}
+                          />
                         </div>
                         <div className="text-center">
-                          <p className={`font-extrabold text-base ${isSelected ? 'text-white' : 'text-slate-800'}`}>{type.label}</p>
-                          <p className={`text-xs mt-0.5 ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>{type.sublabel}</p>
+                          <p
+                            className={`font-extrabold text-base ${isSelected ? "text-white" : "text-slate-800"}`}
+                          >
+                            {type.label}
+                          </p>
+                          <p
+                            className={`text-xs mt-0.5 ${isSelected ? "text-white/80" : "text-slate-500"}`}
+                          >
+                            {type.sublabel}
+                          </p>
                         </div>
                       </button>
                     );
@@ -240,18 +377,24 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                 </div>
 
                 {/* Pedir últimos 4 dígitos si es Delivery */}
-                {selectedType === 'delivery' && (
+                {selectedType === "delivery" && (
                   <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 flex flex-col gap-2 animate-fade-in">
                     <div className="flex items-center gap-2 text-pizza-red">
                       <Phone className="w-4 h-4" />
-                      <span className="text-sm font-bold">Últimos 4 dígitos del teléfono del cliente *</span>
+                      <span className="text-sm font-bold">
+                        Últimos 4 dígitos del teléfono del cliente *
+                      </span>
                     </div>
                     <input
                       type="text"
                       maxLength={4}
                       placeholder="Ej: 8901"
                       value={phoneLastDigits}
-                      onChange={(e) => setPhoneLastDigits(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      onChange={(e) =>
+                        setPhoneLastDigits(
+                          e.target.value.replace(/\D/g, "").slice(0, 4),
+                        )
+                      }
                       className="w-full px-4 py-3 bg-white border-2 border-red-200 rounded-xl text-2xl font-extrabold text-slate-800 tracking-[0.4em] text-center focus:outline-none focus:border-pizza-red focus:ring-2 focus:ring-pizza-red/20"
                     />
                   </div>
@@ -262,7 +405,9 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                   <div className="border-2 border-slate-200 rounded-2xl overflow-hidden animate-fade-in">
                     <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-pizza-red" />
-                      <span className="text-sm font-bold text-slate-700">Estado del pago *</span>
+                      <span className="text-sm font-bold text-slate-700">
+                        Estado del pago *
+                      </span>
                     </div>
 
                     <div className="p-4 flex flex-col gap-3">
@@ -274,38 +419,49 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                             key={opt.id}
                             onClick={() => {
                               setPaymentStatus(opt.id);
-                              if (opt.id !== 'partial') setAdvanceAmount('');
+                              if (opt.id !== "partial") setAdvanceAmount("");
                             }}
                             className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
-                              isSelected ? `${opt.selectedBg} shadow-md` : `${opt.bg} hover:opacity-90`
+                              isSelected
+                                ? `${opt.selectedBg} shadow-md`
+                                : `${opt.bg} hover:opacity-90`
                             }`}
                           >
-                            <Icon className={`w-5 h-5 shrink-0 ${isSelected ? 'text-white' : opt.color}`} />
-                            <span className={`font-semibold text-sm flex-1 text-left ${isSelected ? 'text-white' : 'text-slate-700'}`}>
+                            <Icon
+                              className={`w-5 h-5 shrink-0 ${isSelected ? "text-white" : opt.color}`}
+                            />
+                            <span
+                              className={`font-semibold text-sm flex-1 text-left ${isSelected ? "text-white" : "text-slate-700"}`}
+                            >
                               {opt.label}
                             </span>
-                            {isSelected && <CheckCircle2 className="w-4 h-4 text-white shrink-0" />}
+                            {isSelected && (
+                              <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
+                            )}
                           </button>
                         );
                       })}
 
                       {/* Campo de abono con selector de moneda */}
-                      {paymentStatus === 'partial' && (
+                      {paymentStatus === "partial" && (
                         <div className="mt-1 p-4 bg-blue-50 rounded-xl border border-blue-200 flex flex-col gap-3 animate-fade-in">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-bold text-blue-700 uppercase tracking-wider">
                               Monto abonado
                             </label>
                             <div className="flex gap-1 bg-white rounded-lg p-0.5 border border-blue-200">
-                              {['USD', 'Bs'].map((cur) => (
+                              {["USD", "Bs"].map((cur) => (
                                 <button
                                   key={cur}
                                   type="button"
-                                  onClick={() => { setAdvanceCurrency(cur); setAdvanceAmount(''); }}
+                                  onClick={() => {
+                                    setAdvanceCurrency(cur);
+                                    setAdvanceAmount("");
+                                  }}
                                   className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${
                                     advanceCurrency === cur
-                                      ? 'bg-blue-500 text-white shadow-sm'
-                                      : 'text-blue-600 hover:bg-blue-100'
+                                      ? "bg-blue-500 text-white shadow-sm"
+                                      : "text-blue-600 hover:bg-blue-100"
                                   }`}
                                 >
                                   {cur}
@@ -316,7 +472,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
 
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-bold text-sm">
-                              {advanceCurrency === 'Bs' ? 'Bs.' : '$'}
+                              {advanceCurrency === "Bs" ? "Bs." : "$"}
                             </span>
                             <input
                               type="number"
@@ -332,7 +488,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
 
                           {advanceRaw > 0 && exchangeRate > 0 && (
                             <p className="text-xs font-semibold text-blue-600">
-                              {advanceCurrency === 'Bs'
+                              {advanceCurrency === "Bs"
                                 ? `≈ $${advanceUSD.toFixed(2)}`
                                 : `≈ Bs. ${(advanceRaw * exchangeRate).toFixed(2)}`}
                             </p>
@@ -357,8 +513,12 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                       type="text"
                       placeholder="Cédula o nombre del cliente..."
                       value={searchQuery}
-                      onChange={(e) => { setSearchQuery(e.target.value); setFoundCustomer(null); setNotFound(false); }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setFoundCustomer(null);
+                        setNotFound(false);
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                       className="w-full pl-9 pr-3 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-pizza-red focus:ring-2 focus:ring-pizza-red/20 transition-all"
                     />
                   </div>
@@ -378,11 +538,18 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                       <User className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-slate-800 truncate">{foundCustomer.name}</p>
-                      <p className="text-xs text-slate-500">{foundCustomer.cedula} · {foundCustomer.orders} pedidos</p>
+                      <p className="font-bold text-slate-800 truncate">
+                        {foundCustomer.name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {foundCustomer.cedula} · {foundCustomer.orders} pedidos
+                      </p>
                     </div>
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                    <button onClick={clearSearch} className="text-slate-400 hover:text-slate-600 ml-1">
+                    <button
+                      onClick={clearSearch}
+                      className="text-slate-400 hover:text-slate-600 ml-1"
+                    >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -393,7 +560,9 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                   <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 flex flex-col gap-3 animate-fade-in">
                     <div className="flex items-center gap-2 text-blue-700">
                       <UserPlus className="w-4 h-4" />
-                      <span className="text-sm font-bold">Cliente nuevo — completa los datos</span>
+                      <span className="text-sm font-bold">
+                        Cliente nuevo — completa los datos
+                      </span>
                     </div>
                     <div className="grid grid-cols-1 gap-2">
                       <div className="relative">
@@ -424,7 +593,14 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                 {/* Opción rápida: seguir sin cliente */}
                 {!foundCustomer && !notFound && (
                   <button
-                    onClick={() => { setFoundCustomer({ id: null, name: 'Consumidor Final', cedula: 'V-00000000' }); setNotFound(false); }}
+                    onClick={() => {
+                      setFoundCustomer({
+                        id: null,
+                        name: "Consumidor Final",
+                        cedula: "V-00000000",
+                      });
+                      setNotFound(false);
+                    }}
                     className="text-xs text-slate-400 hover:text-slate-600 underline text-center transition-colors mt-2"
                   >
                     Asociar como Consumidor Final
@@ -451,11 +627,11 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
               disabled={step === 1 ? !step1Valid : !step2Valid}
               className={`flex-1 py-3.5 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all duration-200 ${
                 (step === 1 ? step1Valid : step2Valid)
-                  ? 'bg-slate-800 hover:bg-slate-900 text-white shadow-md hover:shadow-lg active:scale-[0.98]'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  ? "bg-slate-800 hover:bg-slate-900 text-white shadow-md hover:shadow-lg active:scale-[0.98]"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
               }`}
             >
-              {step === 1 ? 'Siguiente' : 'Confirmar y Continuar'}
+              {step === 1 ? "Siguiente" : "Confirmar y Continuar"}
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>

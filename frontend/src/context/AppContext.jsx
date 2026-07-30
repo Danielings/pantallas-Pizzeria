@@ -29,11 +29,11 @@ const initialState = {
   currentOrder: {
     items: [],
     payments: [],
-    orderType: null,      // 'local' | 'takeaway' | 'delivery' | 'pickup'
-    paymentStatus: null,  // 'paid' | 'partial' | 'pending'  (only for delivery/pickup)
-    advanceAmount: 0,     // monto abonado si paymentStatus === 'partial'
-    customer: null,       // { id?, name, cedula, phone? }
-    phoneLastDigits: '',  // últimos 4 dígitos del teléfono (delivery)
+    orderType: null, // 'local' | 'takeaway' | 'delivery' | 'pickup'
+    paymentStatus: null, // 'paid' | 'partial' | 'pending'  (only for delivery/pickup)
+    advanceAmount: 0, // monto abonado si paymentStatus === 'partial'
+    customer: null, // { id?, name, cedula, phone? }
+    phoneLastDigits: "", // últimos 4 dígitos del teléfono (delivery)
   },
 
   // Kitchen orders
@@ -203,10 +203,27 @@ function reducer(state, action) {
     }
 
     case "CLEAR_CART":
-      return { ...state, currentOrder: { items: [], payments: [], orderType: null, paymentStatus: null, advanceAmount: 0, customer: null, phoneLastDigits: '' } };
+      return {
+        ...state,
+        currentOrder: {
+          items: [],
+          payments: [],
+          orderType: null,
+          paymentStatus: null,
+          advanceAmount: 0,
+          customer: null,
+          phoneLastDigits: "",
+        },
+      };
 
     case "SET_ORDER_TYPE": {
-      const { orderType, paymentStatus, advanceAmount, customer, phoneLastDigits } = action.payload;
+      const {
+        orderType,
+        paymentStatus,
+        advanceAmount,
+        customer,
+        phoneLastDigits,
+      } = action.payload;
       return {
         ...state,
         currentOrder: {
@@ -215,7 +232,7 @@ function reducer(state, action) {
           paymentStatus: paymentStatus || null,
           advanceAmount: advanceAmount || 0,
           customer: customer || null,
-          phoneLastDigits: phoneLastDigits || '',
+          phoneLastDigits: phoneLastDigits || "",
         },
       };
     }
@@ -420,8 +437,17 @@ export function AppProvider({ children }) {
   );
   const clearCart = useCallback(() => dispatch({ type: "CLEAR_CART" }), []);
   const setOrderType = useCallback(
-    (orderType, paymentStatus, advanceAmount) =>
-      dispatch({ type: "SET_ORDER_TYPE", payload: { orderType, paymentStatus, advanceAmount } }),
+    (orderType, paymentStatus, advanceAmount, customer, phoneLastDigits) =>
+      dispatch({
+        type: "SET_ORDER_TYPE",
+        payload: {
+          orderType,
+          paymentStatus,
+          advanceAmount,
+          customer,
+          phoneLastDigits,
+        },
+      }),
     [],
   );
   const addPayment = useCallback(
