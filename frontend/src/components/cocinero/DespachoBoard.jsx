@@ -1,5 +1,6 @@
 import { useApp } from '../../context/AppContext';
 import { OrderCard } from './OrderCard';
+import { useState } from 'react';
 
 /**
  * Column — columna genérica del board de despacho.
@@ -32,7 +33,33 @@ function Column({ title, icon, countClass, orders, renderCard }) {
 }
 
 export default function DespachoBoard() {
-  const { orders, updateOrderStatus, archiveOrder } = useApp();
+  const { orders, updateOrderStatus, archiveOrder, updateOrder } = useApp();
+
+  const [orderToSwap, setOrderToSwap] = useState(null);
+
+  const handleSwap = (hornoOrder) => {
+    if (!orderToSwap) return;
+
+    const despOrder = orderToSwap;
+    setOrderToSwap(null);
+
+    // 1. Mueve el pedido original (Despacho) a Pendiente ('ready')
+    updateOrder({
+    id: despOrder.id,
+    status: 'ready',
+    reassigned: true,
+  });
+
+    // 2. Mueve el pedido del Horno a Despacho ('delivered') y agrega la etiqueta 'reassigned'
+    updateOrder({
+    id: hornoOrder.id,
+    status: 'delivered',
+    reassigned: true,
+  });
+
+    // 3. Finaliza el modo de intercambio
+    setOrderToSwap(null);
+  };
 
   // Columna A: Horno — pedidos en preparación
   const hornoOrders = orders
@@ -49,6 +76,8 @@ export default function DespachoBoard() {
     .filter((o) => o.status === 'delivered')
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
+    const isSwapping = orderToSwap !== null;
+
   return (
     <div className="flex h-full divide-x divide-pizza-gray-3">
 
@@ -62,10 +91,10 @@ export default function DespachoBoard() {
           <OrderCard
             key={order.id}
             order={order}
-            isFirst={idx === 0}
-            variant="yellow"
-            primaryBtnLabel="Listo"
-            onPrimary={() => updateOrderStatus(order.id, 'delivered')}
+            isFirst={isSwapping ? true : idx === 0}
+            variant={isSwapping ?"orange" : "yellow"}
+            primaryBtnLabel={isSwapping ? "Seleccionar para Cambio" : "Listo"}
+            onPrimary={() => { if(isSwapping){ handleSwap(order); } else { updateOrderStatus(order.id, 'delivered'); } }}
           />
         )}
       />
@@ -103,7 +132,12 @@ export default function DespachoBoard() {
             primaryBtnLabel="Entregado"
             onPrimary={() => archiveOrder(order.id)}
             secondaryBtnLabel="Pendiente"
-            onSecondary={() => updateOrderStatus(order.id, 'ready')}
+            onSecondary={() => {
+              if (orderToSwap?.id === order.id) {
+                setOrderToSwap(null); // Cancela el intercambio
+              } else {
+                setOrderToSwap(order); // Inicia el intercambio
+              }}}
           />
         )}
       />

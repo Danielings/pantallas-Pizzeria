@@ -15,10 +15,10 @@ export default function KanbanBoard() {
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
   return (
-    <div className="flex justify-center h-full overflow-y-auto p-6">
-      <div className="w-full max-w-2xl flex flex-col">
+    <div className="flex justify-center h-full p-6">
+      <div className="w-full max-w-2xl flex flex-col h-full min-h-0">
         {/* Encabezado de columna */}
-        <div className="flex items-center gap-2.5 px-4 py-3.5 border border-pizza-gray-3 bg-white sticky top-0 z-10 rounded-t-xl">
+        <div className="flex items-center gap-2.5 px-4 py-3.5 border border-pizza-gray-3 bg-white rounded-t-xl flex-shrink-0 shadow-sm">
           <span className="text-base">🔴</span>
           <h2 className="text-pizza-dark font-bold flex-1">Preparación</h2>
           <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-status-pending/20 text-status-pending">
@@ -27,7 +27,7 @@ export default function KanbanBoard() {
         </div>
 
         {/* Cards */}
-        <div className="flex flex-col gap-3 p-3 border border-t-0 border-pizza-gray-3 rounded-b-xl min-h-[200px]">
+        <div className="flex flex-col gap-3 p-3 border border-t-0 border-pizza-gray-3 rounded-b-xl flex-1 overflow-y-auto min-h-0">
           {pendingOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-pizza-muted gap-2">
               <span className="text-4xl opacity-30">🍕</span>
