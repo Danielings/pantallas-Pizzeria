@@ -17,6 +17,14 @@ import {
 
 const AppContext = createContext(null);
 
+export const KITCHEN_CATEGORIES = ["pizzas", "combos"];
+
+const orderNeedsKitchen = (items) =>
+  Array.isArray(items) &&
+  items.some(
+    (i) => i.category && KITCHEN_CATEGORIES.includes(i.category),
+  );
+
 const initialState = {
   // Authentication
   currentUser: null,
@@ -61,7 +69,7 @@ const initialState = {
     },
     {
       id: 3,
-      cedula: "E-34567890",
+      cedula: "E-123",
       name: "Carlos Ramírez",
       phone: "0416-5553210",
       orders: 22,
@@ -256,15 +264,19 @@ function reducer(state, action) {
         orderType: orderType || "unknown",
         status: "completed",
       };
+
+      const needsKitchen = orderNeedsKitchen(items);
+
       const newOrder = {
         id: `ORD-${String(state.orders.length + 1).padStart(3, "0")}`,
-        status: "pending",
+        status: needsKitchen ? "pending" : "delivered",
         createdAt: new Date().toISOString(),
         items: items.map((i) => ({
           name: i.name,
           size: i.size,
           qty: i.qty,
           extras: i.extras || [],
+          category: i.category,
         })),
         total,
         table:
@@ -276,6 +288,7 @@ function reducer(state, action) {
                 ? "Delivery"
                 : "POS",
         orderType: orderType || "unknown",
+        skippedKitchen: !needsKitchen,
       };
       return {
         ...state,
@@ -561,6 +574,7 @@ export function AppProvider({ children }) {
         amountPaid,
         remaining,
         TAX_RATE,
+        KITCHEN_CATEGORIES,
         addToCart,
         updateItemQty,
         updateItemSize,
