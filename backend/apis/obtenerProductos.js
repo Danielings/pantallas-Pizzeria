@@ -20,6 +20,7 @@ router.get("/pizzas", async (req, res) => {
       size: pizza.categoria_nombre || "Normal",
       pizzaCategory: pizza.categoria_nombre || null, // <-- Aquí guardamos el tamaño/categoría (ej. "Familiar")
       url: pizza.url || null,
+      estado: pizza.estado || "Activo",
     }));
 
     res.json({ success: true, data: pizzas });
@@ -43,6 +44,7 @@ router.get("/bebidas", async (req, res) => {
       description: bebida.descripcion,
       category: "drinks",
       url: bebida.url || null,
+      estado: bebida.estado || "Activo",
     }));
 
     res.json({ success: true, data: bebidas });
@@ -66,6 +68,7 @@ router.get("/heladeria", async (req, res) => {
       description: helado.descripcion,
       category: "icecream",
       url: helado.url || null,
+      estado: helado.estado || "Activo",
     }));
 
     res.json({ success: true, data: helados });

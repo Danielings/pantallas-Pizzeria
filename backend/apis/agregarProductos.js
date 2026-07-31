@@ -71,7 +71,7 @@ Router.post("/bebidas", upload.single("imagen"), async (req, res) => {
     const imageUrl = await uploadImageToCloudinary(req.file, "bebidas");
 
     const [result] = await pool.query(
-      `INSERT INTO bebidas (nombre, precio, descripcion, url) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO bebidas (nombre, precio, descripcion, estado, url) VALUES (?, ?, ?, 'Activo', ?)`,
       [name, price, description, imageUrl],
     );
 
@@ -95,7 +95,7 @@ Router.post("/heladeria", upload.single("imagen"), async (req, res) => {
     const imageUrl = await uploadImageToCloudinary(req.file, "helados");
 
     const [result] = await pool.query(
-      `INSERT INTO heladeria (nombre, precio, descripcion, url) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO heladeria (nombre, precio, descripcion, estado, url) VALUES (?, ?, ?, 'Activo', ?)`,
       [name, price, description, imageUrl],
     );
 
