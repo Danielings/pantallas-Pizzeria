@@ -1,14 +1,5 @@
-import { useState } from "react";
-import { Save, XCircle } from "lucide-react";
-
-const EMPTY_PRODUCT = {
-  name: "",
-  price: "",
-  description: "",
-  emoji: "🍕",
-  size: "",
-  available: true,
-};
+import { useState, useEffect } from "react";
+import { Save, XCircle, ImagePlus, X } from "lucide-react";
 
 const EMOJIS = [
   "🍕",
@@ -29,6 +20,25 @@ const EMOJIS = [
   "🍨",
 ];
 
+// Configuración de textos e iconos predeterminados según la categoría
+const CATEGORY_CONFIG = {
+  pizzas: {
+    namePlaceholder: "Ej. Pepperoni Clásico",
+    descPlaceholder: "Ej. Salsa de tomate, mozzarella y pepperoni...",
+    defaultEmoji: "🍕",
+  },
+  drinks: {
+    namePlaceholder: "Ej. Coca-Cola 2L",
+    descPlaceholder: "Ej. Bebida gaseosa bien fría...",
+    defaultEmoji: "🥤",
+  },
+  icecream: {
+    namePlaceholder: "Ej. Helado de Chocolate",
+    descPlaceholder: "Ej. Barquilla de dos bolas...",
+    defaultEmoji: "🍦",
+  },
+};
+
 export default function ProductForm({
   initial,
   category,
@@ -36,8 +46,37 @@ export default function ProductForm({
   onCancel,
   isSaving,
 }) {
+  // Obtenemos la configuración según la categoría actual (con un respaldo por si acaso)
+  const currentConfig = CATEGORY_CONFIG[category] || {
+    namePlaceholder: "Ej. Nombre del producto",
+    descPlaceholder: "Detalles del producto...",
+    defaultEmoji: "🍕",
+  };
+
+  const EMPTY_PRODUCT = {
+    name: "",
+    price: "",
+    description: "",
+    emoji: currentConfig.defaultEmoji,
+    size: "",
+    available: true,
+  };
+
   const [form, setForm] = useState(initial || { ...EMPTY_PRODUCT });
   const [errors, setErrors] = useState({});
+
+  // Nuevos estados para manejar la imagen
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(initial?.url || null);
+
+  // Limpiar la URL creada para evitar memory leaks cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (imagePreview && !initial?.url) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview, initial]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -47,6 +86,21 @@ export default function ProductForm({
   const selectSize = (selectedSize) => {
     setForm((prev) => ({ ...prev, size: selectedSize }));
     setErrors((prev) => ({ ...prev, size: "" }));
+  };
+
+  // Función para manejar la selección de la imagen
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file)); // Genera una URL temporal para la vista previa
+    }
+  };
+
+  // Función para remover la imagen seleccionada
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   const validate = () => {
@@ -67,7 +121,14 @@ export default function ProductForm({
       setErrors(e);
       return;
     }
-    onSave({ ...form, price: parseFloat(form.price), category });
+
+    // Ahora pasamos también el "imageFile" al componente padre
+    onSave({
+      ...form,
+      price: parseFloat(form.price),
+      category,
+      image: imageFile, // Añadimos el archivo físico
+    });
   };
 
   return (
@@ -91,7 +152,7 @@ export default function ProductForm({
           value={form.name}
           onChange={(e) => handleChange("name", e.target.value)}
           className={`w-full bg-slate-50 border ${errors.name ? "border-red-500" : "border-slate-200"} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-slate-400`}
-          placeholder="Ej. Pepperoni Clásico"
+          placeholder={currentConfig.namePlaceholder}
         />
         {errors.name && (
           <p className="text-red-500 text-xs mt-1 font-medium">{errors.name}</p>
@@ -147,8 +208,48 @@ export default function ProductForm({
           onChange={(e) => handleChange("description", e.target.value)}
           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-slate-400 resize-none"
           rows={2}
-          placeholder="Ingredientes o detalles..."
+          placeholder={currentConfig.descPlaceholder}
         />
+      </div>
+
+      {/* Subida de Imagen */}
+      <div>
+        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
+          Imagen del Producto
+        </label>
+        <div className="flex items-center gap-4">
+          {imagePreview && (
+            <div className="relative">
+              <img
+                src={imagePreview}
+                alt="Vista previa"
+                className="w-16 h-16 rounded-lg object-cover border border-slate-200 shadow-sm"
+              />
+              <button
+                type="button"
+                onClick={removeImage}
+                className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-md border border-slate-200 text-slate-500 hover:text-red-500 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <label className="cursor-pointer bg-slate-50 border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-lg px-4 py-3 text-sm text-slate-600 flex items-center justify-center flex-1 transition-colors group">
+            <div className="flex items-center gap-2">
+              <ImagePlus className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+              <span className="font-medium">
+                {imageFile ? "Cambiar imagen" : "Seleccionar imagen"}
+              </span>
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+          </label>
+        </div>
       </div>
 
       {/* Tamaños (Solo pizzas) */}
@@ -182,7 +283,7 @@ export default function ProductForm({
       )}
 
       {/* Acciones */}
-      <div className="flex gap-3 pt-4">
+      <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
         <button
           onClick={onCancel}
           disabled={isSaving}
