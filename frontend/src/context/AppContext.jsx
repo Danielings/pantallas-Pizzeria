@@ -15,6 +15,8 @@ import {
   EXTRAS,
 } from "../data/mockData";
 
+const API_BASE = "http://localhost:3001/api";
+
 const AppContext = createContext(null);
 
 export const KITCHEN_CATEGORIES = ["pizzas", "combos"];
@@ -78,8 +80,14 @@ const initialState = {
     },
   ],
 
-  // Historical sales
+  // Historical sales (se sobreescribirán con datos reales)
   sales: MOCK_SALES,
+
+  // Métricas del día desde BD
+  metricsHoy: null, // { totalRevenue, totalPizzas, avgTicket, totalTransactions }
+
+  // Pedidos activos desde BD
+  pedidosActivos: [],
 
   // Staff & Branches
   branches: BRANCHES,
@@ -395,7 +403,14 @@ function reducer(state, action) {
       };
     }
 
-    // ── AUTHENTICATION ─────────────────────────────────────────
+    // ── BD DATA ────────────────────────────────────────────────────────────
+    case "SET_METRICS_HOY":
+      return { ...state, metricsHoy: action.payload };
+
+    case "SET_PEDIDOS_ACTIVOS":
+      return { ...state, pedidosActivos: action.payload };
+
+    // ── AUTHENTICATION ─────────────────────────────────────────────────────
     case "LOGIN":
       return { ...state, currentUser: action.payload };
     case "LOGOUT":
@@ -542,6 +557,45 @@ export function AppProvider({ children }) {
     fetchRate();
   }, []);
 
+  // ── Datos reales de BD ────────────────────────────────────────────────────
+  const fetchVentasHoy = useCallback(async () => {
+    try {
+      const res  = await fetch(`${API_BASE}/obtener-ventas-hoy`);
+      const json = await res.json();
+      if (json.success) {
+        dispatch({ type: "SET_METRICS_HOY", payload: json.data });
+      }
+    } catch (err) {
+      console.error("Error al cargar ventas del día:", err);
+    }
+  }, []);
+
+  const fetchPedidosActivos = useCallback(async () => {
+    try {
+      const res  = await fetch(`${API_BASE}/obtener-pedidos-activos`);
+      const json = await res.json();
+      if (json.success) {
+        dispatch({ type: "SET_PEDIDOS_ACTIVOS", payload: json.data });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos activos:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Carga inicial
+    fetchVentasHoy();
+    fetchPedidosActivos();
+
+    // Polling cada 15 segundos para mantener la cola actualizada
+    const interval = setInterval(() => {
+      fetchVentasHoy();
+      fetchPedidosActivos();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [fetchVentasHoy, fetchPedidosActivos]);
+
   const updateExchangeRate = useCallback((rate) => {
     setExchangeRate(parseFloat(rate));
   }, []);
@@ -600,6 +654,8 @@ export function AppProvider({ children }) {
         logout,
         exchangeRate,
         updateExchangeRate,
+        fetchVentasHoy,
+        fetchPedidosActivos,
       }}
     >
       {children}

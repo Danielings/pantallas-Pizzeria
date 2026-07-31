@@ -59,6 +59,8 @@ export default function PaymentModal({ onClose }) {
     confirmSale,
     amountPaid,
     exchangeRate,
+    fetchPedidosActivos,
+    fetchVentasHoy,
   } = useApp();
 
   const [step, setStep] = useState(1); // 1 = select method, 2 = enter amount, 3 = done
@@ -155,6 +157,9 @@ export default function PaymentModal({ onClose }) {
       orderType: orderType,
     });
     onClose();
+    // Refrescar cola y métricas sin recargar página
+    fetchPedidosActivos();
+    fetchVentasHoy();
   };
 
   // totalPaidSoFar already computed above

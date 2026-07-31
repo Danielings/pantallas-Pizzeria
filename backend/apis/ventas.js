@@ -111,4 +111,124 @@ Router.post("/procesar-venta", async (req, res) => {
   }
 });
 
+// ─── GET /obtener-ventas-hoy ───────────────────────────────────────────────────
+// Devuelve las métricas del día: ingresos totales en USD, cantidad de pizzas
+Router.get("/obtener-ventas-hoy", async (req, res) => {
+  try {
+    // Ventas completadas del día actual
+    const [ventas] = await pool.query(
+      `SELECT 
+        v.id_venta,
+        v.monto_total_usd,
+        v.monto_total_bs,
+        v.despacho,
+        v.fecha_hora,
+        c.nombre AS nombre_cliente,
+        c.cedula  AS cedula_cliente,
+        (
+          SELECT SUM(vd.cantidad)
+          FROM venta_detalle vd
+          WHERE vd.id_venta = v.id_venta AND vd.tipo_producto = 'Pizza'
+        ) AS pizzas_vendidas
+      FROM ventas v
+      LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
+      WHERE DATE(v.fecha_hora) = CURDATE()
+        AND v.estado = 'Completado'
+      ORDER BY v.fecha_hora DESC`,
+    );
+
+    const totalRevenue = ventas.reduce((s, v) => s + (v.monto_total_usd || 0), 0);
+    const totalPizzas = ventas.reduce((s, v) => s + (Number(v.pizzas_vendidas) || 0), 0);
+    const avgTicket = ventas.length > 0 ? totalRevenue / ventas.length : 0;
+
+    res.json({
+      success: true,
+      data: {
+        ventas,
+        totalRevenue,
+        totalPizzas,
+        avgTicket,
+        totalTransactions: ventas.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error al obtener ventas del día:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ─── GET /obtener-pedidos-activos ──────────────────────────────────────────────
+
+Router.get("/obtener-pedidos-activos", async (req, res) => {
+  try {
+    // Ventas que tienen al menos un detalle pendiente/en proceso
+    const [ventas] = await pool.query(
+      `SELECT DISTINCT
+        v.id_venta,
+        v.fecha_hora,
+        v.despacho,
+        v.monto_total_usd,
+        v.monto_total_bs,
+        v.estado,
+        c.id_cliente,
+        c.nombre    AS nombre_cliente,
+        c.cedula    AS cedula_cliente,
+        c.telefono  AS telefono_cliente
+      FROM ventas v
+      LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
+      WHERE DATE(v.fecha_hora) = CURDATE()
+        AND EXISTS (
+          SELECT 1 FROM venta_detalle vd
+          WHERE vd.id_venta = v.id_venta
+            AND vd.estado != 'Completado'
+        )
+      ORDER BY v.fecha_hora DESC`,
+    );
+
+    // Para cada venta traemos sus detalles
+    const pedidos = await Promise.all(
+      ventas.map(async (venta) => {
+        const [detalles] = await pool.query(
+          `SELECT 
+            vd.id_detalle,
+            vd.tipo_producto,
+            vd.id_producto_origen,
+            vd.cantidad,
+            vd.monto_total,
+            vd.nota,
+            vd.estado AS estado_detalle,
+            COALESCE(p.nombre, b.nombre, h.nombre) AS nombre_producto
+          FROM venta_detalle vd
+          LEFT JOIN pizza     p  ON p.id_pizza      = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
+          LEFT JOIN bebidas   b  ON b.id_bebida     = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
+          LEFT JOIN heladeria h  ON h.id_heladeria  = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
+          WHERE vd.id_venta = ?`,
+          [venta.id_venta],
+        );
+
+        // Extras de cada detalle
+        const detallesConExtras = await Promise.all(
+          detalles.map(async (det) => {
+            const [extras] = await pool.query(
+              `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
+               FROM detalle_venta_extras dve
+               JOIN extras e ON e.id_extras = dve.id_extra
+               WHERE dve.id_detalle = ?`,
+              [det.id_detalle],
+            );
+            return { ...det, extras };
+          }),
+        );
+
+        return { ...venta, detalles: detallesConExtras };
+      }),
+    );
+
+    res.json({ success: true, data: pedidos });
+  } catch (error) {
+    console.error("Error al obtener pedidos activos:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default Router;

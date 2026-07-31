@@ -38,7 +38,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutModal({ onClose }) {
-  const { total, currentOrder, confirmSale, exchangeRate, clearCart } =
+  const { total, currentOrder, confirmSale, exchangeRate, clearCart, fetchPedidosActivos, fetchVentasHoy } =
     useApp();
 
   // Leer tipo de pedido y abono del contexto (seleccionados en OrderTypeModal)
@@ -315,6 +315,9 @@ export default function CheckoutModal({ onClose }) {
       });
       clearCart();
       onClose();
+      // Refrescar cola y métricas sin recargar página
+      fetchPedidosActivos();
+      fetchVentasHoy();
       alert("Venta procesada exitosamente.");
     } catch (error) {
       console.error("Error al procesar la venta:", error);
