@@ -38,15 +38,6 @@ export default function CategoryFilter({ selected, onSelect }) {
           </button>
         );
       })}
-      <div className="ml-2">
-        <button
-          onClick={() => setShow(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-full bg-pizza-red/10 text-pizza-red hover:bg-pizza-red/20"
-        >
-          <Plus className="w-4 h-4" /> Nuevo
-        </button>
-        {show && <CrudModal onClose={() => setShow(false)} />}
-      </div>
     </div>
   );
 }
