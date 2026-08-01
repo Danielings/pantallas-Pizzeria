@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Search,
@@ -11,36 +11,9 @@ import {
   IceCream,
   X,
 } from "lucide-react";
-import ProductForm from "./products/ProductForm"; // <-- Asegúrate de tener este componente guardado
+import ProductForm from "./products/ProductForm";
 
-// ─── Mocks y Configuración ────────────────────────────────────────────────
-const MOCK_PRODUCTS = [
-  {
-    id: 1,
-    name: "Pepperoni Clásico",
-    price: 8.5,
-    description: "Salsa, mozzarella y pepperoni",
-    category: "pizzas",
-    emoji: "🍕",
-  },
-  {
-    id: 2,
-    name: "Coca-Cola 1.5L",
-    price: 2.5,
-    description: "Bebida gaseosa",
-    category: "drinks",
-    emoji: "🥤",
-  },
-  {
-    id: 3,
-    name: "Helado de Vainilla",
-    price: 3.0,
-    description: "Dos porciones con sirope",
-    category: "icecream",
-    emoji: "🍦",
-  },
-];
-
+// ─── Configuración ────────────────────────────────────────────────
 const CATEGORY_TYPES = [
   {
     id: "pizzas",
@@ -74,21 +47,70 @@ const CATEGORY_TYPES = [
 // ─── Componente Principal ────────────────────────────────────────────────
 export default function ProductosScreen() {
   const [search, setSearch] = useState("");
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [products, setProducts] = useState([]); // Iniciamos vacío, se llenará con la DB
+  const [isLoading, setIsLoading] = useState(true);
 
   // Estados para el Modal y Flujo
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  // Nuevos estados para edición y carga en DB
+  // Estados para edición y carga
   const [editingProduct, setEditingProduct] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // ─── Carga de Datos desde APIs Independientes ───
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        // Consultamos las 3 APIs de manera simultánea
+        const [pizzasRes, bebidasRes, heladosRes] = await Promise.all([
+          axios
+            .get("http://localhost:3001/api/pizzas")
+            .catch(() => ({ data: { data: [] } })),
+          axios
+            .get("http://localhost:3001/api/bebidas")
+            .catch(() => ({ data: { data: [] } })),
+          axios
+            .get("http://localhost:3001/api/heladeria")
+            .catch(() => ({ data: { data: [] } })),
+        ]);
+
+        // Mapeamos los datos asegurando que cada producto tenga su categoría correcta y 'category' requerida
+        const pizzas = (pizzasRes.data.data || []).map((p) => ({
+          ...p,
+          category: "pizzas",
+        }));
+
+        const bebidas = (bebidasRes.data.data || []).map((p) => ({
+          ...p,
+          category: "drinks",
+        }));
+
+        const helados = (heladosRes.data.data || []).map((p) => ({
+          ...p,
+          category: "icecream",
+        }));
+
+        const allProducts = [...pizzas, ...bebidas, ...helados];
+
+        setProducts(allProducts);
+      } catch (error) {
+        console.error("Error al cargar los productos:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const filtered = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description.toLowerCase().includes(search.toLowerCase()),
+      (p.description &&
+        p.description.toLowerCase().includes(search.toLowerCase())),
   );
 
   // Funciones de apertura
@@ -101,8 +123,8 @@ export default function ProductosScreen() {
 
   const handleEditClick = (product) => {
     setEditingProduct(product);
-    setSelectedCategory(product.category);
-    setModalStep(2); // Saltamos el paso 1 porque ya tiene categoría
+    setSelectedCategory(product.category); // Aquí asignamos correctamente la categoría para que el formulario la reconozca
+    setModalStep(2);
     setIsModalOpen(true);
   };
 
@@ -112,14 +134,13 @@ export default function ProductosScreen() {
       setModalStep(1);
       setSelectedCategory(null);
       setEditingProduct(null);
-    }, 300); // Esperar que cierre para resetear
+    }, 300);
   };
 
-  // Funciones de DB
+  // Guardar en DB (Crear o Actualizar)
   const handleSaveProduct = async (productData) => {
     setIsSaving(true);
     try {
-      // Determinamos el endpoint según tu estructura de APIs independientes
       let endpoint = "";
       if (selectedCategory === "pizzas")
         endpoint = "http://localhost:3001/api/pizzas";
@@ -128,26 +149,53 @@ export default function ProductosScreen() {
       if (selectedCategory === "icecream")
         endpoint = "http://localhost:3001/api/heladeria";
 
+      const formData = new FormData();
+      formData.append("name", productData.name);
+      formData.append("price", productData.price);
+      formData.append("description", productData.description || "");
+
+      if (selectedCategory === "pizzas" && productData.size) {
+        formData.append("size", productData.size);
+      }
+
+      if (productData.image) {
+        formData.append("imagen", productData.image);
+      }
+
       if (editingProduct) {
-        // ACTUALIZAR (PUT)
         const response = await axios.put(
           `${endpoint}/${editingProduct.id}`,
-          productData,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
         );
+
         if (response.data.success) {
+          const updatedProduct = {
+            ...productData,
+            id: editingProduct.id,
+            category: selectedCategory,
+          };
+          if (response.data.url) updatedProduct.url = response.data.url;
           setProducts((prev) =>
-            prev.map((p) =>
-              p.id === editingProduct.id ? { ...productData, id: p.id } : p,
-            ),
+            prev.map((p) => (p.id === editingProduct.id ? updatedProduct : p)),
           );
         }
       } else {
-        // CREAR (POST)
-        const response = await axios.post(endpoint, productData);
+        const response = await axios.post(endpoint, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
         if (response.data.success) {
           setProducts((prev) => [
             ...prev,
-            { ...productData, id: response.data.id },
+            {
+              ...productData,
+              id: response.data.id,
+              url: response.data.url,
+              category: selectedCategory,
+            },
           ]);
         }
       }
@@ -165,15 +213,35 @@ export default function ProductosScreen() {
   const handleDelete = async (id, category) => {
     if (!window.confirm("¿Estás seguro de eliminar este producto?")) return;
 
-    // Aquí a futuro agregarías el axios.delete() apuntando a la API correspondiente
-    // Ejemplo: await axios.delete(`http://localhost:3001/api/${category}/${id}`);
+    let endpoint = "";
+    if (category === "pizzas") endpoint = "http://localhost:3001/api/pizzas";
+    if (category === "drinks") endpoint = "http://localhost:3001/api/bebidas";
+    if (category === "icecream")
+      endpoint = "http://localhost:3001/api/heladeria";
 
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    try {
+      await axios.delete(`${endpoint}/${id}`);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    } catch (error) {
+      alert("Error eliminando el producto");
+    }
+  };
+
+  // Función auxiliar para obtener el emoji por defecto según la categoría
+  const getDefaultEmoji = (category) => {
+    switch (category) {
+      case "drinks":
+        return "🥤";
+      case "icecream":
+        return "🍦";
+      case "pizzas":
+      default:
+        return "🍕";
+    }
   };
 
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto w-full h-full bg-slate-50">
-      {/* Header */}
       <header className="flex flex-wrap gap-4 justify-between items-center bg-white p-5 rounded-xl shadow-sm border border-slate-100 shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
@@ -181,7 +249,9 @@ export default function ProductosScreen() {
             Productos
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {products.length} productos registrados
+            {isLoading
+              ? "Cargando..."
+              : `${products.length} productos registrados`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -204,7 +274,6 @@ export default function ProductosScreen() {
         </div>
       </header>
 
-      {/* Tabla de Productos */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col">
         <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
           <h2 className="font-bold text-slate-800 text-base">
@@ -231,7 +300,13 @@ export default function ProductosScreen() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={4} className="text-center py-12 text-slate-400">
+                    <p className="font-medium">Cargando inventario...</p>
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="text-center py-12 text-slate-400">
                     <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
@@ -246,19 +321,36 @@ export default function ProductosScreen() {
                   >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xl shrink-0">
-                          {product.emoji}
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xl shrink-0 overflow-hidden border border-slate-200">
+                          {product.url ? (
+                            <img
+                              src={product.url}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span>
+                              {product.emoji ||
+                                getDefaultEmoji(product.category)}
+                            </span>
+                          )}
                         </div>
                         <div>
                           <span className="font-bold text-slate-800 block">
                             {product.name}
                           </span>
-                          <span className="text-[10px] uppercase font-bold text-slate-400">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
                             {
                               CATEGORY_TYPES.find(
                                 (c) => c.id === product.category,
                               )?.label
                             }
+                            {product.category === "pizzas" &&
+                              product.pizzaCategory && (
+                                <span className="text-slate-500 font-semibold">
+                                  • {product.pizzaCategory}
+                                </span>
+                              )}
                           </span>
                         </div>
                       </div>
@@ -268,7 +360,7 @@ export default function ProductosScreen() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <span className="font-bold text-emerald-600">
-                        ${product.price.toFixed(2)}
+                        ${Number(product.price).toFixed(2)}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
@@ -297,11 +389,10 @@ export default function ProductosScreen() {
         </div>
       </div>
 
-      {/* ─── Modal de Agregar / Editar Producto ─── */}
+      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            {/* Cabecera Oscura del Modal */}
             <div className="bg-slate-800 p-6 text-white relative">
               <button
                 onClick={closeModal}
@@ -323,8 +414,6 @@ export default function ProductosScreen() {
                     ? "Selecciona la categoría del producto"
                     : "Completa la información requerida"}
               </p>
-
-              {/* Stepper Simple (Oculto si se está editando) */}
               {!editingProduct && (
                 <div className="flex items-center mt-6 text-sm">
                   <span
@@ -352,10 +441,8 @@ export default function ProductosScreen() {
               )}
             </div>
 
-            {/* Contenido del Modal */}
             <div className="p-6">
               {modalStep === 1 && !editingProduct ? (
-                /* Paso 1: Selección estilo "¿Cómo es este pedido?" */
                 <div className="flex flex-col gap-6">
                   <div className="grid grid-cols-2 gap-4">
                     {CATEGORY_TYPES.map((cat) => {
@@ -365,11 +452,7 @@ export default function ProductosScreen() {
                         <div
                           key={cat.id}
                           onClick={() => setSelectedCategory(cat.id)}
-                          className={`relative border-2 rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ${
-                            isSelected
-                              ? `${cat.colorSelected} shadow-md scale-[1.02]`
-                              : "border-slate-100 hover:border-slate-300 hover:bg-slate-50"
-                          }`}
+                          className={`relative border-2 rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ${isSelected ? `${cat.colorSelected} shadow-md scale-[1.02]` : "border-slate-100 hover:border-slate-300 hover:bg-slate-50"}`}
                         >
                           <div
                             className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-colors ${isSelected ? "bg-white/20" : cat.colorLight}`}
@@ -392,7 +475,6 @@ export default function ProductosScreen() {
                       );
                     })}
                   </div>
-
                   <button
                     onClick={() => setModalStep(2)}
                     disabled={!selectedCategory}
@@ -402,9 +484,7 @@ export default function ProductosScreen() {
                   </button>
                 </div>
               ) : (
-                /* Paso 2: Formulario de Creación/Edición */
                 <div className="flex flex-col gap-4">
-                  {/* Banner superior de categoría seleccionada */}
                   <div className="p-4 bg-slate-50 border border-slate-100 rounded-lg flex gap-4 mb-2">
                     <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center">
                       {(() => {
@@ -428,8 +508,6 @@ export default function ProductosScreen() {
                       </p>
                     </div>
                   </div>
-
-                  {/* Integración del componente Formulario */}
                   <ProductForm
                     initial={editingProduct}
                     category={selectedCategory}
