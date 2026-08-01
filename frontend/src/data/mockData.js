@@ -309,7 +309,7 @@ export const STAFF = [
   { id: 's3', name: 'José Martínez', role: 'waiter', branchId: 'b1', email: 'jose@pizzeria.com' },
   { id: 's4', name: 'Ana García', role: 'cashier', branchId: 'b2', email: 'ana@pizzeria.com' },
   { id: 's5', name: 'Luis Hernández', role: 'chef', branchId: 'b2', email: 'luis@pizzeria.com' },
-  { id: 's6', name: 'Sofia Torres', role: 'waiter', branchId: 'b2', email: 'sofia@pizzeria.com' },
+  { id: 's6', name: 'Sofia Torres', role: 'mesero', branchId: 'b2', email: 'sofia@pizzeria.com' },
   { id: 's7', name: 'Pedro Sánchez', role: 'chef', branchId: 'b3', email: 'pedro@pizzeria.com' },
   { id: 's8', name: 'Laura Jiménez', role: 'despachador', branchId: 'b3', email: 'laura@pizzeria.com' },
 ];
@@ -363,6 +363,8 @@ export const INITIAL_ORDERS = [
     ],
     total: 36.0,
     table: "Mesa 4",
+    orderType: "dine_in",
+    customerName: "Juan Pérez",
   },
   {
     id: "ORD-002",
@@ -373,7 +375,9 @@ export const INITIAL_ORDERS = [
       { name: "Cuatro Quesos", size: "Personal", qty: 1, category: "pizzas" },
     ],
     total: 28.0,
-    table: "Mesa 7",
+    orderType: "delivery_ws",
+    customerName: "María García",
+    phoneLastDigits: "5555",
   },
   {
     id: "ORD-003",
@@ -385,7 +389,8 @@ export const INITIAL_ORDERS = [
       { name: "Helado Vainilla", size: null, qty: 2, category: "icecream" },
     ],
     total: 25.0,
-    table: "Mesa 2",
+    orderType: "takeaway",
+    customerName: "Carlos López",
   },
   {
     id: "ORD-004",
@@ -396,7 +401,8 @@ export const INITIAL_ORDERS = [
       { name: "Limonada", size: null, qty: 2, category: "drinks" },
     ],
     total: 33.0,
-    table: "Mesa 5",
+    orderType: "pickup",
+    customerName: "Ana Martínez",
   },
   {
     id: "ORD-005",
