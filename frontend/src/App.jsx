@@ -9,6 +9,7 @@ import DespachoScreen from "./screens/DespachoScreen";
 import AdminScreen from "./screens/AdminScreen";
 import LoginScreen from "./screens/LoginScreen";
 import Sidebar from "./components/layout/Sidebar";
+import MeseroScreen from "./screens/MeseroScrenn";
 
 function MainApp() {
   const { currentUser } = useApp();
@@ -38,7 +39,7 @@ function MainApp() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-900">
-      {currentUser.role !== "chef" && currentUser.role !== "despachador" && (
+      {currentUser.role !== "chef" && currentUser.role !== "despachador" && currentUser.role !== "mesero" && (
         <Sidebar
           module={currentUser.role}
           activeView={currentUser.role === "admin" ? adminView : cashierView}
@@ -53,6 +54,7 @@ function MainApp() {
         {currentUser.role === "cashier" && renderCashierView()}
         {currentUser.role === "chef" && <CocineroScreen />}
         {currentUser.role === "despachador" && <DespachoScreen />}
+        {currentUser.role === "mesero" && <MeseroScreen />}
       </main>
     </div>
   );

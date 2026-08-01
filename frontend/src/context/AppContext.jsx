@@ -69,7 +69,7 @@ const initialState = {
     },
     {
       id: 3,
-      cedula: "E-123",
+      cedula: "V-123",
       name: "Carlos Ramírez",
       phone: "0416-5553210",
       orders: 22,
@@ -272,6 +272,8 @@ function reducer(state, action) {
                 : "POS",
         orderType: orderType || "unknown",
         skippedKitchen: !needsKitchen,
+        customerName: state.currentOrder.customer?.name || null,
+        phoneLastDigits: state.currentOrder.phoneLastDigits || null,
       };
       return {
         ...state,
