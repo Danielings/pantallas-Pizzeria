@@ -42,6 +42,15 @@ const CATEGORY_TYPES = [
     colorSelected: "bg-pink-500 border-pink-500",
     colorIcon: "text-pink-500",
   },
+  {
+    id: "extras",
+    label: "Extras",
+    sublabel: "Adicionales",
+    icon: Pizza,
+    colorLight: "bg-emerald-50 border-emerald-200",
+    colorSelected: "bg-emerald-500 border-emerald-500",
+    colorIcon: "text-emerald-500",
+  },
 ];
 
 // ─── Componente Principal ────────────────────────────────────────────────
@@ -64,18 +73,22 @@ export default function ProductosScreen() {
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        // Consultamos las 3 APIs de manera simultánea
-        const [pizzasRes, bebidasRes, heladosRes] = await Promise.all([
-          axios
-            .get("http://localhost:3001/api/pizzas")
-            .catch(() => ({ data: { data: [] } })),
-          axios
-            .get("http://localhost:3001/api/bebidas")
-            .catch(() => ({ data: { data: [] } })),
-          axios
-            .get("http://localhost:3001/api/heladeria")
-            .catch(() => ({ data: { data: [] } })),
-        ]);
+        // Consultamos las 4 APIs de manera simultánea
+        const [pizzasRes, bebidasRes, heladosRes, extrasRes] =
+          await Promise.all([
+            axios
+              .get("http://localhost:3001/api/pizzas")
+              .catch(() => ({ data: { data: [] } })),
+            axios
+              .get("http://localhost:3001/api/bebidas")
+              .catch(() => ({ data: { data: [] } })),
+            axios
+              .get("http://localhost:3001/api/heladeria")
+              .catch(() => ({ data: { data: [] } })),
+            axios
+              .get("http://localhost:3001/api/extras")
+              .catch(() => ({ data: { data: [] } })),
+          ]);
 
         // Mapeamos los datos asegurando que cada producto tenga su categoría correcta y 'category' requerida
         const pizzas = (pizzasRes.data.data || []).map((p) => ({
@@ -93,7 +106,12 @@ export default function ProductosScreen() {
           category: "icecream",
         }));
 
-        const allProducts = [...pizzas, ...bebidas, ...helados];
+        const extras = (extrasRes.data.data || []).map((p) => ({
+          ...p,
+          category: "extras",
+        }));
+
+        const allProducts = [...pizzas, ...bebidas, ...helados, ...extras];
 
         setProducts(allProducts);
       } catch (error) {
@@ -148,17 +166,23 @@ export default function ProductosScreen() {
         endpoint = "http://localhost:3001/api/bebidas";
       if (selectedCategory === "icecream")
         endpoint = "http://localhost:3001/api/heladeria";
+      if (selectedCategory === "extras")
+        endpoint = "http://localhost:3001/api/extras";
 
       const formData = new FormData();
       formData.append("name", productData.name);
       formData.append("price", productData.price);
       formData.append("description", productData.description || "");
 
-      if (selectedCategory === "pizzas" && productData.size) {
+      if (
+        (selectedCategory === "pizzas" || selectedCategory === "extras") &&
+        productData.size
+      ) {
         formData.append("size", productData.size);
       }
 
-      if (productData.image) {
+      // Evitamos añadir imagen si se trata de un extra
+      if (productData.image && selectedCategory !== "extras") {
         formData.append("imagen", productData.image);
       }
 
@@ -218,6 +242,7 @@ export default function ProductosScreen() {
     if (category === "drinks") endpoint = "http://localhost:3001/api/bebidas";
     if (category === "icecream")
       endpoint = "http://localhost:3001/api/heladeria";
+    if (category === "extras") endpoint = "http://localhost:3001/api/extras";
 
     try {
       await axios.delete(`${endpoint}/${id}`);
@@ -234,6 +259,7 @@ export default function ProductosScreen() {
         return "🥤";
       case "icecream":
         return "🍦";
+      case "extras":
       case "pizzas":
       default:
         return "🍕";
@@ -345,10 +371,14 @@ export default function ProductosScreen() {
                                 (c) => c.id === product.category,
                               )?.label
                             }
-                            {product.category === "pizzas" &&
-                              product.pizzaCategory && (
+                            {(product.category === "pizzas" ||
+                              product.category === "extras") &&
+                              (product.pizzaCategory ||
+                                product.extraCategory) && (
                                 <span className="text-slate-500 font-semibold">
-                                  • {product.pizzaCategory}
+                                  •{" "}
+                                  {product.pizzaCategory ||
+                                    product.extraCategory}
                                 </span>
                               )}
                           </span>
