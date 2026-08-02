@@ -2,6 +2,16 @@ import { useApp } from '../../context/AppContext';
 import { OrderCard } from './OrderCard';
 import { useState } from 'react';
 
+// determina si un pedido es de tipo "Local"
+const isLocalOrder = (order) => {
+  // Caso 1: orderType técnico (pedidos nuevos)
+  if (order.orderType === "dine_in" || order.orderType === "local") return true;
+  // Caso 2: fallback legacy — table empieza con "Mesa"
+  if (order.table && order.table.startsWith("Mesa")) return true;
+  return false;
+};
+
+
 /**
  * Column — columna genérica del board de despacho.
  */
@@ -59,6 +69,17 @@ export default function DespachoBoard() {
 
     // 3. Finaliza el modo de intercambio
     setOrderToSwap(null);
+  };
+
+    // Handler para completar pedidos en la columna Despacho
+  const handleDespachoComplete = (order) => {
+    if (isLocalOrder(order)) {
+      // Pedido Local: cambiar a estado 'waiter_pending' para que vaya al Mesero
+      updateOrderStatus(order.id, 'waiter_pending');
+    } else {
+      // Pedido NO Local (Llevar, Delivery, Pickup): archivar directamente
+      archiveOrder(order.id);
+    }
   };
 
   // Columna A: Horno — pedidos en preparación
@@ -129,8 +150,8 @@ export default function DespachoBoard() {
             order={order}
             isFirst={true}
             variant="green"
-            primaryBtnLabel="Entregado"
-            onPrimary={() => archiveOrder(order.id)}
+            primaryBtnLabel={isLocalOrder(order) ? "Enviar a Mesero" : "Entregado"}
+            onPrimary={() => handleDespachoComplete(order)}
             secondaryBtnLabel="Pendiente"
             onSecondary={() => {
               if (orderToSwap?.id === order.id) {

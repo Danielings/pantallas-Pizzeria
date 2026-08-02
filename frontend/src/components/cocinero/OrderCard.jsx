@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Clock } from "lucide-react";
+import { Clock, User, Phone } from "lucide-react";
 
 function useTimer(createdAt) {
   const [elapsed, setElapsed] = useState("");
@@ -111,6 +111,41 @@ const getOrderTypeConfig = (order) => {
   return null;
 };
 
+const getCustomerInfo = (order) => {
+  const orderTypeConfig = getOrderTypeConfig(order);
+  if (!orderTypeConfig) return null;
+
+  const type = orderTypeConfig.label;
+
+  // Delivery: mostrar últimos 4 dígitos del teléfono
+  if (type === "Delivery") {
+    if (order.phoneLastDigits) {
+      return {
+        icon: <Phone className="w-3 h-3" />,
+        label: "Tel:",
+        value: `${order.phoneLastDigits}`,
+        color: "text-blue-700 bg-blue-50 border-blue-200",
+      };
+    }
+    return null;
+  }
+
+  // Local, Para llevar, Pickup: mostrar nombre del cliente
+  if (type === "Local" || type === "Para llevar" || type === "Pickup") {
+    if (order.customerName) {
+      return {
+        icon: <User className="w-3 h-3" />,
+        label: "",
+        value: order.customerName,
+        color: "text-slate-700 bg-slate-100 border-slate-200",
+      };
+    }
+    return null;
+  }
+
+  return null;
+};
+
 /**
  * OrderCard — componente reutilizable para el flujo de cocina/despacho.
  *
@@ -148,6 +183,9 @@ export function OrderCard({
     ? order.items.filter((it) => it.category && itemsFilter.includes(it.category))
     : order.items;
 
+     //  Obtener información del cliente
+  const customerInfo = getCustomerInfo(order);
+
   return (
     <div
       className={`bg-white rounded-xl border border-pizza-gray-3 border-l-4 ${borderClass} p-4 3xl:p-6 flex flex-col gap-3 3xl:gap-5 animate-card-move shadow-card`}
@@ -180,17 +218,18 @@ export function OrderCard({
       <span aria-hidden>{getOrderTypeConfig(order).icon}</span>
       <span>{getOrderTypeConfig(order).label}</span>
     </div>
-    {/* Si es Local, mostramos también el # de mesa ("Mesa 4" → "#4") */}
-    {order.table && order.table.startsWith("Mesa ") && (
-      <span className="text-pizza-muted text-xs font-semibold">
-        {order.table.replace(/^Mesa\s+/, "Mesa ")}
-      </span>
-    )}
+      {/*  NUEVA LÓGICA: Información del cliente según tipo de pedido */}
+      {customerInfo && (
+        <div
+          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-semibold w-max ${customerInfo.color}`}
+        >
+          {customerInfo.icon}
+          {customerInfo.label && <span>{customerInfo.label}</span>}
+          <span>{customerInfo.value}</span>
+        </div>
+      )}
   </div>
 )}
-      {/* {order.table && (
-        <div className="text-pizza-muted text-xs">{order.table}</div>
-      )} */}
 
       {/* Items */}
       <div className="flex flex-col gap-1.5 3xl:gap-2.5">
