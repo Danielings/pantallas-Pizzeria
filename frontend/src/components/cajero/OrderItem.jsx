@@ -1,22 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { useApp } from "../../context/AppContext";
 import { Minus, Plus, Trash2, ChevronDown, Edit3 } from "lucide-react";
 
 const SIZE_OPTIONS = ["Normal", "Familiar", "Gigante"];
 
-function ExtrasModal({ item, extras, onClose, onSave }) {
-  const [selected, setSelected] = useState(item.extras.map((e) => e.id));
+// Diccionario para relacionar el texto del tamaño con el id_categoria_pizza de tu base de datos
+const SIZE_TO_CATEGORY = {
+  Normal: 1,
+  Familiar: 2,
+  Gigante: 3,
+};
+
+function ExtrasModal({ item, onClose, onSave }) {
+  const [apiExtras, setApiExtras] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Usamos id para inicializar los seleccionados correctamente
+  const [selected, setSelected] = useState(
+    item.extras.map((e) => e.id || e.id),
+  );
+
+  useEffect(() => {
+    const fetchExtras = async () => {
+      try {
+        const response = await axios.get("http://localhost:3001/api/extras");
+        const data = response.data;
+
+        if (data.success) {
+          // Obtenemos el ID de la categoría según el tamaño de la pizza (por defecto 1 si no tiene)
+          const categoriaId = SIZE_TO_CATEGORY[item.size] || 1;
+
+          // Filtramos por id_categoria_pizza y opcionalmente que estén Activos
+          const extrasFiltrados = data.data.filter(
+            (extra) =>
+              Number(extra.id_categoria_pizza) === Number(categoriaId) &&
+              extra.estado === "Activo",
+          );
+
+          setApiExtras(extrasFiltrados);
+        }
+      } catch (error) {
+        console.error("Error al obtener los extras:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExtras();
+  }, [item.size]);
 
   const toggle = (extra) => {
+    const extraId = extra.id; // Usamos el campo real de tu BD
     setSelected((prev) =>
-      prev.includes(extra.id)
-        ? prev.filter((id) => id !== extra.id)
-        : [...prev, extra.id],
+      prev.includes(extraId)
+        ? prev.filter((id) => id !== extraId)
+        : [...prev, extraId],
     );
   };
 
   const handleSave = () => {
-    const chosenExtras = extras.filter((e) => selected.includes(e.id));
+    const chosenExtras = apiExtras.filter((e) => selected.includes(e.id));
     onSave(item.id, chosenExtras);
     onClose();
   };
@@ -28,35 +72,55 @@ function ExtrasModal({ item, extras, onClose, onSave }) {
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-bold mb-1 text-pizza-dark">Personalizar</h3>
-        <p className="text-pizza-muted text-sm mb-4">{item.name}</p>
+        <p className="text-pizza-muted text-sm mb-4">
+          {item.name} {item.size ? `(${item.size})` : ""}
+        </p>
+
         <div className="flex flex-col gap-2 mb-5">
-          {extras.map((extra) => {
-            const isSelected = selected.includes(extra.id);
-            return (
-              <button
-                key={extra.id}
-                onClick={() => toggle(extra)}
-                className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
-                  isSelected
-                    ? "border-pizza-red bg-pizza-red/10 text-pizza-red font-semibold"
-                    : "border-pizza-gray-3 text-pizza-muted hover:border-pizza-gray-4 hover:text-pizza-dark"
-                }`}
-              >
-                <span className="text-sm">{extra.name}</span>
-                <span
-                  className={`text-xs font-semibold ${isSelected ? "text-pizza-red" : ""}`}
+          {isLoading ? (
+            <div className="text-center text-sm text-pizza-muted py-4 animate-pulse">
+              Cargando extras...
+            </div>
+          ) : apiExtras.length === 0 ? (
+            <div className="text-center text-sm text-pizza-muted py-4">
+              No hay extras disponibles para este tamaño.
+            </div>
+          ) : (
+            apiExtras.map((extra) => {
+              const isSelected = selected.includes(extra.id);
+              return (
+                <button
+                  key={extra.id}
+                  onClick={() => toggle(extra)}
+                  className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
+                    isSelected
+                      ? "border-pizza-red bg-pizza-red/10 text-pizza-red font-semibold"
+                      : "border-pizza-gray-3 text-pizza-muted hover:border-pizza-gray-4 hover:text-pizza-dark"
+                  }`}
                 >
-                  +${extra.price.toFixed(2)}
-                </span>
-              </button>
-            );
-          })}
+                  {/* Usamos 'name' tal cual viene de tu tabla */}
+                  <span className="text-sm">{extra.name}</span>
+                  <span
+                    className={`text-xs font-semibold ${isSelected ? "text-pizza-red" : ""}`}
+                  >
+                    {/* Usamos 'price' tal cual viene de tu tabla */}
+                    +${Number(extra.price).toFixed(2)}
+                  </span>
+                </button>
+              );
+            })
+          )}
         </div>
+
         <div className="flex gap-2">
           <button onClick={onClose} className="btn-secondary flex-1">
             Cancelar
           </button>
-          <button onClick={handleSave} className="btn-primary flex-1">
+          <button
+            onClick={handleSave}
+            className="btn-primary flex-1"
+            disabled={isLoading}
+          >
             Guardar
           </button>
         </div>
@@ -66,13 +130,9 @@ function ExtrasModal({ item, extras, onClose, onSave }) {
 }
 
 export default function OrderItem({ item }) {
-  const {
-    updateItemQty,
-    updateItemSize,
-    updateItemExtras,
-    removeItem,
-    extras,
-  } = useApp();
+  const { updateItemQty, updateItemSize, updateItemExtras, removeItem } =
+    useApp();
+
   const [showExtras, setShowExtras] = useState(false);
   const { updateItemNote } = useApp();
   const [showNote, setShowNote] = useState(false);
@@ -93,7 +153,8 @@ export default function OrderItem({ item }) {
               </p>
               {item.extras.length > 0 && (
                 <p className="text-pizza-muted text-xs truncate">
-                  + {item.extras.map((e) => e.name).join(", ")}
+                  {/* Mostramos 'name' o 'name' por compatibilidad */}+{" "}
+                  {item.extras.map((e) => e.name || e.name).join(", ")}
                 </p>
               )}
               {item.note && (
@@ -208,7 +269,6 @@ export default function OrderItem({ item }) {
       {showExtras && (
         <ExtrasModal
           item={item}
-          extras={extras}
           onClose={() => setShowExtras(false)}
           onSave={updateItemExtras}
         />

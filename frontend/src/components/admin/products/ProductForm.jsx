@@ -18,6 +18,7 @@ const EMOJIS = [
   "🍋",
   "🧋",
   "🍨",
+  "🧀",
 ];
 
 // Configuración de textos e iconos predeterminados según la categoría
@@ -36,6 +37,11 @@ const CATEGORY_CONFIG = {
     namePlaceholder: "Ej. Helado de Chocolate",
     descPlaceholder: "Ej. Barquilla de dos bolas...",
     defaultEmoji: "🍦",
+  },
+  extras: {
+    namePlaceholder: "Ej. Extra Queso / Borde de Queso",
+    descPlaceholder: "Detalles del ingrediente adicional...",
+    defaultEmoji: "🍕", // Cambiado para que el icono por defecto sea la pizza
   },
 };
 
@@ -109,7 +115,8 @@ export default function ProductForm({
     if (!form.price || isNaN(form.price) || parseFloat(form.price) <= 0)
       e.price = "Precio inválido";
 
-    if (category === "pizzas" && !form.size) {
+    // El tamaño es obligatorio tanto para pizzas como para extras (para determinar id_categoria_pizza)
+    if ((category === "pizzas" || category === "extras") && !form.size) {
       e.size = "Debe seleccionar un tamaño";
     }
     return e;
@@ -122,12 +129,12 @@ export default function ProductForm({
       return;
     }
 
-    // Ahora pasamos también el "imageFile" al componente padre
+    // Pasamos los datos formateados al componente padre para que ejecute el POST de la API
     onSave({
       ...form,
       price: parseFloat(form.price),
       category,
-      image: imageFile, // Añadimos el archivo físico
+      image: imageFile,
     });
   };
 
@@ -145,7 +152,7 @@ export default function ProductForm({
       {/* Nombre */}
       <div>
         <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
-          Nombre del Producto
+          {category === "extras" ? "Nombre del Extra" : "Nombre del Producto"}
         </label>
         <input
           type="text"
@@ -199,64 +206,67 @@ export default function ProductForm({
       </div>
 
       {/* Descripción */}
-      <div>
-        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
-          Descripción
-        </label>
-        <textarea
-          value={form.description}
-          onChange={(e) => handleChange("description", e.target.value)}
-          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-slate-400 resize-none"
-          rows={2}
-          placeholder={currentConfig.descPlaceholder}
-        />
-      </div>
-
-      {/* Subida de Imagen */}
-      <div>
-        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
-          Imagen del Producto
-        </label>
-        <div className="flex items-center gap-4">
-          {imagePreview && (
-            <div className="relative">
-              <img
-                src={imagePreview}
-                alt="Vista previa"
-                className="w-16 h-16 rounded-lg object-cover border border-slate-200 shadow-sm"
-              />
-              <button
-                type="button"
-                onClick={removeImage}
-                className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-md border border-slate-200 text-slate-500 hover:text-red-500 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          <label className="cursor-pointer bg-slate-50 border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-lg px-4 py-3 text-sm text-slate-600 flex items-center justify-center flex-1 transition-colors group">
-            <div className="flex items-center gap-2">
-              <ImagePlus className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
-              <span className="font-medium">
-                {imageFile ? "Cambiar imagen" : "Seleccionar imagen"}
-              </span>
-            </div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Tamaños (Solo pizzas) */}
-      {category === "pizzas" && (
+      {category !== "extras" && (
         <div>
           <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
-            Tamaño
+            Descripción
+          </label>
+          <textarea
+            value={form.description}
+            onChange={(e) => handleChange("description", e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-slate-400 resize-none"
+            rows={2}
+            placeholder={currentConfig.descPlaceholder}
+          />
+        </div>
+      )}
+
+      {category !== "extras" && (
+        <div>
+          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
+            Imagen
+          </label>
+          <div className="flex items-center gap-4">
+            {imagePreview && (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Vista previa"
+                  className="w-16 h-16 rounded-lg object-cover border border-slate-200 shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-md border border-slate-200 text-slate-500 hover:text-red-500 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <label className="cursor-pointer bg-slate-50 border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-lg px-4 py-3 text-sm text-slate-600 flex items-center justify-center flex-1 transition-colors group">
+              <div className="flex items-center gap-2">
+                <ImagePlus className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                <span className="font-medium">
+                  {imageFile ? "Cambiar imagen" : "Seleccionar imagen"}
+                </span>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Tamaños (Visible para Pizzas y Extras, ya que la API usa el tamaño para calcular id_categoria_pizza) */}
+      {(category === "pizzas" || category === "extras") && (
+        <div>
+          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
+            {category === "extras" ? "Aplica para el tamaño" : "Tamaño"}
           </label>
           <div className="flex gap-2">
             {["Normal", "Familiar", "Gigante"].map((s) => (
@@ -296,7 +306,8 @@ export default function ProductForm({
           disabled={isSaving}
           className="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
         >
-          <Save className="w-4 h-4" /> Guardar Producto
+          <Save className="w-4 h-4" /> Guardar{" "}
+          {category === "extras" ? "Extra" : "Producto"}
         </button>
       </div>
     </div>

@@ -111,4 +111,28 @@ Router.post("/heladeria", upload.single("imagen"), async (req, res) => {
   }
 });
 
+Router.post("/extras", upload.none(), async (req, res) => {
+  const { name, price, size } = req.body;
+
+  try {
+    let id_categoria_pizza = 1;
+    if (size === "Familiar") id_categoria_pizza = 2;
+    if (size === "Gigante") id_categoria_pizza = 3;
+
+    const [result] = await pool.query(
+      `INSERT INTO extras (nombre, precio,  id_categoria_pizza, estado) 
+       VALUES (?, ?, ?, 'Activo')`,
+      [name, price, id_categoria_pizza],
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Extra registrado",
+      id: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error al registrar extra:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 export default Router;

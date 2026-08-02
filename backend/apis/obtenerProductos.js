@@ -80,4 +80,31 @@ router.get("/heladeria", async (req, res) => {
   }
 });
 
+router.get("/extras", async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT e.*, c.categoria AS categoria_nombre 
+      FROM extras e
+      LEFT JOIN categoria_pizza c ON e.id_categoria_pizza = c.id_categoria_pizza
+    `);
+
+    const extras = rows.map((extra) => ({
+      id: extra.id_extras,
+      id_categoria_pizza: extra.id_categoria_pizza,
+      name: extra.nombre,
+      price: extra.precio,
+      category: "extras",
+      size: extra.categoria_nombre || "Normal",
+      extraCategory: extra.categoria_nombre || null,
+      estado: extra.estado || "Activo",
+    }));
+
+    res.json({ success: true, data: extras });
+  } catch (error) {
+    console.error("Error obteniendo extras:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error interno del servidor" });
+  }
+});
 export default router;
