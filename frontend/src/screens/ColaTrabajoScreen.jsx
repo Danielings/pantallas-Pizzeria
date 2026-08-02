@@ -304,7 +304,7 @@ export default function ColaTrabajoScreen() {
                       {/* Acciones */}
                       <td className="py-4 px-6 text-center whitespace-nowrap">
                         <button
-                          onClick={() => setEditState({ pedido, displayNum: num })}
+                          onClick={() => setEditState({ pedido: JSON.parse(JSON.stringify(pedido)), displayNum: num })}
                           className="px-3.5 py-1.5 rounded-md border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer shadow-2xs"
                         >
                           Editar
@@ -351,6 +351,7 @@ export default function ColaTrabajoScreen() {
       {/* Modal de edición */}
       {editState && (
         <OrderEditModal
+          key={editState.pedido.id_venta}
           pedido={editState.pedido}
           displayNum={editState.displayNum}
           onClose={() => setEditState(null)}

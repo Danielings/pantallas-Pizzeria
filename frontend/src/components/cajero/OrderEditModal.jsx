@@ -2,329 +2,553 @@ import React, { useState, useMemo } from "react";
 import {
   X,
   User,
-  CreditCard,
-  Phone,
-  ChevronDown,
-  ChevronUp,
-  Check,
   Sparkles,
   MessageSquareText,
+  ShoppingBag,
+  Home,
+  Truck,
+  MapPin,
+  ChevronRight,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Constantes ───────────────────────────────────────────────────────────────
 const TIPO_EMOJI = { Pizza: "🍕", Bebida: "🥤", Helado: "🍦" };
 
-const DESPACHO_LABEL = {
-  Local: { label: "Comer Aquí", color: "text-blue-600", bg: "bg-blue-50" },
-  Llevar: { label: "Para Llevar", color: "text-amber-600", bg: "bg-amber-50" },
-  Delivery: { label: "Delivery", color: "text-purple-600", bg: "bg-purple-50" },
-  "Pick Up": { label: "Pick Up", color: "text-teal-600", bg: "bg-teal-50" },
-};
-
 const ESTADO_COLOR = {
-  Pendiente: "text-amber-600 bg-amber-50 border-amber-200",
-  Preparado: "text-blue-600 bg-blue-50 border-blue-200",
-  Horno: "text-orange-600 bg-orange-50 border-orange-200",
-  Completado: "text-emerald-600 bg-emerald-50 border-emerald-200",
+  Pendiente: "text-amber-700 bg-amber-50 border-amber-200",
+  Preparado: "text-blue-700 bg-blue-50 border-blue-200",
+  Horno: "text-orange-700 bg-orange-50 border-orange-200",
+  Completado: "text-emerald-700 bg-emerald-50 border-emerald-200",
 };
 
-function InfoChip({ icon: Icon, label, value, colorClass = "text-slate-700" }) {
-  if (!value) return null;
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-        <Icon className="w-3 h-3" /> {label}
-      </span>
-      <span className={`text-sm font-semibold ${colorClass}`}>{value}</span>
-    </div>
-  );
-}
+const DESPACHO_NEXT = {
+  Local: "Llevar",
+  Llevar: "Local",
+  Delivery: "Pick Up",
+  "Pick Up": "Delivery",
+};
 
-// ─── Extra Pill ───────────────────────────────────────────────────────────────
-function ExtraPill({ extra, active, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`
-        relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold
-        transition-all duration-200 select-none
-        ${active
-          ? "bg-pizza-red border-pizza-red text-white shadow-md shadow-pizza-red/20 scale-105"
-          : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-        }
-      `}
-    >
-      {active && <Check className="w-3 h-3" />}
-      {extra.name || extra.nombre}
-      <span className={`text-[10px] ${active ? "text-red-100" : "text-slate-400"}`}>
-        +${(extra.price ?? extra.precio ?? 0).toFixed(2)}
-      </span>
-    </button>
-  );
-}
+const DESPACHO_ICON = {
+  Local: Home,
+  Llevar: ShoppingBag,
+  Delivery: Truck,
+  "Pick Up": MapPin,
+};
 
-// ─── Item Card ────────────────────────────────────────────────────────────────
-function ItemCard({ item, availableExtras, localExtras, onToggleExtra }) {
-  const [expanded, setExpanded] = useState(false);
-  const isPizza = item.tipo_producto === "Pizza";
-  const estadoCfg = ESTADO_COLOR[item.estado_detalle] || ESTADO_COLOR.Pendiente;
-  const currentExtras = localExtras || item.extras || [];
-
-  return (
-    <div
-      className={`rounded-xl border transition-all duration-200 overflow-hidden ${expanded ? "border-slate-300 shadow-sm bg-slate-50/50" : "border-slate-100 bg-white"
-        }`}
-    >
-      {/* ── Cabecera del item ── */}
-      <div
-        className="flex items-center gap-3 p-3.5 cursor-pointer select-none"
-        onClick={() => isPizza && setExpanded((p) => !p)}
-      >
-        {/* Emoji */}
-        <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-xl shrink-0">
-          {TIPO_EMOJI[item.tipo_producto] ?? "📦"}
-        </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-slate-800 text-sm truncate">
-            {item.nombre_producto || item.tipo_producto}
-          </p>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-slate-500 font-medium">
-              Cant: {item.cantidad} · ${item.monto_total?.toFixed(2)}
-            </span>
-            {currentExtras.length > 0 && (
-              <span className="text-[10px] text-pizza-red font-semibold bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
-                {currentExtras.length} extra{currentExtras.length !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Estado + flecha si es pizza */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${estadoCfg}`}>
-            {item.estado_detalle}
-          </span>
-          {isPizza && (
-            <span className="text-slate-400">
-              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ── Panel expandible de extras (solo pizzas) ── */}
-      {isPizza && expanded && (
-        <div className="px-4 pb-4 border-t border-slate-100 pt-3 flex flex-col gap-3 bg-white">
-          {availableExtras && availableExtras.length > 0 && (
-            <div>
-              <p className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-pizza-red" />
-                Agregar / Quitar Extras:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {availableExtras.map((ex) => {
-                  const isActive = currentExtras.some(
-                    (e) => (e.id_extras ?? e.id) === (ex.id_extras ?? ex.id)
-                  );
-                  return (
-                    <ExtraPill
-                      key={ex.id_extras ?? ex.id}
-                      extra={ex}
-                      active={isActive}
-                      onClick={() => onToggleExtra(item.id_detalle, ex)}
-                    />
-                  );
-                })}
-              </div>
-
-              {currentExtras.length > 0 && (
-                <p className="text-[11px] text-slate-500 font-medium mt-2">
-                  Seleccionados:{" "}
-                  <span className="text-slate-700">
-                    {currentExtras.map((e) => e.name ?? e.nombre).join(", ")}
-                  </span>
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── MODAL PRINCIPAL ──────────────────────────────────────────────────────────
 export default function OrderEditModal({ pedido, displayNum, onClose }) {
-  const { extras: extrasCtx } = useApp();
+  const { } = useApp(); // solo si necesitas algo de useApp, si no, puedes quitar la línea. Pero dejémoslo vacío por si acaso.
 
-  // Estado local de detalles para extras
-  const [localDetalles, setLocalDetalles] = useState(
-    () => pedido.detalles?.map((d) => ({ ...d, extras: [...(d.extras || [])] })) ?? []
+  // ── Despacho ─────────────────────────────────────────────────────────────
+  const [localDespacho, setLocalDespacho] = useState(pedido.despacho);
+
+  // ── Pizzas disponibles (traídas del backend, solo para mostrar) ───────────
+  const [availablePizzas, setAvailablePizzas] = useState([]);
+
+  React.useEffect(() => {
+    fetch("http://localhost:3001/api/pizzas")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.length) {
+          // MySQL Decimal llega como string → parseFloat para evitar crash en .toFixed()
+          setAvailablePizzas(
+            json.data.map((p) => ({
+              id: p.id,
+              name: p.name,
+              price: typeof p.price === "number" ? p.price : parseFloat(p.price) || 0,
+            }))
+          );
+        } else throw new Error();
+      })
+      .catch((e) => {
+        console.error("Error fetching pizzas:", e);
+        setAvailablePizzas([]);
+      });
+  }, []);
+
+  // ── Extras disponibles (traídas del backend) ─────────
+  const [availableExtras, setAvailableExtras] = useState([]);
+
+  React.useEffect(() => {
+    fetch("http://localhost:3001/api/extras")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.length) {
+          setAvailableExtras(
+            json.data.map((e) => ({
+              id: e.id,
+              name: e.name,
+              price: typeof e.price === "number" ? e.price : parseFloat(e.price) || 0,
+            }))
+          );
+        } else throw new Error();
+      })
+      .catch((e) => {
+        console.error("Error fetching extras:", e);
+        setAvailableExtras([]);
+      });
+  }, []);
+
+  // ── Detalles locales ──────────────────────────────────────────────────────
+  const [localDetalles, setLocalDetalles] = useState(() =>
+    pedido.detalles?.map((d) => {
+      const cantidad = parseInt(d.cantidad) || 1;
+      const monto_total = parseFloat(d.monto_total) || 0;
+      const extrasCost = (d.extras || []).reduce((s, e) => s + (parseFloat(e.price ?? e.precio) || 0), 0);
+      const precio_unitario =
+        parseFloat(d.precio_unitario) ||
+        monto_total / cantidad - extrasCost;
+
+      return {
+        ...d,
+        cantidad,
+        monto_total,
+        precio_unitario,
+        extras: (d.extras || []).map((e) => ({
+          ...e,
+          price: parseFloat(e.price ?? e.precio) || 0,
+        })),
+      };
+    }) ?? []
   );
 
-  // Observación única para todo el pedido
-  const initialObservacion = useMemo(() => {
-    const foundWithNote = pedido.detalles?.find((d) => d.nota && d.nota.trim().length > 0);
-    return foundWithNote ? foundWithNote.nota : "";
-  }, [pedido]);
+  // ── Observación ───────────────────────────────────────────────────────────
+  const [observacion, setObservacion] = useState(
+    () => pedido.detalles?.find((d) => d.nota?.trim())?.nota ?? ""
+  );
 
-  const [observacion, setObservacion] = useState(initialObservacion);
+  // ── Helpers de cálculo ────────────────────────────────────────────────────
+  const recalcTotal = (item, unitPrice, extras) => {
+    const safeExtras = extras || [];
+    const eSum = safeExtras.reduce((s, e) => s + (e.price ?? e.precio ?? 0), 0);
+    return (unitPrice + eSum) * item.cantidad;
+  };
 
-  const despacho = DESPACHO_LABEL[pedido.despacho] || DESPACHO_LABEL.Local;
+  // ── Selección local de pizza por item (id de availablePizzas) ──────────────
+  // No usamos id_producto_origen del backend porque sus IDs son distintos
+  // a los del contexto local. Guardamos el id del contexto seleccionado.
+  const [pizzaSelections, setPizzaSelections] = useState({});
 
-  const availableExtras = useMemo(() => {
-    if (extrasCtx && extrasCtx.length > 0) return extrasCtx;
-    return [];
-  }, [extrasCtx]);
+  // ── Cambiar tipo de pizza ──────────────────────────────────────────────────────
+  const handleChangePizzaType = (idDetalle, pizzaId) => {
+    const p = availablePizzas.find((x) => String(x.id) === String(pizzaId));
+    if (!p) return;
+    // Actualizar selección local
+    setPizzaSelections((prev) => ({ ...prev, [idDetalle]: String(p.id) }));
+    // Actualizar detalle con los nuevos datos de precio
+    setLocalDetalles((prev) =>
+      prev.map((d) =>
+        d.id_detalle !== idDetalle
+          ? d
+          : {
+            ...d,
+            nombre_producto: p.name,
+            precio_unitario: p.price,
+            monto_total: recalcTotal(d, p.price, d.extras || []),
+          }
+      )
+    );
+  };
 
+  // ── Agregar / quitar extra ────────────────────────────────────────────────
   const handleToggleExtra = (idDetalle, extra) => {
     setLocalDetalles((prev) =>
       prev.map((d) => {
         if (d.id_detalle !== idDetalle) return d;
         const key = extra.id_extras ?? extra.id;
-        const has = d.extras.some((e) => (e.id_extras ?? e.id) === key);
-        return {
-          ...d,
-          extras: has
-            ? d.extras.filter((e) => (e.id_extras ?? e.id) !== key)
-            : [...d.extras, { ...extra, isNew: true }],
-        };
+        const safeExtras = d.extras || [];
+        const has = safeExtras.some((e) => (e.id_extras ?? e.id) === key);
+        const upd = has
+          ? safeExtras.filter((e) => (e.id_extras ?? e.id) !== key)
+          : [...safeExtras, extra];
+        return { ...d, extras: upd, monto_total: recalcTotal(d, d.precio_unitario, upd) };
       })
     );
   };
 
-  const totalUsd = pedido.monto_total_usd ?? 0;
-  const pizzaCount = localDetalles.filter((d) => d.tipo_producto === "Pizza").length;
-  const bebidaCount = localDetalles.filter((d) => d.tipo_producto === "Bebida").length;
+  // ── Totales ───────────────────────────────────────────────────────────────
+  const originalTotal = pedido.monto_total_usd ?? 0;
+  const newTotal = useMemo(
+    () => localDetalles.reduce((s, d) => s + (d.monto_total || 0), 0),
+    [localDetalles]
+  );
+  const diff = newTotal - originalTotal;
 
+  const DespachoIcon = DESPACHO_ICON[localDespacho] ?? Truck;
+  const nextDespacho = DESPACHO_NEXT[localDespacho];
+
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/65 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden border border-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <div>
-            <h3 className="font-extrabold text-slate-800 text-lg">
-              Editar Pedido #{displayNum ? String(displayNum).padStart(3, "0") : pedido.id_venta}
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {new Date(pedido.fecha_hora).toLocaleString("es-VE", {
-                hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short",
-              })}
-            </p>
+        {/* ── HEADER ──────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pizza-red to-pizza-red-dark flex items-center justify-center shadow-lg shadow-pizza-red/20 text-white shrink-0">
+              <ShoppingBag className="w-7 h-7" />
+            </div>
+            <div>
+              <h2 className="font-black text-slate-800 text-2xl leading-tight">
+                Editar Pedido{" "}
+                <span className="text-pizza-red">
+                  #{displayNum ? String(displayNum).padStart(3, "0") : pedido.id_venta}
+                </span>
+              </h2>
+              <p className="text-sm text-slate-400 font-semibold mt-0.5">
+                {new Date(pedido.fecha_hora).toLocaleString("es-VE", {
+                  weekday: "short", day: "2-digit", month: "short",
+                  hour: "2-digit", minute: "2-digit",
+                })}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-2.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* ── Body scrollable ── */}
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+        {/* ── BODY ────────────────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-5 min-h-full">
 
-          {/* Tarjeta del Cliente */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-              Información del Cliente
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              <InfoChip
-                icon={User}
-                label="Nombre"
-                value={pedido.nombre_cliente || "Anónimo"}
-                colorClass="text-slate-800"
-              />
-              <InfoChip
-                icon={CreditCard}
-                label="Cédula"
-                value={pedido.cedula_cliente ? `V-${pedido.cedula_cliente}` : "—"}
-              />
-              <InfoChip
-                icon={Phone}
-                label="Teléfono"
-                value={pedido.telefono_cliente || "—"}
-              />
-            </div>
-            <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
-              <span
-                className={`text-xs font-bold px-3 py-1 rounded-full ${despacho.bg} ${despacho.color}`}
-              >
-                {despacho.label}
-              </span>
-              <span className="text-xs text-slate-500 font-medium">
-                {pizzaCount} pizza{pizzaCount !== 1 ? "s" : ""}
-                {bebidaCount > 0 ? ` · ${bebidaCount} bebida${bebidaCount !== 1 ? "s" : ""}` : ""}
-              </span>
-            </div>
-          </div>
+            {/* ── Columna Izquierda (2/5) ─────────────────────────────────── */}
+            <div className="lg:col-span-2 p-7 flex flex-col gap-5 bg-slate-50/60 border-r border-slate-100">
 
-          {/* Resumen de compra */}
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-              Productos del Pedido
-            </p>
-            <div className="flex flex-col gap-2">
-              {localDetalles.map((item) => (
-                <ItemCard
-                  key={item.id_detalle}
-                  item={item}
-                  availableExtras={item.tipo_producto === "Pizza" ? availableExtras : []}
-                  localExtras={item.extras}
-                  onToggleExtra={handleToggleExtra}
+              {/* Cliente */}
+              <section className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4" /> Datos del Cliente
+                </p>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">Nombre</span>
+                    <span className="text-lg font-bold text-slate-800 leading-tight">
+                      {pedido.nombre_cliente || "Anónimo / General"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-50">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Cédula</span>
+                      <span className="text-base font-semibold text-slate-700">
+                        {pedido.cedula_cliente ? `V-${pedido.cedula_cliente}` : "—"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Teléfono</span>
+                      <span className="text-base font-semibold text-slate-700">
+                        {pedido.telefono_cliente || "—"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Despacho */}
+              <section className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Truck className="w-4 h-4" /> Método de Despacho
+                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${localDespacho === "Local" || localDespacho === "Llevar"
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-purple-50 text-purple-600"
+                      }`}>
+                      <DespachoIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase block">Actual</span>
+                      <span className="text-xl font-black text-slate-800">{localDespacho}</span>
+                    </div>
+                  </div>
+                  {nextDespacho && (
+                    <button
+                      onClick={() => setLocalDespacho(nextDespacho)}
+                      className="flex items-center gap-1.5 text-sm font-bold bg-pizza-red/10 text-pizza-red hover:bg-pizza-red hover:text-white px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                      {nextDespacho}
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 mt-3 font-medium leading-relaxed">
+                  {localDespacho === "Local" || localDespacho === "Llevar"
+                    ? "Alterna entre consumo en local y para llevar."
+                    : "Alterna entre delivery a domicilio y pick up."}
+                </p>
+              </section>
+
+              {/* Observaciones */}
+              <section className="bg-amber-50 rounded-2xl p-5 border border-amber-100 shadow-sm flex-1">
+                <label className="text-xs font-black text-amber-800 uppercase tracking-widest flex items-center gap-2 mb-3">
+                  <MessageSquareText className="w-4 h-4 text-amber-600" /> Observaciones
+                </label>
+                <textarea
+                  value={observacion}
+                  onChange={(e) => setObservacion(e.target.value)}
+                  rows={4}
+                  placeholder="Ej. Sin cebolla, borde crujiente, alergia al gluten..."
+                  className="w-full resize-none rounded-xl border border-amber-200 text-sm px-4 py-3 text-slate-700 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all"
                 />
-              ))}
+              </section>
+
             </div>
-          </div>
 
-          {/* Única Observación del Pedido */}
-          <div className="bg-amber-50/50 rounded-xl p-4 border border-amber-200/80">
-            <label className="text-xs font-bold text-amber-900 flex items-center gap-1.5 mb-2">
-              <MessageSquareText className="w-4 h-4 text-amber-600" />
-              Observación General del Pedido
-            </label>
-            <textarea
-              value={observacion}
-              onChange={(e) => setObservacion(e.target.value)}
-              rows={3}
-              placeholder="Observacion"
-              className="w-full resize-none rounded-lg border border-amber-200 text-sm px-3 py-2 text-slate-700 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-colors"
-            />
-          </div>
+            {/* ── Columna Derecha (3/5) ────────────────────────────────────── */}
+            <div className="lg:col-span-3 p-7 flex flex-col gap-4">
 
-          {/* Total */}
-          <div className="flex items-center justify-between bg-slate-900 rounded-xl px-5 py-3.5 text-white">
-            <span className="text-sm font-semibold text-slate-300">Monto Total</span>
-            <span className="text-2xl font-black">${totalUsd.toFixed(2)}</span>
+              <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-100">
+                Productos del Pedido
+              </h4>
+
+              <div className="flex flex-col gap-4 overflow-y-auto max-h-[calc(96vh-280px)] pr-1">
+                {localDetalles.map((item) => {
+                  const isPizza = item.tipo_producto === "Pizza";
+                  const isEditable =
+                    isPizza &&
+                    item.estado_detalle !== "Horno" &&
+                    item.estado_detalle !== "Completado";
+
+                  return (
+                    <div
+                      key={item.id_detalle}
+                      className={`rounded-2xl border bg-white shadow-sm transition-all ${isEditable
+                        ? "border-slate-200 hover:border-pizza-red/30 hover:shadow-md"
+                        : "border-slate-100 opacity-75"
+                        }`}
+                    >
+                      {/* Cabecera del item */}
+                      <div className="flex items-start gap-4 p-5">
+                        <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-3xl shrink-0">
+                          {TIPO_EMOJI[item.tipo_producto] ?? "📦"}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          {isEditable ? (
+                            <>
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                                Cambiar Especialidad
+                              </span>
+                              <select
+                                value={
+                                  pizzaSelections[item.id_detalle] ??
+                                  (availablePizzas.find((p) => p.name === item.nombre_producto)?.id
+                                    ? String(availablePizzas.find((p) => p.name === item.nombre_producto).id)
+                                    : "")
+                                }
+                                onChange={(e) =>
+                                  handleChangePizzaType(item.id_detalle, e.target.value)
+                                }
+                                className="w-full text-base font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pizza-red/20 focus:border-pizza-red cursor-pointer transition-all"
+                              >
+                                {/* Opción inicial solo si no hace match con ninguna pizza disponible */}
+                                {!(pizzaSelections[item.id_detalle] ?? availablePizzas.find((p) => p.name === item.nombre_producto)) && (
+                                  <option value="">
+                                    {item.nombre_producto || "Especialidad actual"}
+                                  </option>
+                                )}
+                                {availablePizzas.map((p) => (
+                                  <option key={p.id} value={String(p.id)}>
+                                    {p.name} — ${Number(p.price || 0).toFixed(2)}
+                                  </option>
+                                ))}
+                              </select>
+                            </>
+                          ) : (
+                            <h5 className="font-bold text-slate-800 text-lg leading-tight truncate">
+                              {item.nombre_producto || item.tipo_producto}
+                            </h5>
+                          )}
+
+                          <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${ESTADO_COLOR[item.estado_detalle] || ESTADO_COLOR.Pendiente}`}>
+                              {item.estado_detalle}
+                            </span>
+                            <span className="text-sm text-slate-400 font-semibold">
+                              Cant: <span className="text-slate-700">{item.cantidad}</span>
+                            </span>
+                            <span className="text-sm text-slate-400 font-semibold">
+                              Unit: <span className="text-slate-700">${Number(item.precio_unitario || 0).toFixed(2)}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-2xl font-black text-slate-800 block">
+                            $<span translate="no">{Number(item.monto_total || 0).toFixed(2)}</span>
+                          </span>
+                          {!isEditable && (
+                            <span className="text-[10px] text-slate-400 font-bold uppercase mt-1 block">
+                              No editable
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Panel de Extras */}
+                      {isPizza && (
+                        <div className={`px-5 pb-5 flex flex-col gap-3 ${isEditable ? "" : "pointer-events-none"}`}>
+                          <div className="border-t border-slate-100 pt-4">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                              <Sparkles className="w-3.5 h-3.5 text-pizza-red" /> Ingredientes Extras
+                            </p>
+
+                            {isEditable ? (
+                              <>
+                                <select
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (!val) return;
+                                    const ex = availableExtras.find(
+                                      (x) => String(x.id_extras ?? x.id) === String(val)
+                                    );
+                                    if (ex) {
+                                      const has = item.extras?.some(
+                                        (e) => String(e.id_extras ?? e.id) === String(val)
+                                      );
+                                      if (!has) handleToggleExtra(item.id_detalle, ex);
+                                    }
+                                    e.target.value = "";
+                                  }}
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pizza-red/15 focus:border-pizza-red cursor-pointer transition-all"
+                                >
+                                  <option value="">+ Seleccionar ingrediente extra...</option>
+                                  {availableExtras.map((ex) => {
+                                    const has = item.extras?.some(
+                                      (e) =>
+                                        String(e.id_extras ?? e.id) ===
+                                        String(ex.id_extras ?? ex.id)
+                                    );
+                                    return (
+                                      <option
+                                        key={ex.id_extras ?? ex.id}
+                                        value={ex.id_extras ?? ex.id}
+                                        disabled={has}
+                                      >
+                                        {ex.name || ex.nombre} (+$
+                                        {Number(ex.price ?? ex.precio ?? 0).toFixed(2)})
+                                        {has ? " ✓" : ""}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+
+                                {item.extras?.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-3">
+                                    {item.extras.map((ex) => (
+                                      <span
+                                        key={ex.id_extras ?? ex.id}
+                                        className="inline-flex items-center gap-1.5 text-sm font-bold bg-pizza-red/10 text-pizza-red border border-pizza-red/25 px-3 py-1.5 rounded-full"
+                                      >
+                                        {ex.name || ex.nombre}
+                                        <span className="font-normal text-pizza-red/70 text-xs">
+                                          +${Number(ex.price ?? ex.precio ?? 0).toFixed(2)}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleExtra(item.id_detalle, ex)}
+                                          className="hover:text-red-700 font-black focus:outline-none leading-none ml-0.5 cursor-pointer"
+                                        >
+                                          ×
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {(!item.extras || item.extras.length === 0) && (
+                                  <p className="text-sm text-slate-400 mt-2 italic">
+                                    Sin extras agregados.
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {item.extras?.length > 0 ? (
+                                  item.extras.map((ex) => (
+                                    <span
+                                      key={ex.id_extras ?? ex.id}
+                                      className="text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full"
+                                    >
+                                      {ex.name || ex.nombre}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-slate-400 italic">Sin extras.</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* ── Footer ── */}
-        <div className="px-6 py-4 border-t border-slate-100 shrink-0 bg-slate-50/60 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-100 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-pizza-red text-white font-semibold text-sm hover:bg-pizza-red-dark shadow-sm transition-colors"
-          >
-            Listo / Guardar
-          </button>
+        {/* ── BALANCE + FOOTER ─────────────────────────────────────────────── */}
+        <div className="shrink-0 border-t border-slate-100">
+
+          {/* Balance */}
+          <div className="px-7 pt-4 pb-3 bg-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-8">
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Monto Original</span>
+                <span className="text-xl font-black text-white">$<span translate="no">{Number(originalTotal || 0).toFixed(2)}</span></span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-600 hidden sm:block" />
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Nuevo Total</span>
+                <span className="text-xl font-black text-white">$<span translate="no">{Number(newTotal || 0).toFixed(2)}</span></span>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Resultado</span>
+              {diff > 0 ? (
+                <span className="inline-block font-black text-red-400 text-lg bg-red-500/15 border border-red-500/30 px-5 py-1.5 rounded-xl">
+                  +${Number(diff || 0).toFixed(2)} a cobrar
+                </span>
+              ) : diff < 0 ? (
+                <span className="inline-block font-black text-emerald-400 text-lg bg-emerald-500/15 border border-emerald-500/30 px-5 py-1.5 rounded-xl">
+                  −${Number(Math.abs(diff) || 0).toFixed(2)} a devolver
+                </span>
+              ) : (
+                <span className="inline-block font-black text-slate-400 text-base bg-slate-800 border border-slate-700 px-5 py-1.5 rounded-xl">
+                  Sin diferencia
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Botones */}
+          <div className="px-7 py-4 bg-white flex gap-4">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3.5 rounded-2xl border-2 border-slate-200 text-slate-700 font-extrabold text-base hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-3.5 rounded-2xl bg-pizza-red hover:bg-pizza-red-dark text-white font-extrabold text-base shadow-lg shadow-pizza-red/20 transition-colors cursor-pointer"
+            >
+              Guardar Cambios
+            </button>
+          </div>
         </div>
       </div>
     </div>
