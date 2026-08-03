@@ -23,9 +23,7 @@ export const KITCHEN_CATEGORIES = ["pizzas", "combos"];
 
 const orderNeedsKitchen = (items) =>
   Array.isArray(items) &&
-  items.some(
-    (i) => i.category && KITCHEN_CATEGORIES.includes(i.category),
-  );
+  items.some((i) => i.category && KITCHEN_CATEGORIES.includes(i.category));
 
 const initialState = {
   // Authentication
@@ -323,6 +321,9 @@ function reducer(state, action) {
       return { ...state, orders };
     }
 
+    case "SET_KITCHEN_ORDERS":
+      return { ...state, orders: action.payload };
+
     case "UPDATE_ORDER": {
       const { order } = action.payload;
       const orders = state.orders.map((o) =>
@@ -490,9 +491,38 @@ export function AppProvider({ children }) {
   );
 
   const updateOrderStatus = useCallback(
-    (id, status) =>
-      dispatch({ type: "UPDATE_ORDER_STATUS", payload: { id, status } }),
-    [],
+    async (id, status) => {
+      const order = state.orders.find((o) => o.id === id);
+
+      if (order && order.db_id && status === "preparing") {
+        try {
+          const res = await fetch(
+            `${API_BASE}/preparar-pedido/${order.db_id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          );
+          const json = await res.json();
+
+          if (json.success) {
+            dispatch({ type: "UPDATE_ORDER_STATUS", payload: { id, status } });
+          } else {
+            console.error(
+              "Error al actualizar la base de datos:",
+              json.message,
+            );
+          }
+        } catch (error) {
+          console.error("Error de conexión con la API:", error);
+        }
+      } else {
+        dispatch({ type: "UPDATE_ORDER_STATUS", payload: { id, status } });
+      }
+    },
+    [state.orders],
   );
   const archiveOrder = useCallback(
     (id) => dispatch({ type: "ARCHIVE_ORDER", payload: { id } }),
@@ -562,7 +592,7 @@ export function AppProvider({ children }) {
   // ── Datos reales de BD ────────────────────────────────────────────────────
   const fetchVentasHoy = useCallback(async () => {
     try {
-      const res  = await fetch(`${API_BASE}/obtener-ventas-hoy`);
+      const res = await fetch(`${API_BASE}/obtener-ventas-hoy`);
       const json = await res.json();
       if (json.success) {
         dispatch({ type: "SET_METRICS_HOY", payload: json.data });
@@ -574,7 +604,7 @@ export function AppProvider({ children }) {
 
   const fetchPedidosActivos = useCallback(async () => {
     try {
-      const res  = await fetch(`${API_BASE}/obtener-pedidos-activos`);
+      const res = await fetch(`${API_BASE}/obtener-pedidos-activos`);
       const json = await res.json();
       if (json.success) {
         dispatch({ type: "SET_PEDIDOS_ACTIVOS", payload: json.data });
@@ -584,19 +614,52 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  const fetchPedidosCocina = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-cocina`);
+      const json = await res.json();
+
+      if (json.success) {
+        // Mapeamos los datos de la BD al formato que espera tu KanbanBoard
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden, // Ej: ORD-001
+          db_id: venta.id_venta, // Guardamos el ID real para el PUT
+          status: "pending", // El KanbanBoard suele usar 'pending'
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho, // Local, Delivery, etc.
+          customerName: venta.nombre_cliente,
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_KITCHEN_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos de cocina:", err);
+    }
+  }, []);
+
   useEffect(() => {
     // Carga inicial
     fetchVentasHoy();
     fetchPedidosActivos();
+    fetchPedidosCocina();
 
     // Polling cada 15 segundos para mantener la cola actualizada
     const interval = setInterval(() => {
       fetchVentasHoy();
       fetchPedidosActivos();
+      fetchPedidosCocina();
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [fetchVentasHoy, fetchPedidosActivos]);
+  }, [fetchVentasHoy, fetchPedidosActivos, fetchPedidosCocina]);
 
   const updateExchangeRate = useCallback((rate) => {
     setExchangeRate(parseFloat(rate));
@@ -658,6 +721,7 @@ export function AppProvider({ children }) {
         updateExchangeRate,
         fetchVentasHoy,
         fetchPedidosActivos,
+        fetchPedidosCocina,
       }}
     >
       {children}

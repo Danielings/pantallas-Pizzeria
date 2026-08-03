@@ -6,6 +6,7 @@ import ventas from "./apis/ventas.js";
 import clientes from "./apis/clientes.js";
 import obtenerProductos from "./apis/obtenerProductos.js";
 import editarProductos from "./apis/editarProductos.js";
+import pedidos from "./apis/pedidos.js";
 
 const app = express();
 app.use(
@@ -25,6 +26,7 @@ app.use("/api", ventas);
 app.use("/api", clientes);
 app.use("/api", obtenerProductos);
 app.use("/api", editarProductos);
+app.use("/api", pedidos);
 
 app.listen(3001, () => {
   console.log("Escuchandoo, oh oh");
