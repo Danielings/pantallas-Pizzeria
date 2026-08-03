@@ -151,33 +151,4 @@ Router.put("/editar-cliente/:id", async (req, res) => {
   }
 });
 
-Router.delete("/eliminar-cliente/:id", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const [ventas] = await pool.query(
-      `SELECT COUNT(*) AS total FROM ventas WHERE id_cliente = ?`,
-      [id],
-    );
-
-    if (ventas[0].total > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `El cliente tiene ${ventas[0].total} venta(s) asociadas y no puede eliminarse.`,
-      });
-    }
-
-    const [result] = await pool.query(`DELETE FROM clientes WHERE id_cliente = ?`, [id]);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Cliente no encontrado" });
-    }
-
-    res.json({ success: true, message: "Cliente eliminado correctamente" });
-  } catch (error) {
-    console.error("Error eliminando cliente:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 export default Router;

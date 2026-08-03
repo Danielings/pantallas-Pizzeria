@@ -5,7 +5,6 @@ import {
   Search,
   Plus,
   Pencil,
-  Trash2,
   X,
   DollarSign,
   ShoppingBag,
@@ -13,7 +12,6 @@ import {
   UserPlus,
 } from "lucide-react";
 import ClienteForm from "../components/admin/clientes/ClienteForm";
-import DeleteClienteModal from "../components/admin/clientes/DeleteClienteModal";
 
 const API_BASE = "http://localhost:3001/api";
 
@@ -39,6 +37,7 @@ export default function ClientesScreen() {
   const [customers, setCustomers] = useState(cachedCustomers || []);
   const [isLoading, setIsLoading] = useState(!cachedCustomers);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("name"); // 'name' | 'gasto-desc' | 'gasto-asc'
 
   // Paginación
   const [page, setPage] = useState(1);
@@ -48,11 +47,6 @@ export default function ClientesScreen() {
   const [editingClient, setEditingClient] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState("");
-
-  // Modal eliminar
-  const [clientToDelete, setClientToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
 
   // ─── Carga de Datos desde la BD ───
   const fetchCustomers = async (silent = false) => {
@@ -80,18 +74,31 @@ export default function ClientesScreen() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.cedula.toLowerCase().includes(q) ||
-        String(c.phone).includes(q),
-    );
-  }, [customers, search]);
 
-  // Volver a la primera página al cambiar la búsqueda
+    let list = customers.filter(
+      (c) =>
+        String(c.name || "").toLowerCase().includes(q) ||
+        String(c.cedula || "").toLowerCase().includes(q) ||
+        String(c.phone ?? "").includes(q),
+    );
+
+    if (sortBy === "gasto-desc") {
+      list = [...list].sort(
+        (a, b) => Number(b.total || 0) - Number(a.total || 0),
+      );
+    } else if (sortBy === "gasto-asc") {
+      list = [...list].sort(
+        (a, b) => Number(a.total || 0) - Number(b.total || 0),
+      );
+    }
+
+    return list;
+  }, [customers, search, sortBy]);
+
+  // Volver a la primera página al cambiar búsqueda o filtros
   useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [search, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -204,37 +211,6 @@ export default function ClientesScreen() {
     }
   };
 
-  // ─── Eliminar ───
-  const handleDeleteClick = (client) => {
-    setDeleteError("");
-    setClientToDelete(client);
-  };
-
-  const handleDelete = async () => {
-    if (!clientToDelete) return;
-    setIsDeleting(true);
-    setDeleteError("");
-    try {
-      const res = await axios.delete(
-        `${API_BASE}/eliminar-cliente/${clientToDelete.id}`,
-      );
-      if (res.data.success) {
-        setCustomers((prev) => {
-          const updated = prev.filter((c) => c.id !== clientToDelete.id);
-          cachedCustomers = updated;
-          return updated;
-        });
-        setClientToDelete(null);
-      }
-    } catch (error) {
-      setDeleteError(
-        error.response?.data?.message || "Error eliminando el cliente",
-      );
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden w-full h-full bg-slate-50">
       {/* Header */}
@@ -252,7 +228,7 @@ export default function ClientesScreen() {
               : `${customers.length} clientes registrados`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -263,6 +239,15 @@ export default function ClientesScreen() {
               className="w-72 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all"
             />
           </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all cursor-pointer"
+          >
+            <option value="name">Orden: Nombre</option>
+            <option value="gasto-desc">Más gasto (desc)</option>
+            <option value="gasto-asc">Menos gasto (asc)</option>
+          </select>
           <button
             onClick={openCreate}
             className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2 active:scale-[0.98]"
@@ -422,7 +407,7 @@ export default function ClientesScreen() {
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                          {customer.name.charAt(0)}
+                          {String(customer.name || "?")[0]?.toUpperCase()}
                         </div>
                         <span className="font-semibold text-slate-800">
                           {customer.name}
@@ -430,7 +415,7 @@ export default function ClientesScreen() {
                       </div>
                     </td>
                     <td className="px-5 py-3 text-slate-600 font-mono text-xs">
-                      {customer.cedula}
+                      {customer.cedula || "—"}
                     </td>
                     <td className="px-5 py-3 text-slate-600 font-mono text-xs">
                       {customer.phone || "—"}
@@ -456,13 +441,6 @@ export default function ClientesScreen() {
                           title="Editar cliente"
                         >
                           <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(customer)}
-                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all p-1.5 rounded-lg hover:bg-red-50"
-                          title="Eliminar cliente"
-                        >
-                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -569,15 +547,6 @@ export default function ClientesScreen() {
           </div>
         </div>
       )}
-
-      {/* Modal Eliminar */}
-      <DeleteClienteModal
-        cliente={clientToDelete}
-        isDeleting={isDeleting}
-        error={deleteError}
-        onConfirm={handleDelete}
-        onCancel={() => setClientToDelete(null)}
-      />
     </div>
   );
 }
