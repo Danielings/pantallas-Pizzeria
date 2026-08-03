@@ -257,6 +257,43 @@ Router.put("/editar-venta", async (req, res) => {
   }
 });
 
+// ─── GET /metodos-pago ────────────────────────────────────────────────────────
+// Acepta ?clientes=id1,id2,... para filtrar solo los pagos de esos clientes.
+Router.get("/metodos-pago", async (req, res) => {
+  try {
+    const clientes = (req.query.clientes || "")
+      .split(",")
+      .map((id) => Number(id.trim()))
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+    const params = [];
+    let filtro = "";
+    if (clientes.length) {
+      filtro = "WHERE v.id_cliente IN (?)";
+      params.push(clientes);
+    }
+
+    const [rows] = await pool.query(
+      `SELECT vp.metodo_pago AS metodo,
+              COUNT(*)              AS cantidad,
+              COUNT(DISTINCT vp.id_venta) AS ventas,
+              SUM(vp.monto_usd)        AS total_usd,
+              SUM(vp.monto_bs)         AS total_bs
+       FROM ventas_pagos vp
+       INNER JOIN ventas v ON v.id_venta = vp.id_venta
+       ${filtro}
+       GROUP BY vp.metodo_pago
+       ORDER BY cantidad DESC`,
+      params,
+    );
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error("Error al obtener métodos de pago:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ─── GET /obtener-ventas-hoy ───────────────────────────────────────────────────
 // Devuelve las métricas del día: ingresos totales en USD, cantidad de pizzas
 Router.get("/obtener-ventas-hoy", async (req, res) => {
