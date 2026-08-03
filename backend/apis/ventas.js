@@ -111,6 +111,152 @@ Router.post("/procesar-venta", async (req, res) => {
   }
 });
 
+Router.put("/editar-venta", async (req, res) => {
+  const {
+    id_venta,
+    nuevo_despacho,
+    tasa_cambio,
+    monto_total_usd,
+    monto_total_bs,
+    detalles_actualizados,
+    info_pago,
+  } = req.body;
+
+  if (!id_venta) {
+    return res.status(400).json({
+      success: false,
+      message: "El id_venta es obligatorio para actualizar el pedido.",
+    });
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const updates = [];
+    const params = [];
+
+    if (nuevo_despacho) {
+      updates.push("despacho = ?");
+      params.push(nuevo_despacho);
+    }
+
+    if (tasa_cambio != null) {
+      updates.push("tasa_cambio = ?");
+      params.push(tasa_cambio);
+    }
+
+    if (monto_total_usd != null) {
+      updates.push("monto_total_usd = ?");
+      params.push(monto_total_usd);
+    }
+
+    if (monto_total_bs != null) {
+      updates.push("monto_total_bs = ?");
+      params.push(monto_total_bs);
+    }
+
+    if (updates.length > 0) {
+      params.push(id_venta);
+      await connection.query(
+        `UPDATE ventas SET ${updates.join(", ")} WHERE id_venta = ?`,
+        params,
+      );
+    }
+
+    if (Array.isArray(detalles_actualizados)) {
+      for (const item of detalles_actualizados) {
+        if (item.id_detalle) {
+          await connection.query(
+            `UPDATE venta_detalle
+             SET tipo_producto = ?, id_producto_origen = ?, cantidad = ?, monto_total = ?, nota = ?
+             WHERE id_detalle = ?`,
+            [
+              item.tipo_producto,
+              item.id_producto_origen,
+              item.cantidad,
+              item.monto_total,
+              item.nota || "",
+              item.id_detalle,
+            ],
+          );
+
+          await connection.query(
+            `DELETE FROM detalle_venta_extras WHERE id_detalle = ?`,
+            [item.id_detalle],
+          );
+
+          if (Array.isArray(item.extras) && item.extras.length > 0) {
+            for (const id_extra of item.extras) {
+              await connection.query(
+                `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+                [item.id_detalle, id_extra],
+              );
+            }
+          }
+        } else {
+          const [resultDetalle] = await connection.query(
+            `INSERT INTO venta_detalle
+             (id_venta, tipo_producto, id_producto_origen, cantidad, monto_total, nota, estado)
+             VALUES (?, ?, ?, ?, ?, ?, 'Pendiente')`,
+            [
+              id_venta,
+              item.tipo_producto,
+              item.id_producto_origen,
+              item.cantidad,
+              item.monto_total,
+              item.nota || "",
+            ],
+          );
+
+          const id_detalle = resultDetalle.insertId;
+          if (Array.isArray(item.extras) && item.extras.length > 0) {
+            for (const id_extra of item.extras) {
+              await connection.query(
+                `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+                [id_detalle, id_extra],
+              );
+            }
+          }
+        }
+      }
+    }
+
+    if (info_pago) {
+      await connection.query(
+        `INSERT INTO ventas_pagos
+         (id_venta, metodo_pago, monto_usd, monto_bs, referencia)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          id_venta,
+          info_pago.metodo,
+          info_pago.monto_usd,
+          info_pago.monto_bs || 0,
+          info_pago.referencia || null,
+        ],
+      );
+    }
+
+    await connection.commit();
+
+    res.status(200).json({
+      success: true,
+      message: "Pedido actualizado correctamente",
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error al actualizar el pedido:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error actualizando el pedido",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+});
+
 // ─── GET /obtener-ventas-hoy ───────────────────────────────────────────────────
 // Devuelve las métricas del día: ingresos totales en USD, cantidad de pizzas
 Router.get("/obtener-ventas-hoy", async (req, res) => {
@@ -137,8 +283,14 @@ Router.get("/obtener-ventas-hoy", async (req, res) => {
       ORDER BY v.fecha_hora DESC`,
     );
 
-    const totalRevenue = ventas.reduce((s, v) => s + (v.monto_total_usd || 0), 0);
-    const totalPizzas = ventas.reduce((s, v) => s + (Number(v.pizzas_vendidas) || 0), 0);
+    const totalRevenue = ventas.reduce(
+      (s, v) => s + (v.monto_total_usd || 0),
+      0,
+    );
+    const totalPizzas = ventas.reduce(
+      (s, v) => s + (Number(v.pizzas_vendidas) || 0),
+      0,
+    );
     const avgTicket = ventas.length > 0 ? totalRevenue / ventas.length : 0;
 
     res.json({
@@ -197,7 +349,8 @@ Router.get("/obtener-pedidos-activos", async (req, res) => {
             vd.monto_total,
             vd.nota,
             vd.estado AS estado_detalle,
-            COALESCE(p.nombre, b.nombre, h.nombre) AS nombre_producto
+            COALESCE(p.nombre, b.nombre, h.nombre) AS nombre_producto,
+            p.id_categoria_pizza 
           FROM venta_detalle vd
           LEFT JOIN pizza     p  ON p.id_pizza      = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
           LEFT JOIN bebidas   b  ON b.id_bebida     = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
