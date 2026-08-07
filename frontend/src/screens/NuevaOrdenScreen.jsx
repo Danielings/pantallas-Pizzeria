@@ -4,10 +4,48 @@ import OrderTicket from "../components/cajero/OrderTicket";
 import CategoryFilter from "../components/cajero/CategoryFilter";
 import CheckoutModal from "../components/cajero/CheckoutModal";
 import ExchangeRateWidget from "../components/cajero/ExchangeRateWidget";
+import { useApp } from "../context/AppContext";
+import {
+  Receipt,
+  Trash2,
+  ChevronUp,
+  UtensilsCrossed,
+  ShoppingBag,
+  Bike,
+  Store,
+} from "lucide-react";
+const ORDER_TYPE_CONFIG = {
+  local: {
+    label: "Local",
+    icon: UtensilsCrossed,
+    color: "bg-blue-100 text-blue-700 border-blue-200",
+  },
+  takeaway: {
+    label: "Para Llevar",
+    icon: ShoppingBag,
+    color: "bg-amber-100 text-amber-700 border-amber-200",
+  },
+  delivery: {
+    label: "Delivery",
+    icon: Bike,
+    color: "bg-red-100 text-red-700 border-red-200",
+  },
+  pickup: {
+    label: "Pickup",
+    icon: Store,
+    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  },
+};
 
 export default function NuevaOrdenScreen() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Normal");
+  const [isTicketOpen, setIsTicketOpen] = useState(false);
+
+  const { currentOrder, clearCart } = useApp();
+  const { items, orderType } = currentOrder;
+  const typeConfig = orderType ? ORDER_TYPE_CONFIG[orderType] : null;
+  const TypeIcon = typeConfig?.icon;
 
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden w-full h-full relative">
