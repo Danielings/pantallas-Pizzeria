@@ -1,16 +1,19 @@
-import { useApp } from '../../context/AppContext';
-import { OrderCard } from './OrderCard';
-import { useState } from 'react';
+import { useApp } from "../../context/AppContext";
+import { OrderCard } from "./OrderCard";
+import { useState } from "react";
 
 // determina si un pedido es de tipo "Local"
 const isLocalOrder = (order) => {
-  // Caso 1: orderType técnico (pedidos nuevos)
-  if (order.orderType === "dine_in" || order.orderType === "local") return true;
-  // Caso 2: fallback legacy — table empieza con "Mesa"
-  if (order.table && order.table.startsWith("Mesa")) return true;
+  if (!order) return false;
+
+  const type = order.orderType?.toLowerCase();
+  if (type === "dine_in" || type === "local") return true;
+
+  const table = order.table?.toLowerCase() || "";
+  if (table.startsWith("local") || table.startsWith("mesa")) return true;
+
   return false;
 };
-
 
 /**
  * Column — columna genérica del board de despacho.
@@ -21,8 +24,12 @@ function Column({ title, icon, countClass, orders, renderCard }) {
       {/* Encabezado */}
       <div className="flex items-center gap-2.5 px-4 lg:px-6 py-3.5 border-b border-pizza-gray-3 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
         <span className="text-lg 3xl:text-xl">{icon}</span>
-        <h2 className="text-pizza-dark font-bold text-base 3xl:text-lg flex-1">{title}</h2>
-        <span className={`px-2.5 py-1 rounded-full text-xs 3xl:text-sm font-bold ${countClass}`}>
+        <h2 className="text-pizza-dark font-bold text-base 3xl:text-lg flex-1">
+          {title}
+        </h2>
+        <span
+          className={`px-2.5 py-1 rounded-full text-xs 3xl:text-sm font-bold ${countClass}`}
+        >
           {orders.length}
         </span>
       </div>
@@ -47,61 +54,63 @@ export default function DespachoBoard() {
 
   const [orderToSwap, setOrderToSwap] = useState(null);
 
-  const handleSwap = (hornoOrder) => {
+  const handleSwap = async (hornoOrder) => {
     if (!orderToSwap) return;
 
     const despOrder = orderToSwap;
-    setOrderToSwap(null);
+    setOrderToSwap(null); // Cierra el modo de intercambio inmediatamente
 
-    // 1. Mueve el pedido original (Despacho) a Pendiente ('ready')
-    updateOrder({
-    id: despOrder.id,
-    status: 'ready',
-    reassigned: true,
-  });
+    try {
+      // 1. Mueve el pedido de Despacho a Pendiente ('ready') en la BD y en React
+      await updateOrderStatus(despOrder.id, "ready");
 
-    // 2. Mueve el pedido del Horno a Despacho ('delivered') y agrega la etiqueta 'reassigned'
-    updateOrder({
-    id: hornoOrder.id,
-    status: 'delivered',
-    reassigned: true,
-  });
+      // 2. Mueve el pedido del Horno a Despacho ('delivered') en la BD y en React
+      await updateOrderStatus(hornoOrder.id, "delivered");
 
-    // 3. Finaliza el modo de intercambio
-    setOrderToSwap(null);
+      // 3. Opcional: Si mantienes una propiedad 'reassigned' localmente
+      if (updateOrder) {
+        updateOrder({ id: despOrder.id, reassigned: true });
+        updateOrder({ id: hornoOrder.id, reassigned: true });
+      }
+    } catch (error) {
+      console.error("Error al intercambiar pedidos:", error);
+    }
   };
 
-    // Handler para completar pedidos en la columna Despacho
+  // Handler para completar pedidos en la columna Despacho
   const handleDespachoComplete = (order) => {
     if (isLocalOrder(order)) {
       // Pedido Local: cambiar a estado 'waiter_pending' para que vaya al Mesero
-      updateOrderStatus(order.id, 'waiter_pending');
+      updateOrderStatus(order.id, "waiter_pending");
     } else {
       // Pedido NO Local (Llevar, Delivery, Pickup): archivar directamente
-      archiveOrder(order.id);
+      updateOrderStatus(order.id, "completed");
     }
+  };
+
+  const handlePendienteComplete = (order) => {
+    updateOrderStatus(order.id, "completed");
   };
 
   // Columna A: Horno — pedidos en preparación
   const hornoOrders = orders
-    .filter((o) => o.status === 'preparing')
+    .filter((o) => o.status === "preparing")
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
   // Columna B: Pendiente — pedidos listos para entregar
   const pendienteOrders = orders
-    .filter((o) => o.status === 'ready')
+    .filter((o) => o.status === "ready")
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
   // Columna C: Despacho — pedidos en espera de ser recogidos
   const despachoOrders = orders
-    .filter((o) => o.status === 'delivered')
+    .filter((o) => o.status === "delivered")
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-    const isSwapping = orderToSwap !== null;
+  const isSwapping = orderToSwap !== null;
 
   return (
     <div className="flex flex-col lg:flex-row h-full lg:divide-x divide-pizza-gray-3 overflow-y-auto lg:overflow-hidden bg-pizza-gray-2 lg:bg-transparent">
-
       {/* ── Columna A: Horno (amarillo) — isFirst lógica ── */}
       <Column
         title="Horno"
@@ -113,9 +122,15 @@ export default function DespachoBoard() {
             key={order.id}
             order={order}
             isFirst={isSwapping ? true : idx === 0}
-            variant={isSwapping ?"orange" : "yellow"}
+            variant={isSwapping ? "orange" : "yellow"}
             primaryBtnLabel={isSwapping ? "Seleccionar para Cambio" : "Listo"}
-            onPrimary={() => { if(isSwapping){ handleSwap(order); } else { updateOrderStatus(order.id, 'delivered'); } }}
+            onPrimary={() => {
+              if (isSwapping) {
+                handleSwap(order);
+              } else {
+                updateOrderStatus(order.id, "delivered");
+              }
+            }}
           />
         )}
       />
@@ -133,7 +148,7 @@ export default function DespachoBoard() {
             isFirst={true}
             variant="orange"
             primaryBtnLabel="Entregar"
-            onPrimary={() => archiveOrder(order.id)}
+            onPrimary={() => handlePendienteComplete(order)}
           />
         )}
       />
@@ -150,7 +165,9 @@ export default function DespachoBoard() {
             order={order}
             isFirst={true}
             variant="green"
-            primaryBtnLabel={isLocalOrder(order) ? "Enviar a Mesero" : "Entregado"}
+            primaryBtnLabel={
+              isLocalOrder(order) ? "Enviar a Mesero" : "Entregado"
+            }
             onPrimary={() => handleDespachoComplete(order)}
             secondaryBtnLabel="Pendiente"
             onSecondary={() => {
@@ -158,11 +175,11 @@ export default function DespachoBoard() {
                 setOrderToSwap(null); // Cancela el intercambio
               } else {
                 setOrderToSwap(order); // Inicia el intercambio
-              }}}
+              }
+            }}
           />
         )}
       />
-
     </div>
   );
 }
