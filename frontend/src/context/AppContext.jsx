@@ -321,9 +321,33 @@ function reducer(state, action) {
       return { ...state, orders };
     }
 
-    case "SET_KITCHEN_ORDERS":
-      return { ...state, orders: action.payload };
+    case "SET_KITCHEN_ORDERS": {
+      // Mantiene los pedidos que NO son de cocina y actualiza los de cocina
+      const otrasOrdenes = state.orders.filter((o) => o.status !== "pending");
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
 
+    case "SET_HORNO_ORDERS": {
+      const otrasOrdenes = state.orders.filter((o) => o.status !== "preparing");
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
+
+    case "SET_DESPACHO_ORDERS": {
+      const otrasOrdenes = state.orders.filter((o) => o.status !== "delivered");
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
+
+    case "SET_PENDIENTE_ORDERS": {
+      const otrasOrdenes = state.orders.filter((o) => o.status !== "ready");
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
+
+    case "SET_MESERO_ORDERS": {
+      const otrasOrdenes = state.orders.filter(
+        (o) => o.status !== "waiter_pending",
+      );
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
     case "UPDATE_ORDER": {
       const { order } = action.payload;
       const orders = state.orders.map((o) =>
@@ -494,36 +518,44 @@ export function AppProvider({ children }) {
     async (id, status) => {
       const order = state.orders.find((o) => o.id === id);
 
-      if (order && order.db_id && status === "preparing") {
+      if (order && order.db_id) {
         try {
-          const res = await fetch(
-            `${API_BASE}/preparar-pedido/${order.db_id}`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            },
-          );
+          // Apuntamos a la nueva ruta unificada para estados
+          const endpoint = `${API_BASE}/actualizar-estado-pedido/${order.db_id}`;
+
+          const res = await fetch(endpoint, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            // Enviamos el estado que el botón haya disparado ("preparing", "ready", etc.)
+            body: JSON.stringify({ status: status }),
+          });
+
           const json = await res.json();
 
           if (json.success) {
-            dispatch({ type: "UPDATE_ORDER_STATUS", payload: { id, status } });
+            // Si la base de datos se actualizó correctamente, actualizamos la UI
+            dispatch({
+              type: "UPDATE_ORDER_STATUS",
+              payload: { id, status },
+            });
           } else {
             console.error(
               "Error al actualizar la base de datos:",
               json.message,
             );
+            return; // Abortamos el cambio visual si el backend falla
           }
         } catch (error) {
           console.error("Error de conexión con la API:", error);
         }
       } else {
+        // Fallback por si la orden no tiene db_id o es un movimiento puramente local
         dispatch({ type: "UPDATE_ORDER_STATUS", payload: { id, status } });
       }
     },
     [state.orders],
   );
+
   const archiveOrder = useCallback(
     (id) => dispatch({ type: "ARCHIVE_ORDER", payload: { id } }),
     [],
@@ -626,13 +658,15 @@ export function AppProvider({ children }) {
           db_id: venta.id_venta, // Guardamos el ID real para el PUT
           status: "pending", // El KanbanBoard suele usar 'pending'
           createdAt: venta.fecha_hora,
-          orderType: venta.despacho, // Local, Delivery, etc.
+          orderType: venta.despacho,
+          table: venta.despacho, // Local, Delivery, etc.
           customerName: venta.nombre_cliente,
           items: venta.detalles.map((detalle) => ({
             id_detalle: detalle.id_detalle,
             name: detalle.nombre_producto,
             qty: detalle.cantidad,
             note: detalle.nota,
+            size: detalle.categoria_pizza,
             category: "pizzas",
             extras: detalle.extras || [],
           })),
@@ -645,21 +679,167 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  //fetch para mostrar los pedidos del horno
+  const fetchPendientesDespacho = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-despacho`);
+      const json = await res.json();
+
+      if (json.success) {
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden,
+          db_id: venta.id_venta,
+          status: "delivered",
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho,
+          customerName: venta.nombre_cliente,
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_DESPACHO_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos de horno:", err);
+    }
+  }, []);
+
+  //fetch para mostrar los pedidos del horno
+  const fetchPedidosHorno = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-horno`);
+      const json = await res.json();
+
+      if (json.success) {
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden,
+          db_id: venta.id_venta,
+          status: "preparing",
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho,
+          customerName: venta.nombre_cliente,
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_HORNO_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos de horno:", err);
+    }
+  }, []);
+
+  const fetchPendientes = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-pendiente`);
+      const json = await res.json();
+
+      if (json.success) {
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden,
+          db_id: venta.id_venta,
+          status: "ready",
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho,
+          customerName: venta.nombre_cliente,
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_PENDIENTE_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos de horno:", err);
+    }
+  }, []);
+
+  const fetchMesero = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-mesero`);
+      const json = await res.json();
+
+      if (json.success) {
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden,
+          db_id: venta.id_venta,
+          status: "waiter_pending",
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho,
+          customerName: venta.nombre_cliente,
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_MESERO_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos del mesero:", err);
+    }
+  }, []);
+
   useEffect(() => {
     // Carga inicial
     fetchVentasHoy();
     fetchPedidosActivos();
     fetchPedidosCocina();
+    fetchPedidosHorno();
+    fetchPendientesDespacho();
+    fetchPendientes();
+    fetchMesero();
 
     // Polling cada 15 segundos para mantener la cola actualizada
     const interval = setInterval(() => {
       fetchVentasHoy();
       fetchPedidosActivos();
       fetchPedidosCocina();
+      fetchPedidosHorno();
+      fetchPendientesDespacho();
+      fetchPendientes();
+      fetchMesero();
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [fetchVentasHoy, fetchPedidosActivos, fetchPedidosCocina]);
+  }, [
+    fetchVentasHoy,
+    fetchPedidosActivos,
+    fetchPedidosCocina,
+    fetchPedidosHorno,
+    fetchPendientesDespacho,
+    fetchPendientes,
+    fetchMesero,
+  ]);
 
   const updateExchangeRate = useCallback((rate) => {
     setExchangeRate(parseFloat(rate));
@@ -722,6 +902,10 @@ export function AppProvider({ children }) {
         fetchVentasHoy,
         fetchPedidosActivos,
         fetchPedidosCocina,
+        fetchPedidosHorno,
+        fetchPendientesDespacho,
+        fetchPendientes,
+        fetchMesero,
       }}
     >
       {children}
