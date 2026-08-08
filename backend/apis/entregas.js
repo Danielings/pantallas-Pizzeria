@@ -20,7 +20,13 @@ router.get("/entregas", async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE v.despacho IN ('Delivery', 'Pick Up')
         AND DATE(v.fecha_hora) = CURDATE()
-      ORDER BY v.fecha_hora ASC`
+        AND EXISTS (
+          SELECT 1 
+          FROM venta_detalle vd 
+          WHERE vd.id_venta = v.id_venta 
+            AND vd.estado != 'Completado'
+        )
+      ORDER BY v.fecha_hora ASC`,
     );
 
     const ordenes = await Promise.all(
@@ -40,33 +46,62 @@ router.get("/entregas", async (req, res) => {
           LEFT JOIN bebidas b ON vd.tipo_producto = 'Bebida' AND b.id_bebida = vd.id_producto_origen
           LEFT JOIN heladeria h ON vd.tipo_producto = 'Helado' AND h.id_heladeria = vd.id_producto_origen
           WHERE vd.id_venta = ?`,
-          [venta.id_venta]
+          [venta.id_venta],
         );
 
-        const items = detalles.map(det => ({
+        const items = detalles.map((det) => ({
           name: det.nombre_producto || det.tipo_producto,
           quantity: det.cantidad,
-          type: det.tipo_producto
+          type: det.tipo_producto,
         }));
 
         return {
           id: venta.id_venta,
-          type: venta.despacho === 'Delivery' ? 'delivery' : 'pickup',
-          customerName: venta.nombre_cliente || 'Desconocido',
-          address: venta.direccion_cliente || '',
-          phone: venta.telefono_cliente || '',
+          type: venta.despacho === "Delivery" ? "delivery" : "pickup",
+          customerName: venta.nombre_cliente || "Desconocido",
+          address: venta.direccion_cliente || "",
+          phone: venta.telefono_cliente || "",
           items: items,
           total: venta.monto_total_usd,
           orderedAt: venta.fecha_hora,
-          status: 'ready' // For frontend mock display of "delivered" button
+          status: "ready", // For frontend mock display of "delivered" button
         };
-      })
+      }),
     );
 
     res.json(ordenes);
   } catch (error) {
     console.error("Error fetching entregas:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Api para acutalizar el estado de la orden a Completado
+router.put("/entregas/:id_venta/completar", async (req, res) => {
+  const { id_venta } = req.params;
+
+  try {
+    const [result] = await pool.query(
+      `UPDATE venta_detalle 
+       SET estado = 'Completado' 
+       WHERE id_venta = ?`,
+      [id_venta],
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No se encontraron detalles para este pedido.",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Pedido entregado exitosamente.",
+    });
+  } catch (error) {
+    console.error("Error al completar el pedido:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
