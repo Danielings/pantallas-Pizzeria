@@ -449,7 +449,10 @@ function reducer(state, action) {
 }
 
 export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const savedUser = (() => {
+    try { return JSON.parse(localStorage.getItem('currentUser')) || null; } catch { return null; }
+  })();
+  const [state, dispatch] = useReducer(reducer, { ...initialState, currentUser: savedUser });
 
   // Cart totals — sin IVA
   const subtotal = state.currentOrder.items.reduce(
@@ -852,6 +855,7 @@ export function AppProvider({ children }) {
       );
       if (user) {
         dispatch({ type: "LOGIN", payload: user });
+        localStorage.setItem('currentUser', JSON.stringify(user));
         return { success: true, user };
       }
       return { success: false, message: "Usuario no encontrado" };
@@ -861,6 +865,7 @@ export function AppProvider({ children }) {
 
   const logout = useCallback(() => {
     dispatch({ type: "LOGOUT" });
+    localStorage.removeItem('currentUser');
   }, []);
 
   return (

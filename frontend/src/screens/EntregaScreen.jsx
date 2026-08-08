@@ -17,20 +17,20 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
   // Styles based on type
   const theme = isDelivery
     ? {
-        border: 'border-blue-200',
-        bg: 'bg-blue-50',
-        iconColor: 'text-blue-600',
-        badge: 'bg-blue-100 text-blue-700',
-        dot: 'bg-blue-500',
+        border: 'border-red-200',
+        bg: 'bg-red-50',
+        iconColor: 'text-red-600',
+        badge: 'bg-red-100 text-red-700',
+        dot: 'bg-red-500',
         Icon: Bike,
         label: 'Delivery'
       }
     : {
-        border: 'border-purple-200',
-        bg: 'bg-purple-50',
-        iconColor: 'text-purple-600',
-        badge: 'bg-purple-100 text-purple-700',
-        dot: 'bg-purple-500',
+        border: 'border-green-200',
+        bg: 'bg-green-50',
+        iconColor: 'text-green-600',
+        badge: 'bg-green-100 text-green-700',
+        dot: 'bg-green-500',
         Icon: Store,
         label: 'Pick Up'
       };
@@ -127,16 +127,16 @@ function DeliveredRow({ order }) {
   
   const theme = isDelivery
     ? {
-        bg: 'bg-blue-50',
-        iconColor: 'text-blue-600',
-        badge: 'bg-blue-100 text-blue-700',
+        bg: 'bg-red-50',
+        iconColor: 'text-red-600',
+        badge: 'bg-red-100 text-red-700',
         Icon: Bike,
         label: 'Delivery'
       }
     : {
-        bg: 'bg-purple-50',
-        iconColor: 'text-purple-600',
-        badge: 'bg-purple-100 text-purple-700',
+        bg: 'bg-green-50',
+        iconColor: 'text-green-600',
+        badge: 'bg-green-100 text-green-700',
         Icon: Store,
         label: 'Pick Up'
       };
@@ -267,7 +267,7 @@ export default function EntregaScreen() {
                 <span className="text-slate-400 font-bold text-sm mb-1">total</span>
               </div>
             </div>
-            <div className="w-14 h-14 bg-blue-50 group-hover:bg-blue-500 group-hover:text-white text-blue-500 rounded-2xl flex items-center justify-center transition-colors">
+            <div className="w-14 h-14 bg-red-50 group-hover:bg-red-500 group-hover:text-white text-red-500 rounded-2xl flex items-center justify-center transition-colors">
               <Bike className="w-7 h-7" />
             </div>
           </div>
@@ -276,11 +276,11 @@ export default function EntregaScreen() {
             <div>
               <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">Delivery Activos</p>
               <div className="flex items-end gap-2">
-                <h3 className="text-4xl font-black text-blue-600 leading-none">{pendingDelivery.length}</h3>
-                <span className="text-blue-400 font-bold text-sm mb-1">pendientes</span>
+                <h3 className="text-4xl font-black text-red-600 leading-none">{pendingDelivery.length}</h3>
+                <span className="text-red-400 font-bold text-sm mb-1">pendientes</span>
               </div>
             </div>
-            <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-200/50 shadow-inner group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center border border-red-200/50 shadow-inner group-hover:scale-105 transition-transform">
               <Clock className="w-7 h-7" />
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function EntregaScreen() {
                 <span className="text-slate-400 font-bold text-sm mb-1">total</span>
               </div>
             </div>
-            <div className="w-14 h-14 bg-purple-50 group-hover:bg-purple-500 group-hover:text-white text-purple-500 rounded-2xl flex items-center justify-center transition-colors">
+            <div className="w-14 h-14 bg-green-50 group-hover:bg-green-500 group-hover:text-white text-green-500 rounded-2xl flex items-center justify-center transition-colors">
               <Store className="w-7 h-7" />
             </div>
           </div>
@@ -302,11 +302,11 @@ export default function EntregaScreen() {
             <div>
               <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">Pick Up Activos</p>
               <div className="flex items-end gap-2">
-                <h3 className="text-4xl font-black text-purple-600 leading-none">{pendingPickup.length}</h3>
-                <span className="text-purple-400 font-bold text-sm mb-1">pendientes</span>
+                <h3 className="text-4xl font-black text-green-600 leading-none">{pendingPickup.length}</h3>
+                <span className="text-green-400 font-bold text-sm mb-1">pendientes</span>
               </div>
             </div>
-            <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center border border-purple-200/50 shadow-inner group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center border border-green-200/50 shadow-inner group-hover:scale-105 transition-transform">
               <Clock className="w-7 h-7" />
             </div>
           </div>
@@ -319,12 +319,12 @@ export default function EntregaScreen() {
           <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
             <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
               <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <Bike className="w-5 h-5 text-blue-500" />
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                  <Bike className="w-5 h-5 text-red-500" />
                 </div>
                 Delivery
               </h2>
-              <span className="bg-blue-100 text-blue-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-blue-200/50 shadow-sm">
+              <span className="bg-red-100 text-red-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-red-200/50 shadow-sm">
                 {pendingDelivery.length} Pendientes
               </span>
             </div>
@@ -348,12 +348,12 @@ export default function EntregaScreen() {
           <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
             <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
               <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-                  <Store className="w-5 h-5 text-purple-500" />
+                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                  <Store className="w-5 h-5 text-green-500" />
                 </div>
                 Pick Up
               </h2>
-              <span className="bg-purple-100 text-purple-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-purple-200/50 shadow-sm">
+              <span className="bg-green-100 text-green-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-green-200/50 shadow-sm">
                 {pendingPickup.length} Pendientes
               </span>
             </div>
