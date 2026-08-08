@@ -1,0 +1,533 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  Bike, Store, Clock, Phone, MapPin, CheckCircle2, ChevronRight, Package, AlertCircle, X, FileText
+} from 'lucide-react';
+
+function getElapsed(iso) {
+  const mins = Math.floor((Date.now() - new Date(iso)) / 60000);
+  if (mins < 1) return '< 1 min';
+  if (mins < 60) return `${mins} min`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
+
+function OrderCard({ order, onConfirm, onViewDetails }) {
+  const isDelivery = order.type === 'delivery';
+
+  // Styles based on type
+  const theme = isDelivery
+    ? {
+        border: 'border-blue-200',
+        bg: 'bg-blue-50',
+        iconColor: 'text-blue-600',
+        badge: 'bg-blue-100 text-blue-700',
+        dot: 'bg-blue-500',
+        Icon: Bike,
+        label: 'Delivery'
+      }
+    : {
+        border: 'border-purple-200',
+        bg: 'bg-purple-50',
+        iconColor: 'text-purple-600',
+        badge: 'bg-purple-100 text-purple-700',
+        dot: 'bg-purple-500',
+        Icon: Store,
+        label: 'Pick Up'
+      };
+
+  return (
+    <div className={`rounded-3xl border border-slate-200/60 overflow-hidden transition-all duration-300 ${theme.bg} shadow-sm hover:shadow-xl hover:shadow-${theme.iconColor.split('-')[1]}-500/10 group relative flex flex-col h-full bg-white`}>
+      <div className={`absolute top-0 left-0 w-full h-1.5 ${theme.dot} opacity-80`} />
+      
+      <div className="p-5 flex flex-col flex-1">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-2xl ${theme.badge} flex items-center justify-center shrink-0 shadow-inner`}>
+              <theme.Icon className={`w-6 h-6 ${theme.iconColor}`} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="font-black text-slate-800 text-lg">#{order.id}</span>
+                <span className={`text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full ${theme.badge} border border-current/10`}>
+                  {theme.label}
+                </span>
+              </div>
+              <p className="text-sm font-bold text-slate-600 truncate max-w-[120px]" title={order.customerName}>
+                {order.customerName}
+              </p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-xl font-black text-slate-800 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+              ${Number(order.total || 0).toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        {/* Info Area */}
+        <div className="space-y-2.5 mb-5 bg-slate-50/80 rounded-2xl p-3 border border-slate-100/80 flex-1">
+          <div className="flex items-center gap-2.5 text-xs text-slate-600">
+            <div className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+            <span className="font-semibold text-slate-700">Hace {getElapsed(order.orderedAt)}</span>
+          </div>
+          <div className="flex items-center gap-2.5 text-xs text-slate-600">
+            <div className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+            <span className="font-medium">{order.phone}</span>
+          </div>
+          {isDelivery && order.address && (
+            <div className="flex items-start gap-2.5 text-xs text-slate-600">
+              <div className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+              </div>
+              <span className="leading-snug font-medium line-clamp-2" title={order.address}>{order.address}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Items toggle */}
+        <div className="mb-4">
+          <button
+            onClick={() => onViewDetails(order)}
+            className="flex items-center justify-center gap-1.5 text-sm font-extrabold text-slate-700 hover:text-white transition-colors w-full bg-slate-100 hover:bg-slate-800 px-3 py-2.5 rounded-xl border border-slate-200"
+          >
+            <FileText className="w-4 h-4" />
+            Detalle ({order.items.length})
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-auto">
+          {order.status === 'ready' ? (
+            <button
+              onClick={() => onConfirm(order.id)}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-slate-900 hover:bg-black text-white text-sm font-extrabold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0"
+            >
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              Marcar Entregado
+            </button>
+          ) : (
+            <div className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-extrabold border border-emerald-200/50">
+              <CheckCircle2 className="w-5 h-5" />
+              Orden Entregada
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeliveredRow({ order }) {
+  const isDelivery = order.type === 'delivery';
+  
+  const theme = isDelivery
+    ? {
+        bg: 'bg-blue-50',
+        iconColor: 'text-blue-600',
+        badge: 'bg-blue-100 text-blue-700',
+        Icon: Bike,
+        label: 'Delivery'
+      }
+    : {
+        bg: 'bg-purple-50',
+        iconColor: 'text-purple-600',
+        badge: 'bg-purple-100 text-purple-700',
+        Icon: Store,
+        label: 'Pick Up'
+      };
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-white border border-slate-200/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-4">
+        <div className={`w-12 h-12 rounded-xl ${theme.bg} flex items-center justify-center shrink-0`}>
+          <theme.Icon className={`w-6 h-6 ${theme.iconColor}`} />
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-black text-slate-800 text-lg">#{order.id}</span>
+            <span className={`text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full ${theme.badge} border border-current/10`}>
+              {theme.label}
+            </span>
+          </div>
+          <p className="text-sm font-bold text-slate-600">{order.customerName}</p>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-6 sm:gap-12">
+        <div className="hidden sm:block">
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <Clock className="w-3.5 h-3.5" />
+            <span className="font-medium">Hace {getElapsed(order.orderedAt)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+            <Package className="w-3.5 h-3.5" />
+            {order.items.length} artículo{order.items.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+        
+        <div className="text-right">
+          <p className="text-xl font-black text-slate-800">${Number(order.total || 0).toFixed(2)}</p>
+          <div className="flex items-center justify-end gap-1 text-emerald-600 text-xs font-bold mt-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Entregado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function EntregaScreen() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const itemsPerPage = 10;
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await axios.get('http://localhost:3001/api/entregas', { withCredentials: true });
+      setOrders(res.data);
+    } catch (err) {
+      console.error(err);
+      setError('Error al cargar órdenes de entrega');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(() => {
+      // Refresh times every minute just to update 'Hace X min'
+      setOrders(prev => [...prev]);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleConfirm = (id) => {
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'delivered' } : o));
+    // Here we would eventually call API to update status
+  };
+
+  const pendingDelivery = orders.filter(o => o.type === 'delivery' && o.status !== 'delivered');
+  const pendingPickup = orders.filter(o => o.type === 'pickup' && o.status !== 'delivered');
+  const deliveredOrders = orders.filter(o => o.status === 'delivered');
+  
+  const totalPages = Math.ceil(deliveredOrders.length / itemsPerPage);
+  const paginatedDeliveredOrders = deliveredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  return (
+    <div className="flex-1 flex flex-col h-full bg-slate-50/50 overflow-hidden">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200/60 px-8 py-6 shrink-0 flex items-center justify-between shadow-sm z-10 relative">
+        <div>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+            <div className="w-12 h-12 bg-pizza-red/10 rounded-2xl flex items-center justify-center">
+              <Package className="w-6 h-6 text-pizza-red" />
+            </div>
+            Centro de Entregas
+          </h1>
+          <p className="text-slate-500 font-medium mt-1">Gestión de envíos y retiros en tienda</p>
+        </div>
+        <button
+          onClick={fetchOrders}
+          disabled={loading}
+          className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-extrabold transition-all shadow-md disabled:opacity-50 hover:shadow-lg"
+        >
+          {loading ? 'Sincronizando...' : 'Actualizar'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 mx-8 mt-6 rounded-2xl flex items-center gap-3 text-sm font-bold border border-red-200 shrink-0">
+          <AlertCircle className="w-5 h-5" />
+          {error}
+        </div>
+      )}
+
+      {/* Main scrolling content area */}
+      <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 hide-scrollbar">
+        
+        {/* Metrics Overview */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+            <div>
+              <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">Delivery Hoy</p>
+              <div className="flex items-end gap-2">
+                <h3 className="text-4xl font-black text-slate-800 leading-none">{orders.filter(o => o.type === 'delivery').length}</h3>
+                <span className="text-slate-400 font-bold text-sm mb-1">total</span>
+              </div>
+            </div>
+            <div className="w-14 h-14 bg-blue-50 group-hover:bg-blue-500 group-hover:text-white text-blue-500 rounded-2xl flex items-center justify-center transition-colors">
+              <Bike className="w-7 h-7" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+            <div>
+              <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">Delivery Activos</p>
+              <div className="flex items-end gap-2">
+                <h3 className="text-4xl font-black text-blue-600 leading-none">{pendingDelivery.length}</h3>
+                <span className="text-blue-400 font-bold text-sm mb-1">pendientes</span>
+              </div>
+            </div>
+            <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-200/50 shadow-inner group-hover:scale-105 transition-transform">
+              <Clock className="w-7 h-7" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+            <div>
+              <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">Pick Up Hoy</p>
+              <div className="flex items-end gap-2">
+                <h3 className="text-4xl font-black text-slate-800 leading-none">{orders.filter(o => o.type === 'pickup').length}</h3>
+                <span className="text-slate-400 font-bold text-sm mb-1">total</span>
+              </div>
+            </div>
+            <div className="w-14 h-14 bg-purple-50 group-hover:bg-purple-500 group-hover:text-white text-purple-500 rounded-2xl flex items-center justify-center transition-colors">
+              <Store className="w-7 h-7" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+            <div>
+              <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">Pick Up Activos</p>
+              <div className="flex items-end gap-2">
+                <h3 className="text-4xl font-black text-purple-600 leading-none">{pendingPickup.length}</h3>
+                <span className="text-purple-400 font-bold text-sm mb-1">pendientes</span>
+              </div>
+            </div>
+            <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center border border-purple-200/50 shadow-inner group-hover:scale-105 transition-transform">
+              <Clock className="w-7 h-7" />
+            </div>
+          </div>
+        </div>
+
+        {/* Columns layout for pending orders */}
+        <div className="flex flex-col xl:flex-row gap-8 shrink-0">
+          
+          {/* Delivery Column */}
+          <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+            <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Bike className="w-5 h-5 text-blue-500" />
+                </div>
+                Delivery
+              </h2>
+              <span className="bg-blue-100 text-blue-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-blue-200/50 shadow-sm">
+                {pendingDelivery.length} Pendientes
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
+              {pendingDelivery.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                  <Bike className="w-12 h-12 opacity-20" />
+                  <p className="font-bold">No hay órdenes de delivery activas</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {pendingDelivery.map(order => (
+                    <OrderCard key={order.id} order={order} onConfirm={handleConfirm} onViewDetails={setSelectedOrder} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Pickup Column */}
+          <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+            <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                  <Store className="w-5 h-5 text-purple-500" />
+                </div>
+                Pick Up
+              </h2>
+              <span className="bg-purple-100 text-purple-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-purple-200/50 shadow-sm">
+                {pendingPickup.length} Pendientes
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
+              {pendingPickup.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                  <Store className="w-12 h-12 opacity-20" />
+                  <p className="font-bold">No hay órdenes de pick up activas</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {pendingPickup.map(order => (
+                    <OrderCard key={order.id} order={order} onConfirm={handleConfirm} onViewDetails={setSelectedOrder} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* History of delivered orders */}
+        <div className="bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm shrink-0">
+          <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center">
+            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              </div>
+              Historial de Entregados (Hoy)
+            </h2>
+            <span className="bg-emerald-100 text-emerald-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-emerald-200/50 shadow-sm">
+              {deliveredOrders.length} Entregados
+            </span>
+          </div>
+          <div className="p-5 bg-slate-50/30">
+            {deliveredOrders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-slate-400 space-y-3 py-10">
+                <CheckCircle2 className="w-12 h-12 opacity-20" />
+                <p className="font-bold">Aún no has marcado ningún pedido como entregado</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
+                  {paginatedDeliveredOrders.map(order => (
+                    <DeliveredRow key={order.id} order={order} />
+                  ))}
+                </div>
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-200/60 mt-2">
+                    <span className="text-sm font-semibold text-slate-500">
+                      Mostrando {(currentPage - 1) * itemsPerPage + 1} al {Math.min(currentPage * itemsPerPage, deliveredOrders.length)} de {deliveredOrders.length}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      >
+                        Anterior
+                      </button>
+                      <span className="text-sm font-bold text-slate-700 px-2">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedOrder(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedOrder.type === 'delivery' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                  {selectedOrder.type === 'delivery' ? <Bike className="w-5 h-5" /> : <Store className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-800 text-lg leading-tight">Pedido #{selectedOrder.id}</h3>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{selectedOrder.type === 'delivery' ? 'Delivery' : 'Pick Up'}</span>
+                </div>
+              </div>
+              <button onClick={() => setSelectedOrder(null)} className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors shadow-sm border border-slate-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="mb-6 space-y-3">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <FileText className="w-4 h-4" /> Datos del Cliente
+                </h4>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <p className="font-bold text-slate-800 mb-1">{selectedOrder.customerName}</p>
+                  <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
+                    <Phone className="w-4 h-4 text-slate-400" />
+                    <span>{selectedOrder.phone}</span>
+                  </div>
+                  {selectedOrder.type === 'delivery' && selectedOrder.address && (
+                    <div className="flex items-start gap-2 text-sm text-slate-600">
+                      <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                      <span className="leading-snug">{selectedOrder.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-3">
+                  <Package className="w-4 h-4" /> Productos ({selectedOrder.items.length})
+                </h4>
+                <div className="space-y-2">
+                  {selectedOrder.items.map((item, idx) => {
+                    const isPizza = item.type === 'Pizza';
+                    const isDrink = item.type === 'Bebida';
+                    const isIceCream = item.type === 'Helado';
+                    
+                    let badgeColor = 'bg-slate-100 text-slate-600 border-slate-200';
+                    let qtyColor = 'bg-slate-100 text-slate-600';
+                    
+                    if (isPizza) {
+                      badgeColor = 'bg-orange-100 text-orange-600 border-orange-200';
+                      qtyColor = 'bg-orange-100 text-orange-600';
+                    } else if (isDrink) {
+                      badgeColor = 'bg-blue-100 text-blue-600 border-blue-200';
+                      qtyColor = 'bg-blue-100 text-blue-600';
+                    } else if (isIceCream) {
+                      badgeColor = 'bg-pink-100 text-pink-600 border-pink-200';
+                      qtyColor = 'bg-pink-100 text-pink-600';
+                    }
+
+                    return (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-8 h-8 rounded-lg ${qtyColor} flex items-center justify-center font-black`}>
+                            {item.quantity}
+                          </span>
+                          <span className="text-slate-700 font-bold">{item.name}</span>
+                        </div>
+                        {item.type && (
+                          <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md border ${badgeColor}`}>
+                            {item.type}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-sm">Total a pagar</span>
+                <span className="text-2xl font-black text-slate-800">${Number(selectedOrder.total || 0).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

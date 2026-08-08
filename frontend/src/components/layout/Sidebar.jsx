@@ -28,7 +28,7 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       name: "Cola de Trabajos",
       icon: <ChefHat className="w-5 h-5" />,
     },
-    { id: "delivery", name: "Delivery", icon: <Truck className="w-5 h-5" /> },
+    { id: "entrega", name: "Entrega", icon: <Package className="w-5 h-5" /> },
   ];
 
   const adminLinks = [

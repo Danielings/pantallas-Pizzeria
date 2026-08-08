@@ -4,6 +4,7 @@ import NuevaOrdenScreen from "./screens/NuevaOrdenScreen";
 import ColaTrabajoScreen from "./screens/ColaTrabajoScreen";
 import ClientesScreen from "./screens/ClientesScreen";
 import DeliveryScreen from "./screens/DeliveryScreen";
+import EntregaScreen from "./screens/EntregaScreen";
 import CocineroScreen from "./screens/CocineroScreen";
 import DespachoScreen from "./screens/DespachoScreen";
 import AdminScreen from "./screens/AdminScreen";
@@ -22,8 +23,8 @@ function MainApp() {
     switch (cashierView) {
       case "cola-trabajos":
         return <ColaTrabajoScreen />;
-      case "delivery":
-        return <DeliveryScreen />;
+      case "entrega":
+        return <EntregaScreen />;
       default:
         return <NuevaOrdenScreen />;
     }
