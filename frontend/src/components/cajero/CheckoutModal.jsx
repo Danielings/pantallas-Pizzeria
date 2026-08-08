@@ -130,7 +130,7 @@ export default function CheckoutModal({ onClose }) {
       case "delivery_ws":
         return "Delivery";
       case "pickup":
-        return "Pickup";
+        return "Pick Up";
       default:
         return null;
     }
