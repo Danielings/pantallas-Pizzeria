@@ -152,7 +152,7 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
   );
 }
 
-function DeliveredRow({ order }) {
+function DeliveredRow({ order, onViewDetails, deliveryTime }) {
   const isDelivery = order.type === "delivery";
 
   const theme = isDelivery
@@ -171,16 +171,20 @@ function DeliveredRow({ order }) {
         label: "Pick Up",
       };
 
+  const formattedTime = deliveryTime
+    ? new Date(deliveryTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : new Date(order.orderedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-slate-200/60 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col md:flex-row md:items-center justify-between p-5 bg-white border border-slate-200/60 rounded-3xl shadow-sm hover:shadow-md transition-shadow gap-4">
+      <div className="flex items-start gap-4">
         <div
-          className={`w-12 h-12 rounded-xl ${theme.bg} flex items-center justify-center shrink-0`}
+          className={`w-12 h-12 rounded-2xl ${theme.bg} flex items-center justify-center shrink-0 shadow-inner mt-1`}
         >
           <theme.Icon className={`w-6 h-6 ${theme.iconColor}`} />
         </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
             <span className="font-black text-slate-800 text-lg">
               #{order.id}
             </span>
@@ -190,18 +194,30 @@ function DeliveredRow({ order }) {
               {theme.label}
             </span>
           </div>
-          <p className="text-sm font-bold text-slate-600">
+          <p className="text-sm font-black text-slate-700">
             {order.customerName}
           </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-medium">
+            <span className="flex items-center gap-1">
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              {order.phone || "Sin teléfono"}
+            </span>
+            {isDelivery && order.address && (
+              <span className="flex items-center gap-1 max-w-md truncate" title={order.address}>
+                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                {order.address}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-6 sm:gap-12">
-        <div className="hidden sm:block">
+      <div className="flex items-center justify-between md:justify-end gap-6 sm:gap-10 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
+        <div className="text-left md:text-right">
           <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span className="font-medium">
-              Hace {getElapsed(order.orderedAt)}
+            <Clock className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="font-bold text-slate-700">
+              Entregado a las {formattedTime}
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
@@ -210,14 +226,24 @@ function DeliveredRow({ order }) {
           </div>
         </div>
 
-        <div className="text-right">
-          <p className="text-xl font-black text-slate-800">
-            ${Number(order.total || 0).toFixed(2)}
-          </p>
-          <div className="flex items-center justify-end gap-1 text-emerald-600 text-xs font-bold mt-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Entregado</span>
+        <div className="text-right flex items-center gap-4">
+          <div>
+            <p className="text-xl font-black text-slate-800">
+              ${Number(order.total || 0).toFixed(2)}
+            </p>
+            <div className="flex items-center justify-end gap-1 text-emerald-600 text-xs font-bold mt-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Entregado</span>
+            </div>
           </div>
+
+          <button
+            onClick={() => onViewDetails(order)}
+            className="flex items-center justify-center p-2 text-slate-600 hover:text-white transition-colors bg-slate-100 hover:bg-slate-800 rounded-xl border border-slate-200 animate-pulse-once"
+            title="Ver Detalle"
+          >
+            <FileText className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>
@@ -230,6 +256,15 @@ export default function EntregaScreen() {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [historyFilter, setHistoryFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [deliveryTimes, setDeliveryTimes] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("delivery_times") || "{}");
+    } catch {
+      return {};
+    }
+  });
   const itemsPerPage = 10;
 
   const fetchOrders = async () => {
@@ -266,6 +301,12 @@ export default function EntregaScreen() {
           withCredentials: true,
         },
       );
+      
+      const now = new Date().toISOString();
+      const updatedTimes = { ...deliveryTimes, [id]: now };
+      setDeliveryTimes(updatedTimes);
+      localStorage.setItem("delivery_times", JSON.stringify(updatedTimes));
+
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, status: "delivered" } : o)),
       );
@@ -287,8 +328,20 @@ export default function EntregaScreen() {
   );
   const deliveredOrders = orders.filter((o) => o.status === "delivered");
 
-  const totalPages = Math.ceil(deliveredOrders.length / itemsPerPage);
-  const paginatedDeliveredOrders = deliveredOrders.slice(
+  const filteredDeliveredOrders = deliveredOrders.filter((o) => {
+    if (historyFilter === "delivery") return o.type === "delivery";
+    if (historyFilter === "pickup") return o.type === "pickup";
+    return true;
+  });
+
+  const sortedDeliveredOrders = [...filteredDeliveredOrders].sort((a, b) => {
+    const timeA = new Date(deliveryTimes[a.id] || a.orderedAt).getTime();
+    const timeB = new Date(deliveryTimes[b.id] || b.orderedAt).getTime();
+    return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
+  });
+
+  const totalPages = Math.ceil(sortedDeliveredOrders.length / itemsPerPage);
+  const paginatedDeliveredOrders = sortedDeliveredOrders.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
@@ -480,30 +533,80 @@ export default function EntregaScreen() {
 
         {/* History of delivered orders */}
         <div className="bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm shrink-0">
-          <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center">
-            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+          <div className="bg-white px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                </div>
+                Historial de Entregados (Hoy)
+              </h2>
+              <span className="bg-emerald-100 text-emerald-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-emerald-200/50 shadow-sm shrink-0">
+                {filteredDeliveredOrders.length} Entregados
+              </span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Filter buttons */}
+              <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
+                <button
+                  onClick={() => { setHistoryFilter("all"); setCurrentPage(1); }}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${historyFilter === "all" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => { setHistoryFilter("delivery"); setCurrentPage(1); }}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "delivery" ? "bg-red-600 text-white shadow-sm" : "text-slate-600 hover:text-red-600"}`}
+                >
+                  <Bike className="w-3.5 h-3.5" />
+                  Delivery
+                </button>
+                <button
+                  onClick={() => { setHistoryFilter("pickup"); setCurrentPage(1); }}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "pickup" ? "bg-green-600 text-white shadow-sm" : "text-slate-600 hover:text-green-600"}`}
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  Pick Up
+                </button>
               </div>
-              Historial de Entregados (Hoy)
-            </h2>
-            <span className="bg-emerald-100 text-emerald-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-emerald-200/50 shadow-sm">
-              {deliveredOrders.length} Entregados
-            </span>
+
+              {/* Sort buttons */}
+              <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
+                <button
+                  onClick={() => { setSortOrder("desc"); setCurrentPage(1); }}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${sortOrder === "desc" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  Recientes (Desc)
+                </button>
+                <button
+                  onClick={() => { setSortOrder("asc"); setCurrentPage(1); }}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${sortOrder === "asc" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  Antiguos (Asc)
+                </button>
+              </div>
+            </div>
           </div>
+          
           <div className="p-5 bg-slate-50/30">
-            {deliveredOrders.length === 0 ? (
+            {filteredDeliveredOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-slate-400 space-y-3 py-10">
                 <CheckCircle2 className="w-12 h-12 opacity-20" />
                 <p className="font-bold">
-                  Aún no has marcado ningún pedido como entregado
+                  Aún no hay ningún pedido entregado en esta categoría
                 </p>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-3">
                   {paginatedDeliveredOrders.map((order) => (
-                    <DeliveredRow key={order.id} order={order} />
+                    <DeliveredRow
+                      key={order.id}
+                      order={order}
+                      onViewDetails={setSelectedOrder}
+                      deliveryTime={deliveryTimes[order.id]}
+                    />
                   ))}
                 </div>
 
@@ -513,9 +616,9 @@ export default function EntregaScreen() {
                       Mostrando {(currentPage - 1) * itemsPerPage + 1} al{" "}
                       {Math.min(
                         currentPage * itemsPerPage,
-                        deliveredOrders.length,
+                        sortedDeliveredOrders.length,
                       )}{" "}
-                      de {deliveredOrders.length}
+                      de {sortedDeliveredOrders.length}
                     </span>
                     <div className="flex items-center gap-2">
                       <button
