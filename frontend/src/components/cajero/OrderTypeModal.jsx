@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import axios from "axios"; // <-- Importación de axios agregada
 import { useApp } from "../../context/AppContext";
 import {
   UtensilsCrossed,
@@ -88,7 +89,7 @@ const PAYMENT_STATUS_OPTIONS = [
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function OrderTypeModal({ onConfirm, onClose }) {
-  const { setOrderType, addCustomer, customers, exchangeRate } = useApp();
+  const { setOrderType, addCustomer, exchangeRate } = useApp();
 
   // ── Pasos: 1 = Tipo y Estado Pago, 2 = Cliente ──
   const [step, setStep] = useState(1);
@@ -139,39 +140,37 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
     setDeliveryPhone("");
   };
 
-  // ── Buscar Delivery ──
+  // ── Buscar Delivery (Refactorizado a Axios) ──
   const handleDeliverySearch = async () => {
     const q = deliveryPhone.trim();
     if (!q) return;
 
     try {
-      const response = await fetch(
+      const { data } = await axios.get(
         `http://localhost:3001/api/buscar-delivery?q=${q}`,
       );
-      const data = await response.json();
 
       if (data.success && data.delivery) {
-        setFoundDelivery(data.delivery); // Guardamos el objeto completo
+        setFoundDelivery(data.delivery);
         setDeliveryNotFound(false);
       } else {
         setFoundDelivery(null);
-        setDeliveryNotFound(true); // Activamos el formulario de registro
+        setDeliveryNotFound(true);
       }
     } catch (error) {
       console.error("Error buscando delivery:", error);
     }
   };
 
-  // ── Buscar Cliente ──
+  // ── Buscar Cliente (Refactorizado a Axios) ──
   const handleSearch = async () => {
     const q = searchQuery.trim();
     if (!q) return;
 
     try {
-      const response = await fetch(
+      const { data } = await axios.get(
         `http://localhost:3001/api/buscar-clientes?q=${q}`,
       );
-      const data = await response.json();
 
       if (data.success && data.cliente) {
         setFoundCustomer(data.cliente);
@@ -193,32 +192,27 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
   const handleConfirm = async () => {
     // 1. Determinar y registrar el Delivery si es nuevo
     let finalDelivery = foundDelivery
-      ? foundDelivery // Si se encontró, usamos el objeto existente
+      ? foundDelivery
       : deliveryNotFound && newDeliveryName
-        ? { name: newDeliveryName.trim(), phone: deliveryPhone.trim() } // Si no se encontró, armamos el objeto nuevo
+        ? { name: newDeliveryName.trim(), phone: deliveryPhone.trim() }
         : null;
 
-    // Si es un delivery nuevo (está el formulario activo y tiene nombre), lo registramos en la BD primero
     if (!foundDelivery && deliveryNotFound && finalDelivery?.name) {
       try {
-        const responseDelivery = await fetch(
+        const { data: dataDelivery } = await axios.post(
           "http://localhost:3001/api/registrar-delivery",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: finalDelivery.name,
-              phone: finalDelivery.phone,
-            }),
+            name: finalDelivery.name,
+            phone: finalDelivery.phone,
           },
         );
-        const dataDelivery = await responseDelivery.json();
+
         if (dataDelivery.success) {
-          finalDelivery = dataDelivery.delivery; // Obtenemos el delivery con su ID generado por la BD
+          finalDelivery = dataDelivery.delivery;
         }
       } catch (error) {
         console.error("Error registrando al nuevo delivery:", error);
-        return; // Detenemos el proceso si falla el registro del repartidor
+        return; // Detenemos si falla el registro
       }
     }
 
@@ -227,20 +221,14 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
 
     if (selectedCustomer?.isNew) {
       try {
-        const response = await fetch(
+        const { data } = await axios.post(
           "http://localhost:3001/api/registrar-clientes",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cedula: selectedCustomer.cedula,
-              name: selectedCustomer.name,
-              phone: selectedCustomer.phone,
-            }),
+            cedula: selectedCustomer.cedula,
+            name: selectedCustomer.name,
+            phone: selectedCustomer.phone,
           },
         );
-
-        const data = await response.json();
 
         if (data.success) {
           finalCustomer = data.cliente;
@@ -251,7 +239,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
         }
       } catch (error) {
         console.error("Error registrando al nuevo cliente:", error);
-        return; // Detenemos el proceso si falla el registro del cliente
+        return; // Detenemos si falla el registro
       }
     }
 
@@ -262,13 +250,18 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
       paymentStatus === "partial" ? advanceUSD : 0,
       finalCustomer
         ? {
-            id: finalCustomer.id,
+            id: finalCustomer.id, // Verifica que tu JSON de respuesta devuelva "id" y no "id_cliente"
             name: finalCustomer.name,
             cedula: finalCustomer.cedula,
             phone: finalCustomer.phone,
           }
         : null,
-      finalDelivery,
+      "",
+      finalDelivery
+        ? {
+            id: finalDelivery.id ?? finalDelivery.id_delivery,
+          }
+        : null,
     );
     onConfirm?.();
   };
@@ -450,7 +443,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                           value={deliveryPhone}
                           onChange={(e) => {
                             setDeliveryPhone(e.target.value);
-                            setFoundDelivery(null); // Reseteamos si cambia el input
+                            setFoundDelivery(null);
                             setDeliveryNotFound(false);
                           }}
                           onKeyDown={(e) =>

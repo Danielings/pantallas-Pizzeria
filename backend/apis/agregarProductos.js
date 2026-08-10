@@ -1,8 +1,7 @@
 import express from "express";
 import pool from "../config/bd.js";
-// Asegúrate de importar cloudinary y tu middleware de multer configurado en memoria
 import { v2 as cloudinary } from "cloudinary";
-import multer from "multer"; // Ajusta esta ruta a tu middleware
+import multer from "multer";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -15,11 +14,13 @@ cloudinary.config({
   api_secret: process.env.API_SECRET,
   secure: true,
 });
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-// 1. Función auxiliar para procesar y subir la imagen a Cloudinary
+
+// Función auxiliar para procesar y subir la imagen a Cloudinary
 const uploadImageToCloudinary = async (file, folderName = "img") => {
-  if (!file) return null; // Si no hay imagen, retorna null
+  if (!file) return null; // Retorna null si el usuario no seleccionó archivo
 
   const fileBase64 = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
 
@@ -33,7 +34,7 @@ const uploadImageToCloudinary = async (file, folderName = "img") => {
   });
 };
 
-// ─── REGISTRAR LAS PIZZAS ───────────────────────────────────────────────
+//pizzas
 Router.post("/pizzas", upload.single("imagen"), async (req, res) => {
   const { name, price, description, size } = req.body;
 
@@ -42,7 +43,7 @@ Router.post("/pizzas", upload.single("imagen"), async (req, res) => {
     if (size === "Familiar") id_categoria_pizza = 2;
     if (size === "Gigante") id_categoria_pizza = 3;
 
-    // Subir imagen y obtener URL (si viene en la petición)
+    // Si no hay imagen, imageUrl será null
     const imageUrl = await uploadImageToCloudinary(req.file, "pizzas");
 
     const [result] = await pool.query(
@@ -63,7 +64,7 @@ Router.post("/pizzas", upload.single("imagen"), async (req, res) => {
   }
 });
 
-// ─── REGISTRAR LAS BEBIDAS ──────────────────────────────────────────────
+//bebidas
 Router.post("/bebidas", upload.single("imagen"), async (req, res) => {
   const { name, price, description } = req.body;
 
@@ -87,7 +88,7 @@ Router.post("/bebidas", upload.single("imagen"), async (req, res) => {
   }
 });
 
-// ─── REGISTRAR LOS HELADOS ──────────────────────────────────────────────
+// el papa de los helados
 Router.post("/heladeria", upload.single("imagen"), async (req, res) => {
   const { name, price, description } = req.body;
 
@@ -111,6 +112,7 @@ Router.post("/heladeria", upload.single("imagen"), async (req, res) => {
   }
 });
 
+// registrar extras
 Router.post("/extras", upload.none(), async (req, res) => {
   const { name, price, size } = req.body;
 
@@ -120,7 +122,7 @@ Router.post("/extras", upload.none(), async (req, res) => {
     if (size === "Gigante") id_categoria_pizza = 3;
 
     const [result] = await pool.query(
-      `INSERT INTO extras (nombre, precio,  id_categoria_pizza, estado) 
+      `INSERT INTO extras (nombre, precio, id_categoria_pizza, estado) 
        VALUES (?, ?, ?, 'Activo')`,
       [name, price, id_categoria_pizza],
     );
@@ -135,4 +137,5 @@ Router.post("/extras", upload.none(), async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 export default Router;

@@ -42,6 +42,7 @@ const initialState = {
     advanceAmount: 0, // monto abonado si paymentStatus === 'partial'
     customer: null, // { id?, name, cedula, phone? }
     phoneLastDigits: "", // últimos 4 dígitos del teléfono (delivery)
+    deliveryId: null,
   },
 
   // Kitchen orders
@@ -227,6 +228,7 @@ function reducer(state, action) {
           advanceAmount: 0,
           customer: null,
           phoneLastDigits: "",
+          deliveryId: null,
         },
       };
 
@@ -237,6 +239,7 @@ function reducer(state, action) {
         advanceAmount,
         customer,
         phoneLastDigits,
+        deliveryId,
       } = action.payload;
       return {
         ...state,
@@ -247,6 +250,7 @@ function reducer(state, action) {
           advanceAmount: advanceAmount || 0,
           customer: customer || null,
           phoneLastDigits: phoneLastDigits || "",
+          deliveryId: deliveryId || null,
         },
       };
     }
@@ -450,9 +454,16 @@ function reducer(state, action) {
 
 export function AppProvider({ children }) {
   const savedUser = (() => {
-    try { return JSON.parse(localStorage.getItem('currentUser')) || null; } catch { return null; }
+    try {
+      return JSON.parse(localStorage.getItem("currentUser")) || null;
+    } catch {
+      return null;
+    }
   })();
-  const [state, dispatch] = useReducer(reducer, { ...initialState, currentUser: savedUser });
+  const [state, dispatch] = useReducer(reducer, {
+    ...initialState,
+    currentUser: savedUser,
+  });
 
   // Cart totals — sin IVA
   const subtotal = state.currentOrder.items.reduce(
@@ -495,7 +506,14 @@ export function AppProvider({ children }) {
   );
   const clearCart = useCallback(() => dispatch({ type: "CLEAR_CART" }), []);
   const setOrderType = useCallback(
-    (orderType, paymentStatus, advanceAmount, customer, phoneLastDigits) =>
+    (
+      orderType,
+      paymentStatus,
+      advanceAmount,
+      customer,
+      phoneLastDigits,
+      deliveryId,
+    ) =>
       dispatch({
         type: "SET_ORDER_TYPE",
         payload: {
@@ -504,6 +522,7 @@ export function AppProvider({ children }) {
           advanceAmount,
           customer,
           phoneLastDigits,
+          deliveryId,
         },
       }),
     [],
@@ -664,6 +683,7 @@ export function AppProvider({ children }) {
           orderType: venta.despacho,
           table: venta.despacho, // Local, Delivery, etc.
           customerName: venta.nombre_cliente,
+          phoneLastDigits: venta.digitos_delivery || "",
           items: venta.detalles.map((detalle) => ({
             id_detalle: detalle.id_detalle,
             name: detalle.nombre_producto,
@@ -697,6 +717,7 @@ export function AppProvider({ children }) {
           orderType: venta.despacho,
           table: venta.despacho,
           customerName: venta.nombre_cliente,
+          phoneLastDigits: venta.digitos_delivery || "",
           items: venta.detalles.map((detalle) => ({
             id_detalle: detalle.id_detalle,
             name: detalle.nombre_producto,
@@ -730,6 +751,7 @@ export function AppProvider({ children }) {
           orderType: venta.despacho,
           table: venta.despacho,
           customerName: venta.nombre_cliente,
+          phoneLastDigits: venta.digitos_delivery || "",
           items: venta.detalles.map((detalle) => ({
             id_detalle: detalle.id_detalle,
             name: detalle.nombre_producto,
@@ -762,6 +784,7 @@ export function AppProvider({ children }) {
           orderType: venta.despacho,
           table: venta.despacho,
           customerName: venta.nombre_cliente,
+          phoneLastDigits: venta.digitos_delivery || "",
           items: venta.detalles.map((detalle) => ({
             id_detalle: detalle.id_detalle,
             name: detalle.nombre_producto,
@@ -855,7 +878,7 @@ export function AppProvider({ children }) {
       );
       if (user) {
         dispatch({ type: "LOGIN", payload: user });
-        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem("currentUser", JSON.stringify(user));
         return { success: true, user };
       }
       return { success: false, message: "Usuario no encontrado" };
@@ -865,7 +888,7 @@ export function AppProvider({ children }) {
 
   const logout = useCallback(() => {
     dispatch({ type: "LOGOUT" });
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem("currentUser");
   }, []);
 
   return (

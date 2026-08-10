@@ -85,7 +85,7 @@ const ORDER_TYPE_CONFIG = {
   delivery_call: { label: "Delivery" },
   delivery_ws: { label: "Delivery" },
   delivery: { label: "Delivery" }, // alias
-  pickup: { label: "Pickup" },
+  pickup: { label: "Pick Up" },
 };
 
 // Mapeo de respaldo: order.table → etiqueta (para datos legacy)
@@ -93,6 +93,7 @@ const TABLE_TO_LABEL = {
   Mesa: "Local",
   Llevar: "Para llevar",
   Delivery: "Delivery",
+  Pickup: "Pick Up",
 };
 
 // Helper que busca primero en orderType, luego en table
@@ -106,7 +107,7 @@ const getOrderTypeConfig = (order) => {
     if (order.table.startsWith("Local")) return ORDER_TYPE_CONFIG.dine_in;
     if (order.table === "Llevar") return ORDER_TYPE_CONFIG.takeaway;
     if (order.table === "Delivery") return ORDER_TYPE_CONFIG.delivery_call;
-    if (order.table === "POS" || order.table === "Pickup") {
+    if (order.table === "POS" || order.table === "Pick Up") {
       return ORDER_TYPE_CONFIG.pickup;
     }
   }
@@ -114,35 +115,13 @@ const getOrderTypeConfig = (order) => {
 };
 
 const getCustomerInfo = (order) => {
-  const orderTypeConfig = getOrderTypeConfig(order);
-  if (!orderTypeConfig) return null;
-
-  const type = orderTypeConfig.label;
-
-  // Delivery: mostrar últimos 4 dígitos del teléfono
-  if (type === "Delivery") {
-    if (order.phoneLastDigits) {
-      return {
-        icon: <Phone className="w-3 h-3" />,
-        label: "Tel:",
-        value: `${order.phoneLastDigits}`,
-        color: "text-blue-700 bg-blue-50 border-blue-200",
-      };
-    }
-    return null;
-  }
-
-  // Local, Para llevar, Pickup: mostrar nombre del cliente
-  if (type === "Local" || type === "Para llevar" || type === "Pickup") {
-    if (order.customerName) {
-      return {
-        icon: <User className="w-3 h-3" />,
-        label: "",
-        value: order.customerName,
-        color: "text-slate-700 bg-slate-100 border-slate-200",
-      };
-    }
-    return null;
+  if (order.customerName) {
+    return {
+      icon: <User className="w-3 h-3" />,
+      label: "",
+      value: order.customerName,
+      color: "text-slate-700 bg-slate-100 border-slate-200",
+    };
   }
 
   return null;
@@ -241,6 +220,16 @@ export function OrderCard({
               <span>{customerInfo.value}</span>
             </div>
           )}
+          {getOrderTypeConfig(order).label === "Delivery" &&
+            order.phoneLastDigits && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-semibold w-max text-blue-700 bg-blue-50 border-blue-200">
+                <Phone className="w-3 h-3" />
+                <span>
+                  Tel:{" "}
+                  <span className="font-bold">{order.phoneLastDigits}</span>
+                </span>
+              </div>
+            )}
         </div>
       )}
 

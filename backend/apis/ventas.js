@@ -7,6 +7,7 @@ Router.post("/procesar-venta", async (req, res) => {
   const {
     id_cliente,
     id_usuario,
+    id_delivery,
     despacho,
     tasa_cambio,
     monto_total_usd,
@@ -22,11 +23,12 @@ Router.post("/procesar-venta", async (req, res) => {
 
     const [resultVenta] = await connection.query(
       `INSERT INTO ventas 
-      (id_cliente, id_usuario, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs) 
-      VALUES (?, ?, ?, 'Completado', NOW(), ?, ?, ?)`,
+      (id_cliente, id_usuario,id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs) 
+      VALUES (?, ?, ?, ?, 'Completado', NOW(), ?, ?, ?)`,
       [
         id_cliente,
         id_usuario,
+        id_delivery || null,
         despacho,
         tasa_cambio,
         monto_total_usd,
