@@ -65,7 +65,6 @@ export default function NuevaOrdenScreen() {
               })}
             </p>
           </div>
-          <ExchangeRateWidget />
         </div>
         <CategoryFilter
           selected={selectedCategory}
@@ -99,9 +98,7 @@ export default function NuevaOrdenScreen() {
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Receipt className="w-5 h-5 text-white shrink-0" />
-            <h2 className="text-white font-bold text-sm shrink-0">
-              Ticket
-            </h2>
+            <h2 className="text-white font-bold text-sm shrink-0">Ticket</h2>
             {items.length > 0 && (
               <span className="bg-white text-[#EA2A33] text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
                 {items.length}
@@ -109,9 +106,7 @@ export default function NuevaOrdenScreen() {
             )}
             {/* Badge del tipo de pedido */}
             {typeConfig && (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-white/30 bg-white/20 text-white shrink-0 ml-1"
-              >
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-white/30 bg-white/20 text-white shrink-0 ml-1">
                 <TypeIcon className="w-3 h-3" />
                 {typeConfig.label}
               </span>

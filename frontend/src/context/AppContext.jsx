@@ -627,14 +627,14 @@ export function AppProvider({ children }) {
 
   const [exchangeRate, setExchangeRate] = useState(0);
 
-  // Fetch exchange rate on mount
+  // Load the operational exchange rate maintained by the backend.
   useEffect(() => {
     const fetchRate = async () => {
       try {
-        const res = await fetch("https://api.now.com.ve/price-rate-bcv");
-        const data = await res.json();
-        if (data && data.PriceRateBCV) {
-          setExchangeRate(data.PriceRateBCV);
+        const res = await fetch(`${API_BASE}/tasa`);
+        const json = await res.json();
+        if (json.success && json.data?.tasa_sistema) {
+          setExchangeRate(Number(json.data.tasa_sistema));
         }
       } catch (error) {
         console.error("Error fetching exchange rate", error);
