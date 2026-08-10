@@ -1,4 +1,12 @@
-import { useState } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { useApp, AppProvider } from "./context/AppContext";
 import NuevaOrdenScreen from "./screens/NuevaOrdenScreen";
 import ColaTrabajoScreen from "./screens/ColaTrabajoScreen";
@@ -12,50 +20,57 @@ import LoginScreen from "./screens/LoginScreen";
 import Sidebar from "./components/layout/Sidebar";
 import MeseroScreen from "./screens/MeseroScrenn";
 
-function MainApp() {
+const ROLE_HOME = {
+  admin: "/dashboard",
+  cashier: "/nueva-orden",
+  chef: "/cocina",
+  despachador: "/despacho",
+  mesero: "/mesero",
+  waiter: "/mesero",
+};
+
+function LoginRoute() {
   const { currentUser } = useApp();
-  const [cashierView, setCashierView] = useState("nueva-orden");
-  const [adminView, setAdminView] = useState("dashboard");
 
-  if (!currentUser) return <LoginScreen />;
+  if (currentUser) {
+    return <Navigate to={ROLE_HOME[currentUser.role] || "/login"} replace />;
+  }
 
-  const renderCashierView = () => {
-    switch (cashierView) {
-      case "cola-trabajos":
-        return <ColaTrabajoScreen />;
-      case "entrega":
-        return <EntregaScreen />;
-      default:
-        return <NuevaOrdenScreen />;
-    }
-  };
-  const renderAdminView = () => {
-    switch (adminView) {
-      case "clientes":
-        return <ClientesScreen />;
-      default:
-        return <AdminScreen activeView={adminView} />;
-    }
-  };
+  return <LoginScreen />;
+}
+
+function ProtectedRoute({ roles }) {
+  const { currentUser } = useApp();
+
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(currentUser.role)) {
+    return <Navigate to={ROLE_HOME[currentUser.role] || "/login"} replace />;
+  }
+
+  return <Outlet />;
+}
+
+function AuthenticatedLayout() {
+  const { currentUser } = useApp();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const activeView = location.pathname.slice(1) || "nueva-orden";
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-900">
-      {currentUser.role !== "chef" && currentUser.role !== "despachador" && currentUser.role !== "mesero" && (
-        <Sidebar
-          module={currentUser.role}
-          activeView={currentUser.role === "admin" ? adminView : cashierView}
-          onNavigate={
-            currentUser.role === "admin" ? setAdminView : setCashierView
-          }
-        />
-      )}
+      {currentUser.role !== "chef" &&
+        currentUser.role !== "despachador" &&
+        currentUser.role !== "mesero" && (
+          <Sidebar
+            module={currentUser.role}
+            activeView={activeView}
+            onNavigate={(view) => navigate(`/${view}`)}
+          />
+        )}
 
       <main className="flex-1 overflow-hidden relative flex flex-col">
-        {currentUser.role === "admin" && renderAdminView()}
-        {currentUser.role === "cashier" && renderCashierView()}
-        {currentUser.role === "chef" && <CocineroScreen />}
-        {currentUser.role === "despachador" && <DespachoScreen />}
-        {currentUser.role === "mesero" && <MeseroScreen />}
+        <Outlet />
       </main>
     </div>
   );
@@ -64,7 +79,68 @@ function MainApp() {
 export default function App() {
   return (
     <AppProvider>
-      <MainApp />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<LoginRoute />} />
+
+          <Route element={<ProtectedRoute roles={["admin"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route
+                path="/dashboard"
+                element={<AdminScreen activeView="dashboard" />}
+              />
+              <Route
+                path="/reportes"
+                element={<AdminScreen activeView="reportes" />}
+              />
+              <Route
+                path="/personal"
+                element={<AdminScreen activeView="personal" />}
+              />
+              <Route
+                path="/bitacora"
+                element={<AdminScreen activeView="bitacora" />}
+              />
+              <Route path="/clientes" element={<ClientesScreen />} />
+              <Route
+                path="/clientes-top"
+                element={<AdminScreen activeView="clientes-top" />}
+              />
+              <Route
+                path="/productos"
+                element={<AdminScreen activeView="productos" />}
+              />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["cashier"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/nueva-orden" element={<NuevaOrdenScreen />} />
+              <Route path="/cola-trabajos" element={<ColaTrabajoScreen />} />
+              <Route path="/entrega" element={<EntregaScreen />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["chef"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/cocina" element={<CocineroScreen />} />
+            </Route>
+          </Route>
+          <Route element={<ProtectedRoute roles={["despachador"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/despacho" element={<DespachoScreen />} />
+            </Route>
+          </Route>
+          <Route element={<ProtectedRoute roles={["mesero", "waiter"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/mesero" element={<MeseroScreen />} />
+            </Route>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
     </AppProvider>
   );
 }
