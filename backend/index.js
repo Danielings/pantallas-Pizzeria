@@ -9,6 +9,8 @@ import editarProductos from "./apis/editarProductos.js";
 import pedidos from "./apis/pedidos.js";
 import entregas from "./apis/entregas.js";
 import delivery from "./apis/delivery.js";
+import tasaRoutes, { actualizarTasaDesdeApi } from "./apis/tasa.js";
+import cron from "node-cron";
 
 const app = express();
 app.use(
@@ -31,6 +33,16 @@ app.use("/api", editarProductos);
 app.use("/api", pedidos);
 app.use("/api", entregas);
 app.use("/api", delivery);
+app.use("/api", tasaRoutes);
+
+cron.schedule("*/30 * * * *", async () => {
+  try {
+    await actualizarTasaDesdeApi();
+    console.log("Tasa actualizada automáticamente desde la API.");
+  } catch (error) {
+    console.error("Error actualizando la tasa automáticamente:", error);
+  }
+});
 
 app.listen(3001, () => {
   console.log("Escuchandoo, oh oh");

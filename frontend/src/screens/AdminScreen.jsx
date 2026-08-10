@@ -4,6 +4,7 @@ import StaffManagement from "../components/admin/Gestion_de_personal";
 import ActivityLog from "../components/admin/ActivityLog";
 import ClientesPrincipalesScreen from "../components/admin/ClientesPrincipalesScreen";
 import ProductosScreen from "../components/admin/ProductosScreen";
+import TasaScreen from "../components/admin/TasaScreen";
 
 export default function AdminScreen({ activeView }) {
   return (
@@ -20,6 +21,7 @@ export default function AdminScreen({ activeView }) {
         )}
         {activeView === "clientes-top" && <ClientesPrincipalesScreen />}
         {activeView === "productos" && <ProductosScreen />}
+        {activeView === "tasa" && <TasaScreen />}
       </div>
     </div>
   );

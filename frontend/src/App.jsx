@@ -111,6 +111,7 @@ export default function App() {
                 path="/productos"
                 element={<AdminScreen activeView="productos" />}
               />
+              <Route path="/tasa" element={<AdminScreen activeView="tasa" />} />
             </Route>
           </Route>
 

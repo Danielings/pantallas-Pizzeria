@@ -10,6 +10,7 @@ import {
   Package,
   ShoppingBag,
   Truck,
+  DollarSign,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -58,6 +59,11 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       id: "productos",
       name: "Productos",
       icon: <Package className="w-5 h-5" />,
+    },
+    {
+      id: "tasa",
+      name: "Tasa del Dólar",
+      icon: <DollarSign className="w-5 h-5" />,
     },
   ];
 
