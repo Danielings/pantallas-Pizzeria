@@ -52,7 +52,7 @@ Router.post("/registrar-delivery", async (req, res) => {
       success: true,
       message: "Delivery registrado con éxito",
       delivery: {
-        id: "id_generado_en_bd",
+        id: result.insertId,
         name,
         phone,
       },

@@ -11,9 +11,11 @@ Router.get("/obtener-pedidos-cocina", async (req, res) => {
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
-        c.telefono AS telefono_cliente
+        c.telefono AS telefono_cliente,
+        d.digitos AS digitos_delivery
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
+      LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
       WHERE DATE(v.fecha_hora) = CURDATE()
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
@@ -79,9 +81,11 @@ Router.get("/obtener-pedidos-horno", async (req, res) => {
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
-        c.telefono AS telefono_cliente
+        c.telefono AS telefono_cliente,
+        d.digitos AS digitos_delivery
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
+      LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
       WHERE DATE(v.fecha_hora) = CURDATE()
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
@@ -147,9 +151,11 @@ Router.get("/obtener-pedidos-despacho", async (req, res) => {
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
-        c.telefono AS telefono_cliente
+        c.telefono AS telefono_cliente,
+        d.digitos AS digitos_delivery
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
+      LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
       WHERE DATE(v.fecha_hora) = CURDATE()
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
@@ -283,14 +289,16 @@ Router.get("/obtener-pedidos-pendiente", async (req, res) => {
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
-        c.telefono AS telefono_cliente
+        c.telefono AS telefono_cliente,
+        d.digitos AS digitos_delivery
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
+      LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
       WHERE DATE(v.fecha_hora) = CURDATE()
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
-            AND vd.estado = 'Pendiente'
+            AND vd.estado = 'pDespacho'
             AND vd.tipo_producto = 'Pizza'
         )
       ORDER BY v.fecha_hora ASC`,
@@ -310,7 +318,7 @@ Router.get("/obtener-pedidos-pendiente", async (req, res) => {
           LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen
           LEFT JOIN categoria_pizza cp ON p.id_categoria_pizza = cp.id_categoria_pizza
           WHERE vd.id_venta = ? 
-            AND vd.estado = 'Pendiente' 
+            AND vd.estado = 'pDespacho' 
             AND vd.tipo_producto = 'Pizza'`,
           [venta.id_venta],
         );
@@ -354,7 +362,7 @@ Router.put("/actualizar-estado-pedido/:id_venta", async (req, res) => {
     nuevoEstado = "Horno";
     estadoAnterior = "Pendiente";
   } else if (status === "ready") {
-    nuevoEstado = "Pendiente";
+    nuevoEstado = "pDespacho";
     estadoAnterior = "Horno";
   } else if (status === "delivered") {
     nuevoEstado = "Despacho";

@@ -38,8 +38,15 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutModal({ onClose }) {
-  const { total, currentOrder, confirmSale, exchangeRate, clearCart, fetchPedidosActivos, fetchVentasHoy } =
-    useApp();
+  const {
+    total,
+    currentOrder,
+    confirmSale,
+    exchangeRate,
+    clearCart,
+    fetchPedidosActivos,
+    fetchVentasHoy,
+  } = useApp();
 
   // Leer tipo de pedido y abono del contexto (seleccionados en OrderTypeModal)
   const ctxOrderType = currentOrder.orderType;
@@ -110,12 +117,12 @@ export default function CheckoutModal({ onClose }) {
   };
 
   const normalizeId = (value) => {
-    if (typeof value === "number") return value;
-    if (typeof value === "string") {
-      const numeric = value.replace(/\D/g, "");
-      return numeric ? Number(numeric) : value;
-    }
-    return value;
+    const candidate =
+      value && typeof value === "object"
+        ? (value.id ?? value.id_delivery)
+        : value;
+    const numeric = Number(candidate);
+    return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
   };
 
   const mapOrderTypeToApiValue = (type) => {
@@ -173,6 +180,12 @@ export default function CheckoutModal({ onClose }) {
   const [showPaymentEntry, setShowPaymentEntry] = useState(false);
 
   const handleAddFromModal = (amountUSD) => {
+    const deliveryId = normalizeId(currentOrder.deliveryId);
+    if (mapOrderTypeToApiValue(orderType) === "Delivery" && !deliveryId) {
+      setError("Debe buscar y seleccionar un repartidor antes de continuar.");
+      return;
+    }
+
     setPaymentsInternal((prev) => [
       ...prev,
       {
@@ -196,6 +209,11 @@ export default function CheckoutModal({ onClose }) {
     const amountUSD = parseToUSD(amountInput);
     if (isNaN(amountUSD) || amountUSD <= 0) {
       setError("Monto inválido");
+      return;
+    }
+    const deliveryId = normalizeId(currentOrder.deliveryId);
+    if (mapOrderTypeToApiValue(orderType) === "Delivery" && !deliveryId) {
+      setError("Debe buscar y seleccionar un repartidor antes de continuar.");
       return;
     }
     if (amountUSD > remainingLocalUSD + 0.001) {
@@ -246,9 +264,20 @@ export default function CheckoutModal({ onClose }) {
       ? currentOrder.customer.id
       : 1;
 
+    const deliveryIdReal =
+      despacho === "Delivery" ? normalizeId(currentOrder.deliveryId) : null;
+
+    if (despacho === "Delivery" && !deliveryIdReal) {
+      setError(
+        "Debe seleccionar un repartidor válido para procesar esta venta.",
+      );
+      return;
+    }
+
     const payload = {
       id_cliente: clienteIdReal,
       id_usuario: 1,
+      id_delivery: deliveryIdReal,
       despacho,
       tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
       monto_total_usd: Number(totalToUse.toFixed(2)),
@@ -504,34 +533,48 @@ export default function CheckoutModal({ onClose }) {
               <div className="w-full bg-slate-50 border border-slate-200 border-dashed rounded-lg p-5 font-mono text-sm shadow-sm relative">
                 <div className="text-center mb-4 mt-1">
                   <div className="flex justify-center items-center gap-3 mb-3">
-                    <img src={logo} alt="Logo Pizzería" className="w-20 h-auto" />
+                    <img
+                      src={logo}
+                      alt="Logo Pizzería"
+                      className="w-20 h-auto"
+                    />
                     <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shadow-sm border border-emerald-100">
                       <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                     </div>
                   </div>
-                  <h3 className="font-bold text-lg tracking-widest uppercase text-slate-800">PIZZERÍA</h3>
+                  <h3 className="font-bold text-lg tracking-widest uppercase text-slate-800">
+                    PIZZERÍA
+                  </h3>
                   <p className="text-xs text-slate-500 mt-1">
                     Ticket de Venta #{Math.floor(Math.random() * 10000)}
                   </p>
                   <p className="text-xs text-slate-500">
-                    Emisión: {new Date().toLocaleDateString()} - {new Date().toLocaleTimeString()}
+                    Emisión: {new Date().toLocaleDateString()} -{" "}
+                    {new Date().toLocaleTimeString()}
                   </p>
                 </div>
 
                 {/* Info Cliente */}
-                {(currentOrder.customer?.name || currentOrder.customer?.cedula) && (
+                {(currentOrder.customer?.name ||
+                  currentOrder.customer?.cedula) && (
                   <div className="border-t border-dashed border-slate-300 py-3 text-xs text-slate-600 space-y-1">
-                    <div className="font-bold text-slate-800 mb-1">DATOS DEL CLIENTE</div>
+                    <div className="font-bold text-slate-800 mb-1">
+                      DATOS DEL CLIENTE
+                    </div>
                     {currentOrder.customer?.name && (
                       <div className="flex justify-between">
                         <span>Nombre:</span>
-                        <span className="font-medium">{currentOrder.customer.name}</span>
+                        <span className="font-medium">
+                          {currentOrder.customer.name}
+                        </span>
                       </div>
                     )}
                     {currentOrder.customer?.cedula && (
                       <div className="flex justify-between">
                         <span>C.I./RIF:</span>
-                        <span className="font-medium">{currentOrder.customer.cedula}</span>
+                        <span className="font-medium">
+                          {currentOrder.customer.cedula}
+                        </span>
                       </div>
                     )}
                   </div>
