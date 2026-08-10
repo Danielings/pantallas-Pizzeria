@@ -350,7 +350,26 @@ Router.get("/obtener-pedidos-pendiente", async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+//Obtiene los datos para colocarlo en el contador de pedidos en el cajero
+Router.get("/obtener-contador-cajero", async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      `SELECT COUNT(vd.id_detalle) AS total
+       FROM venta_detalle vd
+       JOIN ventas v ON vd.id_venta = v.id_venta
+       WHERE vd.estado != 'Completado' 
+         AND DATE(v.fecha_hora) = CURDATE()`,
+    );
 
+    res.json({
+      success: true,
+      total: result[0].total,
+    });
+  } catch (error) {
+    console.error("Error al obtener pedidos del cajero:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 Router.put("/actualizar-estado-pedido/:id_venta", async (req, res) => {
   const { id_venta } = req.params;
   const { status } = req.body;
