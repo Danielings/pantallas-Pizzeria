@@ -5,10 +5,23 @@ import { OrderCard } from "../cocinero/OrderCard";
 const isLocalOrder = (order) => {
   if (!order) return false;
   const type = order.orderType?.toLowerCase();
-  if (type === "dine_in" || type === "local") return true;
+  if (
+    type === "dine_in" ||
+    type === "local" ||
+    type === "pick up" ||
+    type === "takeaway" ||
+    type === "llevar"
+  )
+    return true;
 
   const table = order.table?.toLowerCase() || "";
-  if (table.startsWith("local") || table.startsWith("mesa")) return true;
+  if (
+    table.startsWith("local") ||
+    table.startsWith("mesa") ||
+    table.startsWith("pickup") ||
+    table.startsWith("takeaway")
+  )
+    return true;
 
   return false;
 };
