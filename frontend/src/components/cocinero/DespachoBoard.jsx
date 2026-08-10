@@ -79,13 +79,7 @@ export default function DespachoBoard() {
 
   // Handler para completar pedidos en la columna Despacho
   const handleDespachoComplete = (order) => {
-    if (isLocalOrder(order)) {
-      // Pedido Local: cambiar a estado 'waiter_pending' para que vaya al Mesero
-      updateOrderStatus(order.id, "waiter_pending");
-    } else {
-      // Pedido NO Local (Llevar, Delivery, Pickup): archivar directamente
-      updateOrderStatus(order.id, "completed");
-    }
+    updateOrderStatus(order.id, "completed");
   };
 
   const handlePendienteComplete = (order) => {
@@ -165,9 +159,7 @@ export default function DespachoBoard() {
             order={order}
             isFirst={true}
             variant="green"
-            primaryBtnLabel={
-              isLocalOrder(order) ? "Enviar a Mesero" : "Entregado"
-            }
+            primaryBtnLabel={isLocalOrder(order) ? "Entregado" : "Entregar"}
             onPrimary={() => handleDespachoComplete(order)}
             secondaryBtnLabel="Pendiente"
             onSecondary={() => {

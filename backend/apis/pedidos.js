@@ -228,7 +228,7 @@ Router.get("/obtener-pedidos-mesero", async (req, res) => {
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
-            AND vd.estado = 'Mesero'
+            AND vd.estado = 'Despacho'
             AND vd.tipo_producto = 'Pizza'
         )
       ORDER BY v.fecha_hora ASC`,
@@ -248,7 +248,7 @@ Router.get("/obtener-pedidos-mesero", async (req, res) => {
           LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen
           LEFT JOIN categoria_pizza cp ON p.id_categoria_pizza = cp.id_categoria_pizza
           WHERE vd.id_venta = ? 
-            AND vd.estado = 'Mesero' 
+            AND vd.estado = 'Despacho' 
             AND vd.tipo_producto = 'Pizza'`,
           [venta.id_venta],
         );
