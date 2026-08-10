@@ -20,12 +20,6 @@ router.get("/entregas", async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE v.despacho IN ('Delivery', 'Pick Up')
         AND DATE(v.fecha_hora) = CURDATE()
-        AND EXISTS (
-          SELECT 1 
-          FROM venta_detalle vd 
-          WHERE vd.id_venta = v.id_venta 
-            AND vd.estado != 'Completado'
-        )
       ORDER BY v.fecha_hora ASC`,
     );
 
@@ -36,6 +30,7 @@ router.get("/entregas", async (req, res) => {
             vd.id_detalle,
             vd.cantidad,
             vd.tipo_producto,
+            vd.estado AS estado_detalle,
             CASE 
               WHEN vd.tipo_producto = 'Pizza' THEN p.nombre
               WHEN vd.tipo_producto = 'Bebida' THEN b.nombre
@@ -53,7 +48,11 @@ router.get("/entregas", async (req, res) => {
           name: det.nombre_producto || det.tipo_producto,
           quantity: det.cantidad,
           type: det.tipo_producto,
+          status: det.estado_detalle,
         }));
+
+        // Si todos los detalles están completados, la orden está entregada
+        const allCompleted = detalles.length > 0 && detalles.every((det) => det.estado_detalle === 'Completado');
 
         return {
           id: venta.id_venta,
@@ -64,7 +63,7 @@ router.get("/entregas", async (req, res) => {
           items: items,
           total: venta.monto_total_usd,
           orderedAt: venta.fecha_hora,
-          status: "ready", // For frontend mock display of "delivered" button
+          status: allCompleted ? "delivered" : "ready",
         };
       }),
     );
