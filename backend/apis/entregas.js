@@ -3,7 +3,7 @@ import pool from "../config/bd.js";
 
 const router = express.Router();
 
-// GET /api/entregas - Fetch delivery and pickup orders from DB
+// GET /api/entregas - Fetch delivery, pickup, local and llevar orders from DB
 router.get("/entregas", async (req, res) => {
   try {
     const [ventas] = await pool.query(
@@ -18,7 +18,7 @@ router.get("/entregas", async (req, res) => {
         c.descripcion AS direccion_cliente
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-      WHERE v.despacho IN ('Delivery', 'Pick Up')
+      WHERE v.despacho IN ('Delivery', 'Pick Up', 'Local', 'Llevar')
         AND DATE(v.fecha_hora) = CURDATE()
       ORDER BY v.fecha_hora ASC`,
     );
@@ -56,7 +56,9 @@ router.get("/entregas", async (req, res) => {
 
         return {
           id: venta.id_venta,
-          type: venta.despacho === "Delivery" ? "delivery" : "pickup",
+          type: venta.despacho === "Delivery" ? "delivery" :
+                venta.despacho === "Pick Up" ? "pickup" :
+                venta.despacho === "Local" ? "local" : "llevar",
           customerName: venta.nombre_cliente || "Desconocido",
           address: venta.direccion_cliente || "",
           phone: venta.telefono_cliente || "",
