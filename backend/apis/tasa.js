@@ -3,11 +3,11 @@ import axios from "axios";
 import pool from "../config/bd.js";
 
 const Router = express.Router();
-const TASA_API_URL = "https://api.now.com.ve/price-rate-bcv";
+const TASA_API_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
 
 const obtenerTasaExterna = async () => {
   const { data } = await axios.get(TASA_API_URL, { timeout: 10000 });
-  const tasa = Number(data?.PriceRateBCV);
+  const tasa = Number(data?.promedio);
 
   if (!Number.isFinite(tasa) || tasa <= 0) {
     throw new Error("La API externa devolvió una tasa inválida.");
@@ -19,7 +19,7 @@ const obtenerTasaExterna = async () => {
 export const actualizarTasaDesdeApi = async () => {
   const tasaApi = await obtenerTasaExterna();
   const [rows] = await pool.query(
-    "SELECT anclado FROM configuracion_tasa WHERE id_config = 1",
+    "SELECT anclado, tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
   );
 
   if (!rows.length) {
@@ -28,10 +28,19 @@ export const actualizarTasaDesdeApi = async () => {
       [tasaApi, tasaApi],
     );
   } else if (rows[0].anclado) {
-    await pool.query(
-      "UPDATE configuracion_tasa SET tasa_api = ? WHERE id_config = 1",
-      [tasaApi],
-    );
+    const tasaSistemaActual = Number(rows[0].tasa_sistema);
+
+    if (tasaApi > tasaSistemaActual) {
+      await pool.query(
+        "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
+        [tasaApi, tasaApi],
+      );
+    } else {
+      await pool.query(
+        "UPDATE configuracion_tasa SET tasa_api = ? WHERE id_config = 1",
+        [tasaApi],
+      );
+    }
   } else {
     await pool.query(
       "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
@@ -41,7 +50,6 @@ export const actualizarTasaDesdeApi = async () => {
 
   return tasaApi;
 };
-
 const obtenerRegistro = async () => {
   const [rows] = await pool.query(
     "SELECT id_config, tasa_api, tasa_sistema, anclado, fecha_actualizacion FROM configuracion_tasa WHERE id_config = 1",
