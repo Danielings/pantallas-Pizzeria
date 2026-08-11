@@ -12,6 +12,8 @@ import {
   AlertCircle,
   X,
   FileText,
+  Utensils,
+  ShoppingBag,
 } from "lucide-react";
 
 function getElapsed(iso) {
@@ -21,29 +23,48 @@ function getElapsed(iso) {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 }
 
-function OrderCard({ order, onConfirm, onViewDetails }) {
-  const isDelivery = order.type === "delivery";
+const themes = {
+  delivery: {
+    border: "border-red-200",
+    bg: "bg-red-50",
+    iconColor: "text-red-600",
+    badge: "bg-red-100 text-red-700",
+    dot: "bg-red-500",
+    Icon: Bike,
+    label: "Delivery",
+  },
+  pickup: {
+    border: "border-green-200",
+    bg: "bg-green-50",
+    iconColor: "text-green-600",
+    badge: "bg-green-100 text-green-700",
+    dot: "bg-green-500",
+    Icon: Store,
+    label: "Pick Up",
+  },
+  local: {
+    border: "border-blue-200",
+    bg: "bg-blue-50",
+    iconColor: "text-blue-600",
+    badge: "bg-blue-100 text-blue-700",
+    dot: "bg-blue-500",
+    Icon: Utensils,
+    label: "Local",
+  },
+  llevar: {
+    border: "border-purple-200",
+    bg: "bg-purple-50",
+    iconColor: "text-purple-600",
+    badge: "bg-purple-100 text-purple-700",
+    dot: "bg-purple-500",
+    Icon: ShoppingBag,
+    label: "Llevar",
+  },
+};
 
-  // Styles based on type
-  const theme = isDelivery
-    ? {
-        border: "border-red-200",
-        bg: "bg-red-50",
-        iconColor: "text-red-600",
-        badge: "bg-red-100 text-red-700",
-        dot: "bg-red-500",
-        Icon: Bike,
-        label: "Delivery",
-      }
-    : {
-        border: "border-green-200",
-        bg: "bg-green-50",
-        iconColor: "text-green-600",
-        badge: "bg-green-100 text-green-700",
-        dot: "bg-green-500",
-        Icon: Store,
-        label: "Pick Up",
-      };
+function OrderCard({ order, onConfirm, onViewDetails }) {
+  const theme = themes[order.type] || themes.delivery;
+  const isDelivery = order.type === "delivery";
 
   return (
     <div
@@ -153,23 +174,8 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
 }
 
 function DeliveredRow({ order, onViewDetails, deliveryTime }) {
+  const theme = themes[order.type] || themes.delivery;
   const isDelivery = order.type === "delivery";
-
-  const theme = isDelivery
-    ? {
-        bg: "bg-red-50",
-        iconColor: "text-red-600",
-        badge: "bg-red-100 text-red-700",
-        Icon: Bike,
-        label: "Delivery",
-      }
-    : {
-        bg: "bg-green-50",
-        iconColor: "text-green-600",
-        badge: "bg-green-100 text-green-700",
-        Icon: Store,
-        label: "Pick Up",
-      };
 
   const formattedTime = deliveryTime
     ? new Date(deliveryTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -239,7 +245,7 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
 
           <button
             onClick={() => onViewDetails(order)}
-            className="flex items-center justify-center p-2 text-slate-600 hover:text-white transition-colors bg-slate-100 hover:bg-slate-800 rounded-xl border border-slate-200 animate-pulse-once"
+            className="flex items-center justify-center p-2 text-slate-600 hover:text-white transition-colors bg-slate-100 hover:bg-slate-800 rounded-xl border border-slate-200"
             title="Ver Detalle"
           >
             <FileText className="w-5 h-5" />
@@ -256,6 +262,7 @@ export default function EntregaScreen() {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState("delivery_pickup");
   const [historyFilter, setHistoryFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("desc");
   const [deliveryTimes, setDeliveryTimes] = useState(() => {
@@ -292,6 +299,12 @@ export default function EntregaScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  // Whenever selectedGroup changes, reset history filter to "all" to avoid incompatible active state
+  useEffect(() => {
+    setHistoryFilter("all");
+    setCurrentPage(1);
+  }, [selectedGroup]);
+
   const handleConfirm = async (id) => {
     try {
       await axios.put(
@@ -301,7 +314,7 @@ export default function EntregaScreen() {
           withCredentials: true,
         },
       );
-      
+
       const now = new Date().toISOString();
       const updatedTimes = { ...deliveryTimes, [id]: now };
       setDeliveryTimes(updatedTimes);
@@ -320,18 +333,32 @@ export default function EntregaScreen() {
     }
   };
 
+  // Grouped active orders
   const pendingDelivery = orders.filter(
     (o) => o.type === "delivery" && o.status !== "delivered",
   );
   const pendingPickup = orders.filter(
     (o) => o.type === "pickup" && o.status !== "delivered",
   );
+  const pendingLocal = orders.filter(
+    (o) => o.type === "local" && o.status !== "delivered",
+  );
+  const pendingLlevar = orders.filter(
+    (o) => o.type === "llevar" && o.status !== "delivered",
+  );
+
   const deliveredOrders = orders.filter((o) => o.status === "delivered");
 
   const filteredDeliveredOrders = deliveredOrders.filter((o) => {
-    if (historyFilter === "delivery") return o.type === "delivery";
-    if (historyFilter === "pickup") return o.type === "pickup";
-    return true;
+    if (historyFilter !== "all") {
+      return o.type === historyFilter;
+    }
+    // "all" filters by current selected group
+    if (selectedGroup === "delivery_pickup") {
+      return o.type === "delivery" || o.type === "pickup";
+    } else {
+      return o.type === "local" || o.type === "llevar";
+    }
   });
 
   const sortedDeliveredOrders = [...filteredDeliveredOrders].sort((a, b) => {
@@ -349,25 +376,59 @@ export default function EntregaScreen() {
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-50/50 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200/60 px-8 py-6 shrink-0 flex items-center justify-between shadow-sm z-10 relative">
-        <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-            <div className="w-12 h-12 bg-pizza-red/10 rounded-2xl flex items-center justify-center">
-              <Package className="w-6 h-6 text-pizza-red" />
-            </div>
-            Centro de Entregas
-          </h1>
-          <p className="text-slate-500 font-medium mt-1">
-            Gestión de envíos y retiros en tienda
-          </p>
+      <div className="bg-white border border-slate-200/60 rounded-2xl px-6 py-5 mx-6 mt-6 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm z-10 relative">
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 bg-pizza-red/10 rounded-xl flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-pizza-red" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+              Centro de Entregas
+            </h1>
+            <p className="text-xs font-medium text-slate-500 mt-0.5 capitalize flex items-center gap-1">
+              {new Date().toLocaleDateString("es-ES", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+          </div>
         </div>
-        <button
-          onClick={fetchOrders}
-          disabled={loading}
-          className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-extrabold transition-all shadow-md disabled:opacity-50 hover:shadow-lg"
-        >
-          {loading ? "Sincronizando..." : "Actualizar"}
-        </button>
+
+        <div className="flex items-center justify-between lg:justify-end gap-3 w-full lg:w-auto">
+          {/* Group toggle buttons */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
+            <button
+              onClick={() => setSelectedGroup("delivery_pickup")}
+              className={`px-4 py-2 rounded-lg text-xs font-extrabold tracking-wider uppercase transition-all ${
+                selectedGroup === "delivery_pickup"
+                  ? "bg-slate-950 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Delivery & Pick Up
+            </button>
+            <button
+              onClick={() => setSelectedGroup("local_llevar")}
+              className={`px-4 py-2 rounded-lg text-xs font-extrabold tracking-wider uppercase transition-all ${
+                selectedGroup === "local_llevar"
+                  ? "bg-slate-950 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Local & Llevar
+            </button>
+          </div>
+
+          <button
+            onClick={fetchOrders}
+            disabled={loading}
+            className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-extrabold transition-all shadow-sm disabled:opacity-50"
+          >
+            {loading ? "Sincronizando..." : "Actualizar"}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -379,157 +440,311 @@ export default function EntregaScreen() {
 
       {/* Main scrolling content area */}
       <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 hide-scrollbar">
-        {/* Metrics Overview */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-            <div>
-              <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
-                Delivery Hoy
-              </p>
-              <div className="flex items-end gap-2">
-                <h3 className="text-4xl font-black text-slate-800 leading-none">
-                  {orders.filter((o) => o.type === "delivery").length}
-                </h3>
-                <span className="text-slate-400 font-bold text-sm mb-1">
-                  total
-                </span>
+        {/* Metrics Overview based on Selected Group */}
+        {selectedGroup === "delivery_pickup" ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+              <div>
+                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  Delivery Hoy
+                </p>
+                <div className="flex items-end gap-2">
+                  <h3 className="text-4xl font-black text-slate-800 leading-none">
+                    {orders.filter((o) => o.type === "delivery").length}
+                  </h3>
+                  <span className="text-slate-400 font-bold text-sm mb-1">
+                    total
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-red-50 group-hover:bg-red-500 group-hover:text-white text-red-500 rounded-2xl flex items-center justify-center transition-colors">
+                <Bike className="w-7 h-7" />
               </div>
             </div>
-            <div className="w-14 h-14 bg-red-50 group-hover:bg-red-500 group-hover:text-white text-red-500 rounded-2xl flex items-center justify-center transition-colors">
-              <Bike className="w-7 h-7" />
-            </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-            <div>
-              <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
-                Delivery Activos
-              </p>
-              <div className="flex items-end gap-2">
-                <h3 className="text-4xl font-black text-red-600 leading-none">
-                  {pendingDelivery.length}
-                </h3>
-                <span className="text-red-400 font-bold text-sm mb-1">
-                  pendientes
-                </span>
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+              <div>
+                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  Delivery Activos
+                </p>
+                <div className="flex items-end gap-2">
+                  <h3 className="text-4xl font-black text-red-600 leading-none">
+                    {pendingDelivery.length}
+                  </h3>
+                  <span className="text-red-400 font-bold text-sm mb-1">
+                    pendientes
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center border border-red-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                <Clock className="w-7 h-7" />
               </div>
             </div>
-            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center border border-red-200/50 shadow-inner group-hover:scale-105 transition-transform">
-              <Clock className="w-7 h-7" />
-            </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-            <div>
-              <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
-                Pick Up Hoy
-              </p>
-              <div className="flex items-end gap-2">
-                <h3 className="text-4xl font-black text-slate-800 leading-none">
-                  {orders.filter((o) => o.type === "pickup").length}
-                </h3>
-                <span className="text-slate-400 font-bold text-sm mb-1">
-                  total
-                </span>
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+              <div>
+                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  Pick Up Hoy
+                </p>
+                <div className="flex items-end gap-2">
+                  <h3 className="text-4xl font-black text-slate-800 leading-none">
+                    {orders.filter((o) => o.type === "pickup").length}
+                  </h3>
+                  <span className="text-slate-400 font-bold text-sm mb-1">
+                    total
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-green-50 group-hover:bg-green-500 group-hover:text-white text-green-500 rounded-2xl flex items-center justify-center transition-colors">
+                <Store className="w-7 h-7" />
               </div>
             </div>
-            <div className="w-14 h-14 bg-green-50 group-hover:bg-green-500 group-hover:text-white text-green-500 rounded-2xl flex items-center justify-center transition-colors">
-              <Store className="w-7 h-7" />
-            </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-            <div>
-              <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
-                Pick Up Activos
-              </p>
-              <div className="flex items-end gap-2">
-                <h3 className="text-4xl font-black text-green-600 leading-none">
-                  {pendingPickup.length}
-                </h3>
-                <span className="text-green-400 font-bold text-sm mb-1">
-                  pendientes
-                </span>
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+              <div>
+                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  Pick Up Activos
+                </p>
+                <div className="flex items-end gap-2">
+                  <h3 className="text-4xl font-black text-green-600 leading-none">
+                    {pendingPickup.length}
+                  </h3>
+                  <span className="text-green-400 font-bold text-sm mb-1">
+                    pendientes
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center border border-green-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                <Clock className="w-7 h-7" />
               </div>
             </div>
-            <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center border border-green-200/50 shadow-inner group-hover:scale-105 transition-transform">
-              <Clock className="w-7 h-7" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+              <div>
+                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  Local Hoy
+                </p>
+                <div className="flex items-end gap-2">
+                  <h3 className="text-4xl font-black text-slate-800 leading-none">
+                    {orders.filter((o) => o.type === "local").length}
+                  </h3>
+                  <span className="text-slate-400 font-bold text-sm mb-1">
+                    total
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-blue-50 group-hover:bg-blue-500 group-hover:text-white text-blue-500 rounded-2xl flex items-center justify-center transition-colors">
+                <Utensils className="w-7 h-7" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+              <div>
+                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  Local Activos
+                </p>
+                <div className="flex items-end gap-2">
+                  <h3 className="text-4xl font-black text-blue-600 leading-none">
+                    {pendingLocal.length}
+                  </h3>
+                  <span className="text-blue-400 font-bold text-sm mb-1">
+                    pendientes
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                <Clock className="w-7 h-7" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+              <div>
+                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  Llevar Hoy
+                </p>
+                <div className="flex items-end gap-2">
+                  <h3 className="text-4xl font-black text-slate-800 leading-none">
+                    {orders.filter((o) => o.type === "llevar").length}
+                  </h3>
+                  <span className="text-slate-400 font-bold text-sm mb-1">
+                    total
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-purple-50 group-hover:bg-purple-500 group-hover:text-white text-purple-500 rounded-2xl flex items-center justify-center transition-colors">
+                <ShoppingBag className="w-7 h-7" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+              <div>
+                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  Llevar Activos
+                </p>
+                <div className="flex items-end gap-2">
+                  <h3 className="text-4xl font-black text-purple-600 leading-none">
+                    {pendingLlevar.length}
+                  </h3>
+                  <span className="text-purple-400 font-bold text-sm mb-1">
+                    pendientes
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center border border-purple-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                <Clock className="w-7 h-7" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Columns layout for pending orders */}
-        <div className="flex flex-col xl:flex-row gap-8 shrink-0">
-          {/* Delivery Column */}
-          <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
-            <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
-              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
-                  <Bike className="w-5 h-5 text-red-500" />
-                </div>
-                Delivery
-              </h2>
-              <span className="bg-red-100 text-red-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-red-200/50 shadow-sm">
-                {pendingDelivery.length} Pendientes
-              </span>
+        {selectedGroup === "delivery_pickup" ? (
+          <div className="flex flex-col xl:flex-row gap-8 shrink-0">
+            {/* Delivery Column */}
+            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+              <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                    <Bike className="w-5 h-5 text-red-500" />
+                  </div>
+                  Delivery
+                </h2>
+                <span className="bg-red-100 text-red-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-red-200/50 shadow-sm">
+                  {pendingDelivery.length} Pendientes
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
+                {pendingDelivery.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                    <Bike className="w-12 h-12 opacity-20" />
+                    <p className="font-bold">
+                      No hay órdenes de delivery activas
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {pendingDelivery.map((order) => (
+                      <OrderCard
+                        key={order.id}
+                        order={order}
+                        onConfirm={handleConfirm}
+                        onViewDetails={setSelectedOrder}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
-              {pendingDelivery.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
-                  <Bike className="w-12 h-12 opacity-20" />
-                  <p className="font-bold">
-                    No hay órdenes de delivery activas
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {pendingDelivery.map((order) => (
-                    <OrderCard
-                      key={order.id}
-                      order={order}
-                      onConfirm={handleConfirm}
-                      onViewDetails={setSelectedOrder}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Pickup Column */}
-          <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
-            <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
-              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-                  <Store className="w-5 h-5 text-green-500" />
-                </div>
-                Pick Up
-              </h2>
-              <span className="bg-green-100 text-green-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-green-200/50 shadow-sm">
-                {pendingPickup.length} Pendientes
-              </span>
-            </div>
-            <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
-              {pendingPickup.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
-                  <Store className="w-12 h-12 opacity-20" />
-                  <p className="font-bold">No hay órdenes de pick up activas</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {pendingPickup.map((order) => (
-                    <OrderCard
-                      key={order.id}
-                      order={order}
-                      onConfirm={handleConfirm}
-                      onViewDetails={setSelectedOrder}
-                    />
-                  ))}
-                </div>
-              )}
+            {/* Pickup Column */}
+            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+              <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                    <Store className="w-5 h-5 text-green-500" />
+                  </div>
+                  Pick Up
+                </h2>
+                <span className="bg-green-100 text-green-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-green-200/50 shadow-sm">
+                  {pendingPickup.length} Pendientes
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
+                {pendingPickup.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                    <Store className="w-12 h-12 opacity-20" />
+                    <p className="font-bold">No hay órdenes de pick up activas</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {pendingPickup.map((order) => (
+                      <OrderCard
+                        key={order.id}
+                        order={order}
+                        onConfirm={handleConfirm}
+                        onViewDetails={setSelectedOrder}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col xl:flex-row gap-8 shrink-0">
+            {/* Local Column */}
+            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+              <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <Utensils className="w-5 h-5 text-blue-500" />
+                  </div>
+                  Local
+                </h2>
+                <span className="bg-blue-100 text-blue-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-blue-200/50 shadow-sm">
+                  {pendingLocal.length} Pendientes
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
+                {pendingLocal.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                    <Utensils className="w-12 h-12 opacity-20" />
+                    <p className="font-bold">
+                      No hay órdenes para Local activas
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {pendingLocal.map((order) => (
+                      <OrderCard
+                        key={order.id}
+                        order={order}
+                        onConfirm={handleConfirm}
+                        onViewDetails={setSelectedOrder}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Llevar Column */}
+            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+              <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                    <ShoppingBag className="w-5 h-5 text-purple-500" />
+                  </div>
+                  Llevar
+                </h2>
+                <span className="bg-purple-100 text-purple-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-purple-200/50 shadow-sm">
+                  {pendingLlevar.length} Pendientes
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
+                {pendingLlevar.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                    <ShoppingBag className="w-12 h-12 opacity-20" />
+                    <p className="font-bold">No hay órdenes para Llevar activas</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {pendingLlevar.map((order) => (
+                      <OrderCard
+                        key={order.id}
+                        order={order}
+                        onConfirm={handleConfirm}
+                        onViewDetails={setSelectedOrder}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* History of delivered orders */}
         <div className="bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm shrink-0">
@@ -545,7 +760,7 @@ export default function EntregaScreen() {
                 {filteredDeliveredOrders.length} Entregados
               </span>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-4">
               {/* Filter buttons */}
               <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
@@ -555,20 +770,41 @@ export default function EntregaScreen() {
                 >
                   Todos
                 </button>
-                <button
-                  onClick={() => { setHistoryFilter("delivery"); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "delivery" ? "bg-red-600 text-white shadow-sm" : "text-slate-600 hover:text-red-600"}`}
-                >
-                  <Bike className="w-3.5 h-3.5" />
-                  Delivery
-                </button>
-                <button
-                  onClick={() => { setHistoryFilter("pickup"); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "pickup" ? "bg-green-600 text-white shadow-sm" : "text-slate-600 hover:text-green-600"}`}
-                >
-                  <Store className="w-3.5 h-3.5" />
-                  Pick Up
-                </button>
+                {selectedGroup === "delivery_pickup" ? (
+                  <>
+                    <button
+                      onClick={() => { setHistoryFilter("delivery"); setCurrentPage(1); }}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "delivery" ? "bg-red-600 text-white shadow-sm" : "text-slate-600 hover:text-red-600"}`}
+                    >
+                      <Bike className="w-3.5 h-3.5" />
+                      Delivery
+                    </button>
+                    <button
+                      onClick={() => { setHistoryFilter("pickup"); setCurrentPage(1); }}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "pickup" ? "bg-green-600 text-white shadow-sm" : "text-slate-600 hover:text-green-600"}`}
+                    >
+                      <Store className="w-3.5 h-3.5" />
+                      Pick Up
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => { setHistoryFilter("local"); setCurrentPage(1); }}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "local" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-blue-600"}`}
+                    >
+                      <Utensils className="w-3.5 h-3.5" />
+                      Local
+                    </button>
+                    <button
+                      onClick={() => { setHistoryFilter("llevar"); setCurrentPage(1); }}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "llevar" ? "bg-purple-600 text-white shadow-sm" : "text-slate-600 hover:text-purple-600"}`}
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      Llevar
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Sort buttons */}
@@ -588,7 +824,7 @@ export default function EntregaScreen() {
               </div>
             </div>
           </div>
-          
+
           <div className="p-5 bg-slate-50/30">
             {filteredDeliveredOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-slate-400 space-y-3 py-10">
@@ -652,58 +888,57 @@ export default function EntregaScreen() {
       </div>
 
       {/* Order Details Modal */}
-      {selectedOrder && (
-        <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setSelectedOrder(null)}
-        >
+      {selectedOrder && (() => {
+        const modalTheme = themes[selectedOrder.type] || themes.delivery;
+        return (
           <div
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+            onClick={() => setSelectedOrder(null)}
           >
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedOrder.type === "delivery" ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}`}
-                >
-                  {selectedOrder.type === "delivery" ? (
-                    <Bike className="w-5 h-5" />
-                  ) : (
-                    <Store className="w-5 h-5" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-black text-slate-800 text-lg leading-tight">
-                    Pedido #{selectedOrder.id}
-                  </h3>
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    {selectedOrder.type === "delivery" ? "Delivery" : "Pick Up"}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors shadow-sm border border-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="mb-6 space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> Datos del Cliente
-                </h4>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <p className="font-bold text-slate-800 mb-1">
-                    {selectedOrder.customerName}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    <span>{selectedOrder.phone}</span>
+            <div
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${modalTheme.badge}`}
+                  >
+                    <modalTheme.Icon className={`w-5 h-5 ${modalTheme.iconColor}`} />
                   </div>
-                  {selectedOrder.type === "delivery" &&
-                    selectedOrder.address && (
+                  <div>
+                    <h3 className="font-black text-slate-800 text-lg leading-tight">
+                      Pedido #{selectedOrder.id}
+                    </h3>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                      {modalTheme.label}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors shadow-sm border border-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="mb-6 space-y-3">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Datos del Cliente
+                  </h4>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <p className="font-bold text-slate-800 mb-1">
+                      {selectedOrder.customerName}
+                    </p>
+                    {selectedOrder.phone && (
+                      <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
+                        <Phone className="w-4 h-4 text-slate-400" />
+                        <span>{selectedOrder.phone}</span>
+                      </div>
+                    )}
+                    {selectedOrder.address && (
                       <div className="flex items-start gap-2 text-sm text-slate-600">
                         <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                         <span className="leading-snug">
@@ -711,78 +946,79 @@ export default function EntregaScreen() {
                         </span>
                       </div>
                     )}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-3">
-                  <Package className="w-4 h-4" /> Productos (
-                  {selectedOrder.items.length})
-                </h4>
-                <div className="space-y-2">
-                  {selectedOrder.items.map((item, idx) => {
-                    const isPizza = item.type === "Pizza";
-                    const isDrink = item.type === "Bebida";
-                    const isIceCream = item.type === "Helado";
+                <div>
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-3">
+                    <Package className="w-4 h-4" /> Productos (
+                    {selectedOrder.items.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedOrder.items.map((item, idx) => {
+                      const isPizza = item.type === "Pizza";
+                      const isDrink = item.type === "Bebida";
+                      const isIceCream = item.type === "Helado";
 
-                    let badgeColor =
-                      "bg-slate-100 text-slate-600 border-slate-200";
-                    let qtyColor = "bg-slate-100 text-slate-600";
+                      let badgeColor =
+                        "bg-slate-100 text-slate-600 border-slate-200";
+                      let qtyColor = "bg-slate-100 text-slate-600";
 
-                    if (isPizza) {
-                      badgeColor =
-                        "bg-orange-100 text-orange-600 border-orange-200";
-                      qtyColor = "bg-orange-100 text-orange-600";
-                    } else if (isDrink) {
-                      badgeColor = "bg-blue-100 text-blue-600 border-blue-200";
-                      qtyColor = "bg-blue-100 text-blue-600";
-                    } else if (isIceCream) {
-                      badgeColor = "bg-pink-100 text-pink-600 border-pink-200";
-                      qtyColor = "bg-pink-100 text-pink-600";
-                    }
+                      if (isPizza) {
+                        badgeColor =
+                          "bg-orange-100 text-orange-600 border-orange-200";
+                        qtyColor = "bg-orange-100 text-orange-600";
+                      } else if (isDrink) {
+                        badgeColor = "bg-blue-100 text-blue-600 border-blue-200";
+                        qtyColor = "bg-blue-100 text-blue-600";
+                      } else if (isIceCream) {
+                        badgeColor = "bg-pink-100 text-pink-600 border-pink-200";
+                        qtyColor = "bg-pink-100 text-pink-600";
+                      }
 
-                    return (
-                      <div
-                        key={idx}
-                        className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-sm"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`w-8 h-8 rounded-lg ${qtyColor} flex items-center justify-center font-black`}
-                          >
-                            {item.quantity}
-                          </span>
-                          <span className="text-slate-700 font-bold">
-                            {item.name}
-                          </span>
+                      return (
+                        <div
+                          key={idx}
+                          className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`w-8 h-8 rounded-lg ${qtyColor} flex items-center justify-center font-black`}
+                            >
+                              {item.quantity}
+                            </span>
+                            <span className="text-slate-700 font-bold">
+                              {item.name}
+                            </span>
+                          </div>
+                          {item.type && (
+                            <span
+                              className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md border ${badgeColor}`}
+                            >
+                              {item.type}
+                            </span>
+                          )}
                         </div>
-                        {item.type && (
-                          <span
-                            className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md border ${badgeColor}`}
-                          >
-                            {item.type}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-slate-500 uppercase tracking-wider text-sm">
-                  Total a pagar
-                </span>
-                <span className="text-2xl font-black text-slate-800">
-                  ${Number(selectedOrder.total || 0).toFixed(2)}
-                </span>
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-500 uppercase tracking-wider text-sm">
+                    Total a pagar
+                  </span>
+                  <span className="text-2xl font-black text-slate-800">
+                    ${Number(selectedOrder.total || 0).toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

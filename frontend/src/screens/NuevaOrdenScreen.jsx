@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   Bike,
   Store,
+  ShoppingCart,
 } from "lucide-react";
 const ORDER_TYPE_CONFIG = {
   local: {
@@ -50,18 +51,21 @@ export default function NuevaOrdenScreen() {
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden w-full h-full relative">
       {/* Cabecera y Filtros */}
-      <header className="flex flex-wrap lg:flex-nowrap gap-4 justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100 shrink-0">
-        <div className="flex items-center gap-6">
+      <header className="bg-white border border-slate-200/60 rounded-2xl px-6 py-5 flex flex-wrap lg:flex-nowrap gap-4 justify-between items-center shadow-sm shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 bg-pizza-red/10 rounded-xl flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-5 h-5 text-pizza-red" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
               Punto de Venta
             </h1>
-            <p className="text-sm text-slate-500 capitalize">
+            <p className="text-xs font-medium text-slate-500 mt-0.5 capitalize">
               {new Date().toLocaleDateString("es-ES", {
                 weekday: "long",
-                year: "numeric",
-                month: "long",
                 day: "numeric",
+                month: "long",
+                year: "numeric",
               })}
             </p>
           </div>
