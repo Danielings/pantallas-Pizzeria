@@ -181,6 +181,10 @@ export default function ClientesScreen() {
             cachedCustomers = updated;
             return updated;
           });
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Cliente editado exitosamente!",
+          });
         }
       } else {
         const res = await axios.post(`${API_BASE}/registrar-clientes`, {
@@ -197,6 +201,10 @@ export default function ClientesScreen() {
             ];
             cachedCustomers = updated;
             return updated;
+          });
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Cliente registrado exitosamente!",
           });
         }
       }

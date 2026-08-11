@@ -289,6 +289,10 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
 
       fetchPedidosActivos();
       onClose();
+      window.Toast.fire({
+        icon: "success",
+        title: "¡Pedido editado exitosamente!",
+      });
     } catch (error) {
       console.error("Error al actualizar el pedido:", error);
     } finally {

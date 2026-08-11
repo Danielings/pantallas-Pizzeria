@@ -39,26 +39,28 @@ export default function TasaScreen() {
     event.preventDefault();
     const value = Number(manualRate);
     if (!Number.isFinite(value) || value <= 0) {
-      setMessage({ type: "error", text: "Ingresa una tasa mayor que cero." });
+      window.Toast.fire({
+        icon: "error",
+        title: "Ingresa una tasa mayor que cero.",
+      });
       return;
     }
 
     setSaving(true);
-    setMessage({ type: "", text: "" });
     try {
       const { data } = await axios.put(`${API_BASE}/tasa/anclar`, {
         tasa_manual: value,
       });
       setRate(data.data);
       updateExchangeRate(data.data.tasa_sistema);
-      setMessage({
-        type: "success",
-        text: "Tasa fijada y anclada correctamente.",
+      window.Toast.fire({
+        icon: "success",
+        title: "Tasa fijada y anclada correctamente.",
       });
     } catch (error) {
-      setMessage({
-        type: "error",
-        text: error.response?.data?.message || "No se pudo anclar la tasa.",
+      window.Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "No se pudo anclar la tasa.",
       });
     } finally {
       setSaving(false);
@@ -67,20 +69,19 @@ export default function TasaScreen() {
 
   const handleUnanchor = async () => {
     setSaving(true);
-    setMessage({ type: "", text: "" });
     try {
       const { data } = await axios.put(`${API_BASE}/tasa/desanclar`);
       setRate(data.data);
       setManualRate(String(data.data.tasa_sistema));
       updateExchangeRate(data.data.tasa_sistema);
-      setMessage({
-        type: "success",
-        text: "Anclaje retirado. Se usa el precio del día.",
+      window.Toast.fire({
+        icon: "success",
+        title: "Anclaje retirado. Se usa el precio del día.",
       });
     } catch (error) {
-      setMessage({
-        type: "error",
-        text: error.response?.data?.message || "No se pudo quitar el anclaje.",
+      window.Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "No se pudo quitar el anclaje.",
       });
     } finally {
       setSaving(false);
@@ -109,14 +110,6 @@ export default function TasaScreen() {
             Actualizar
           </button>
         </div>
-
-        {message.text && (
-          <div
-            className={`mb-6 rounded-xl border px-4 py-3 text-sm font-semibold ${message.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`}
-          >
-            {message.text}
-          </div>
-        )}
 
         {loading && !rate ? (
           <div className="rounded-2xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">

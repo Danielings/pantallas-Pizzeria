@@ -205,6 +205,10 @@ export default function ProductosScreen() {
           setProducts((prev) =>
             prev.map((p) => (p.id === editingProduct.id ? updatedProduct : p)),
           );
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Producto editado exitosamente!",
+          });
         }
       } else {
         const response = await axios.post(endpoint, formData, {
@@ -221,35 +225,47 @@ export default function ProductosScreen() {
               category: selectedCategory,
             },
           ]);
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Producto creado exitosamente!",
+          });
         }
       }
       closeModal();
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert(
-        error.response?.data?.message || "Error de conexión con el servidor",
-      );
+      window.Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "Error al guardar el producto",
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id, category) => {
-    if (!window.confirm("¿Estás seguro de eliminar este producto?")) return;
+    window.confirmDelete(async () => {
+      let endpoint = "";
+      if (category === "pizzas") endpoint = "http://localhost:3001/api/pizzas";
+      if (category === "drinks") endpoint = "http://localhost:3001/api/bebidas";
+      if (category === "icecream")
+        endpoint = "http://localhost:3001/api/heladeria";
+      if (category === "extras") endpoint = "http://localhost:3001/api/extras";
 
-    let endpoint = "";
-    if (category === "pizzas") endpoint = "http://localhost:3001/api/pizzas";
-    if (category === "drinks") endpoint = "http://localhost:3001/api/bebidas";
-    if (category === "icecream")
-      endpoint = "http://localhost:3001/api/heladeria";
-    if (category === "extras") endpoint = "http://localhost:3001/api/extras";
-
-    try {
-      await axios.delete(`${endpoint}/${id}`);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-    } catch (error) {
-      alert("Error eliminando el producto");
-    }
+      try {
+        await axios.delete(`${endpoint}/${id}`);
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+        window.Toast.fire({
+          icon: "success",
+          title: "¡Producto eliminado exitosamente!",
+        });
+      } catch (error) {
+        window.Toast.fire({
+          icon: "error",
+          title: "Error al eliminar el producto",
+        });
+      }
+    });
   };
 
   // Función auxiliar para obtener el emoji por defecto según la categoría
