@@ -347,7 +347,11 @@ export default function CheckoutModal({ onClose }) {
       // Refrescar cola y métricas sin recargar página
       fetchPedidosActivos();
       fetchVentasHoy();
-      alert("Venta procesada exitosamente.");
+      
+      window.Toast.fire({
+        icon: "success",
+        title: "¡Venta procesada exitosamente!",
+      });
     } catch (error) {
       console.error("Error al procesar la venta:", error);
       setError(error.message || "Error de conexión con el servidor.");
