@@ -1,15 +1,13 @@
-import express from "express";
 import pool from "../config/bd.js";
 
-const Router = express.Router();
-
-// La columna telefono es INT, así que guardamos solo dígitos.
 const sanitizePhone = (phone) => {
   const digits = String(phone || "").replace(/\D/g, "");
   return digits ? parseInt(digits, 10) : 0;
 };
 
-Router.get("/buscar-clientes", async (req, res) => {
+//----------------------Clientes
+
+export const buscarClientes = async (req, res) => {
   const { q } = req.query;
   const searchTerm = q ? q.trim() : "";
 
@@ -33,9 +31,9 @@ Router.get("/buscar-clientes", async (req, res) => {
     console.error("Error buscando cliente:", error);
     res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-Router.get("/obtener-clientes", async (req, res) => {
+export const obtenerClientes = async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT c.id_cliente AS id, c.cedula, c.nombre AS name, c.telefono AS phone, c.descripcion,
@@ -53,16 +51,17 @@ Router.get("/obtener-clientes", async (req, res) => {
     console.error("Error obteniendo clientes:", error);
     res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-Router.post("/registrar-clientes", async (req, res) => {
+export const registrarClientes = async (req, res) => {
   const { cedula, name, phone, descripcion } = req.body;
   const cedulaTrim = String(cedula || "").trim();
 
   if (!cedulaTrim || !String(name || "").trim()) {
-    return res
-      .status(400)
-      .json({ success: false, message: "La cédula y el nombre son obligatorios" });
+    return res.status(400).json({
+      success: false,
+      message: "La cédula y el nombre son obligatorios",
+    });
   }
 
   try {
@@ -80,7 +79,12 @@ Router.post("/registrar-clientes", async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO clientes (cedula, nombre, telefono, descripcion) VALUES (?, ?, ?, ?)`,
-      [cedulaTrim, String(name).trim(), sanitizePhone(phone), descripcion || ""],
+      [
+        cedulaTrim,
+        String(name).trim(),
+        sanitizePhone(phone),
+        descripcion || "",
+      ],
     );
 
     res.status(201).json({
@@ -100,17 +104,18 @@ Router.post("/registrar-clientes", async (req, res) => {
     console.error("Error registrando cliente:", error);
     res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-Router.put("/editar-cliente/:id", async (req, res) => {
+export const editarCliente = async (req, res) => {
   const { id } = req.params;
   const { cedula, name, phone, descripcion } = req.body;
   const cedulaTrim = String(cedula || "").trim();
 
   if (!cedulaTrim || !String(name || "").trim()) {
-    return res
-      .status(400)
-      .json({ success: false, message: "La cédula y el nombre son obligatorios" });
+    return res.status(400).json({
+      success: false,
+      message: "La cédula y el nombre son obligatorios",
+    });
   }
 
   try {
@@ -128,11 +133,19 @@ Router.put("/editar-cliente/:id", async (req, res) => {
 
     const [result] = await pool.query(
       `UPDATE clientes SET cedula = ?, nombre = ?, telefono = ?, descripcion = ? WHERE id_cliente = ?`,
-      [cedulaTrim, String(name).trim(), sanitizePhone(phone), descripcion || "", id],
+      [
+        cedulaTrim,
+        String(name).trim(),
+        sanitizePhone(phone),
+        descripcion || "",
+        id,
+      ],
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Cliente no encontrado" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Cliente no encontrado" });
     }
 
     res.json({
@@ -149,6 +162,69 @@ Router.put("/editar-cliente/:id", async (req, res) => {
     console.error("Error editando cliente:", error);
     res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-export default Router;
+//----------------------Delivery
+
+export const buscarDelivery = async (req, res) => {
+  const { q } = req.query;
+  const searchTerm = q ? q.trim() : "";
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT id_delivery as id, nombre as name, digitos as phone 
+       FROM delivery 
+       WHERE digitos = ? OR nombre LIKE ?`,
+      [searchTerm, `%${searchTerm}%`],
+    );
+
+    if (rows.length > 0) {
+      res.json({ success: true, delivery: rows[0] });
+    } else {
+      res.json({ success: false, message: "Delivery no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error buscando delivery:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const registrarDelivery = async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: "El nombre y el teléfono son requeridos.",
+      });
+    }
+
+    const [result] = await pool.query(
+      "INSERT INTO delivery (digitos, nombre) VALUES (?, ?)",
+      [phone, name],
+    );
+
+    const deliveryData = {
+      id: result.insertId,
+      name,
+      phone,
+    };
+
+    res.status(201).json({
+      success: true,
+      message: "Delivery registrado con éxito",
+      delivery: {
+        id: result.insertId,
+        name,
+        phone,
+      },
+    });
+  } catch (error) {
+    console.error("Error al registrar el nuevo delivery:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error interno del servidor al guardar el repartidor.",
+    });
+  }
+};
