@@ -11,6 +11,9 @@ import entregas from "./apis/entregas.js";
 import delivery from "./apis/delivery.js";
 import tasaRoutes, { actualizarTasaDesdeApi } from "./apis/tasa.js";
 import cron from "node-cron";
+import { getTransporter } from "./config/mailer.js";
+import recuperarPassword from "./apis/recuperarPassword.js";
+
 
 const app = express();
 app.use(
@@ -34,6 +37,7 @@ app.use("/api", pedidos);
 app.use("/api", entregas);
 app.use("/api", delivery);
 app.use("/api", tasaRoutes);
+app.use("/api", recuperarPassword);
 
 cron.schedule("*/30 * * * *", async () => {
   try {

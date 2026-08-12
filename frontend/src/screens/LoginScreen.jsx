@@ -83,7 +83,7 @@ export default function LoginScreen() {
                   <label className="block text-sm font-semibold text-pizza-dark" htmlFor="password">
                     Contraseña
                   </label>
-                  <a href="#" className="text-xs font-semibold text-pizza-red hover:underline" onClick={(e) => e.preventDefault()}>
+                  <a href="/recuperar-password" className="text-xs font-semibold text-pizza-red hover:underline">
                     ¿Olvidaste tu contraseña?
                   </a>
                 </div>
