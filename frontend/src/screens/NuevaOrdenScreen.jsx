@@ -4,25 +4,76 @@ import OrderTicket from "../components/cajero/OrderTicket";
 import CategoryFilter from "../components/cajero/CategoryFilter";
 import CheckoutModal from "../components/cajero/CheckoutModal";
 import ExchangeRateWidget from "../components/cajero/ExchangeRateWidget";
+import { useApp } from "../context/AppContext";
+import {
+  Receipt,
+  Trash2,
+  ChevronUp,
+  UtensilsCrossed,
+  ShoppingBag,
+  Bike,
+  Store,
+  ShoppingCart,
+} from "lucide-react";
+const ORDER_TYPE_CONFIG = {
+  local: {
+    label: "Local",
+    icon: UtensilsCrossed,
+    color: "bg-blue-100 text-blue-700 border-blue-200",
+  },
+  takeaway: {
+    label: "Para Llevar",
+    icon: ShoppingBag,
+    color: "bg-amber-100 text-amber-700 border-amber-200",
+  },
+  delivery: {
+    label: "Delivery",
+    icon: Bike,
+    color: "bg-red-100 text-red-700 border-red-200",
+  },
+  pickup: {
+    label: "Pickup",
+    icon: Store,
+    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  },
+};
 
 export default function NuevaOrdenScreen() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Normal");
+  const [isTicketOpen, setIsTicketOpen] = useState(false);
+
+  const { currentOrder, clearCart } = useApp();
+  const { items, orderType } = currentOrder;
+  const typeConfig = orderType ? ORDER_TYPE_CONFIG[orderType] : null;
+  const TypeIcon = typeConfig?.icon;
 
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden w-full h-full relative">
       {/* Cabecera y Filtros */}
-      <header className="flex flex-wrap lg:flex-nowrap gap-4 justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100 shrink-0">
-        <div className="flex items-center gap-6">
+      <header className="bg-white border border-slate-200/60 rounded-2xl px-6 py-5 flex flex-wrap lg:flex-nowrap gap-4 justify-between items-center shadow-sm shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 bg-pizza-red/10 rounded-xl flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-5 h-5 text-pizza-red" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-800">Punto de Venta</h1>
-            <p className="text-sm text-slate-500 capitalize">
-              {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+              Punto de Venta
+            </h1>
+            <p className="text-xs font-medium text-slate-500 mt-0.5 capitalize">
+              {new Date().toLocaleDateString("es-ES", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
             </p>
           </div>
-          <ExchangeRateWidget />
         </div>
-        <CategoryFilter selected={selectedCategory} onSelect={setSelectedCategory} />
+        <CategoryFilter
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
       </header>
 
       {/* Cuerpo: Grilla de Productos (ahora ocupa todo el ancho) */}
@@ -51,9 +102,7 @@ export default function NuevaOrdenScreen() {
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Receipt className="w-5 h-5 text-white shrink-0" />
-            <h2 className="text-white font-bold text-sm shrink-0">
-              Ticket
-            </h2>
+            <h2 className="text-white font-bold text-sm shrink-0">Ticket</h2>
             {items.length > 0 && (
               <span className="bg-white text-[#EA2A33] text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
                 {items.length}
@@ -61,9 +110,7 @@ export default function NuevaOrdenScreen() {
             )}
             {/* Badge del tipo de pedido */}
             {typeConfig && (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-white/30 bg-white/20 text-white shrink-0 ml-1"
-              >
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-white/30 bg-white/20 text-white shrink-0 ml-1">
                 <TypeIcon className="w-3 h-3" />
                 {typeConfig.label}
               </span>

@@ -10,6 +10,7 @@ import {
   Package,
   ShoppingBag,
   Truck,
+  DollarSign,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -28,7 +29,7 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       name: "Cola de Trabajos",
       icon: <ChefHat className="w-5 h-5" />,
     },
-    { id: "delivery", name: "Delivery", icon: <Truck className="w-5 h-5" /> },
+    { id: "entrega", name: "Entrega", icon: <Package className="w-5 h-5" /> },
   ];
 
   const adminLinks = [
@@ -53,6 +54,16 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       id: "clientes-top",
       name: "Clientes Principales",
       icon: <Users className="w-5 h-5" />,
+    },
+    {
+      id: "productos",
+      name: "Productos",
+      icon: <Package className="w-5 h-5" />,
+    },
+    {
+      id: "tasa",
+      name: "Tasa del Dólar",
+      icon: <DollarSign className="w-5 h-5" />,
     },
   ];
 

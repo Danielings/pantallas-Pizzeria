@@ -1,9 +1,18 @@
-import { useState } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { useApp, AppProvider } from "./context/AppContext";
 import NuevaOrdenScreen from "./screens/NuevaOrdenScreen";
 import ColaTrabajoScreen from "./screens/ColaTrabajoScreen";
 import ClientesScreen from "./screens/ClientesScreen";
 import DeliveryScreen from "./screens/DeliveryScreen";
+import EntregaScreen from "./screens/EntregaScreen";
 import CocineroScreen from "./screens/CocineroScreen";
 import DespachoScreen from "./screens/DespachoScreen";
 import AdminScreen from "./screens/AdminScreen";
@@ -14,50 +23,57 @@ import NuevaPasswordScreen from "./screens/NuevaPasswordScreen";
 import RecuperarPasswordScreen from "./screens/RecuperarPasswordScrenn";
 import {Toaster} from "react-hot-toast";
 
-function MainApp() {
+const ROLE_HOME = {
+  admin: "/dashboard",
+  cashier: "/nueva-orden",
+  chef: "/cocina",
+  despachador: "/despacho",
+  mesero: "/mesero",
+  waiter: "/mesero",
+};
+
+function LoginRoute() {
   const { currentUser } = useApp();
-  const [cashierView, setCashierView] = useState("nueva-orden");
-  const [adminView, setAdminView] = useState("dashboard");
 
-  if (!currentUser) return <LoginScreen />;
+  if (currentUser) {
+    return <Navigate to={ROLE_HOME[currentUser.role] || "/login"} replace />;
+  }
 
-  const renderCashierView = () => {
-    switch (cashierView) {
-      case "cola-trabajos":
-        return <ColaTrabajoScreen />;
-      case "delivery":
-        return <DeliveryScreen />;
-      default:
-        return <NuevaOrdenScreen />;
-    }
-  };
-  const renderAdminView = () => {
-    switch (adminView) {
-      case "clientes":
-        return <ClientesScreen />;
-      default:
-        return <AdminScreen activeView={adminView} />;
-    }
-  };
+  return <LoginScreen />;
+}
+
+function ProtectedRoute({ roles }) {
+  const { currentUser } = useApp();
+
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(currentUser.role)) {
+    return <Navigate to={ROLE_HOME[currentUser.role] || "/login"} replace />;
+  }
+
+  return <Outlet />;
+}
+
+function AuthenticatedLayout() {
+  const { currentUser } = useApp();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const activeView = location.pathname.slice(1) || "nueva-orden";
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-900">
-      {currentUser.role !== "chef" && currentUser.role !== "despachador" && currentUser.role !== "mesero" && (
-        <Sidebar
-          module={currentUser.role}
-          activeView={currentUser.role === "admin" ? adminView : cashierView}
-          onNavigate={
-            currentUser.role === "admin" ? setAdminView : setCashierView
-          }
-        />
-      )}
+      {currentUser.role !== "chef" &&
+        currentUser.role !== "despachador" &&
+        currentUser.role !== "mesero" && (
+          <Sidebar
+            module={currentUser.role}
+            activeView={activeView}
+            onNavigate={(view) => navigate(`/${view}`)}
+          />
+        )}
 
       <main className="flex-1 overflow-hidden relative flex flex-col">
-        {currentUser.role === "admin" && renderAdminView()}
-        {currentUser.role === "cashier" && renderCashierView()}
-        {currentUser.role === "chef" && <CocineroScreen />}
-        {currentUser.role === "despachador" && <DespachoScreen />}
-        {currentUser.role === "mesero" && <MeseroScreen />}
+        <Outlet />
       </main>
     </div>
   );
@@ -66,9 +82,7 @@ function MainApp() {
 export default function App() {
   return (
     <AppProvider>
-<<<<<<< Updated upstream
       <MainApp />
-=======
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -134,6 +148,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+
         <Toaster
           position="top-center"
           toastOptions={{
@@ -152,7 +167,7 @@ export default function App() {
             },
           }}
         />
->>>>>>> Stashed changes
+
     </AppProvider>
   );
 }

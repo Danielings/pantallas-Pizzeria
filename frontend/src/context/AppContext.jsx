@@ -15,15 +15,15 @@ import {
   EXTRAS,
 } from "../data/mockData";
 
+const API_BASE = "http://localhost:3001/api";
+
 const AppContext = createContext(null);
 
 export const KITCHEN_CATEGORIES = ["pizzas", "combos"];
 
 const orderNeedsKitchen = (items) =>
   Array.isArray(items) &&
-  items.some(
-    (i) => i.category && KITCHEN_CATEGORIES.includes(i.category),
-  );
+  items.some((i) => i.category && KITCHEN_CATEGORIES.includes(i.category));
 
 const initialState = {
   // Authentication
@@ -37,11 +37,12 @@ const initialState = {
   currentOrder: {
     items: [],
     payments: [],
-    orderType: null,      // 'local' | 'takeaway' | 'delivery' | 'pickup'
-    paymentStatus: null,  // 'paid' | 'partial' | 'pending'  (only for delivery/pickup)
-    advanceAmount: 0,     // monto abonado si paymentStatus === 'partial'
-    customer: null,       // { id?, name, cedula, phone? }
-    phoneLastDigits: '',  // últimos 4 dígitos del teléfono (delivery)
+    orderType: null, // 'local' | 'takeaway' | 'delivery' | 'pickup'
+    paymentStatus: null, // 'paid' | 'partial' | 'pending'  (only for delivery/pickup)
+    advanceAmount: 0, // monto abonado si paymentStatus === 'partial'
+    customer: null, // { id?, name, cedula, phone? }
+    phoneLastDigits: "", // últimos 4 dígitos del teléfono (delivery)
+    deliveryId: null,
   },
 
   // Kitchen orders
@@ -78,8 +79,14 @@ const initialState = {
     },
   ],
 
-  // Historical sales
+  // Historical sales (se sobreescribirán con datos reales)
   sales: MOCK_SALES,
+
+  // Métricas del día desde BD
+  metricsHoy: null, // { totalRevenue, totalPizzas, avgTicket, totalTransactions }
+
+  // Pedidos activos desde BD
+  pedidosActivos: [],
 
   // Staff & Branches
   branches: BRANCHES,
@@ -211,10 +218,29 @@ function reducer(state, action) {
     }
 
     case "CLEAR_CART":
-      return { ...state, currentOrder: { items: [], payments: [], orderType: null, paymentStatus: null, advanceAmount: 0, customer: null, phoneLastDigits: '' } };
+      return {
+        ...state,
+        currentOrder: {
+          items: [],
+          payments: [],
+          orderType: null,
+          paymentStatus: null,
+          advanceAmount: 0,
+          customer: null,
+          phoneLastDigits: "",
+          deliveryId: null,
+        },
+      };
 
     case "SET_ORDER_TYPE": {
-      const { orderType, paymentStatus, advanceAmount, customer, phoneLastDigits } = action.payload;
+      const {
+        orderType,
+        paymentStatus,
+        advanceAmount,
+        customer,
+        phoneLastDigits,
+        deliveryId,
+      } = action.payload;
       return {
         ...state,
         currentOrder: {
@@ -223,7 +249,8 @@ function reducer(state, action) {
           paymentStatus: paymentStatus || null,
           advanceAmount: advanceAmount || 0,
           customer: customer || null,
-          phoneLastDigits: phoneLastDigits || '',
+          phoneLastDigits: phoneLastDigits || "",
+          deliveryId: deliveryId || null,
         },
       };
     }
@@ -298,6 +325,33 @@ function reducer(state, action) {
       return { ...state, orders };
     }
 
+    case "SET_KITCHEN_ORDERS": {
+      // Mantiene los pedidos que NO son de cocina y actualiza los de cocina
+      const otrasOrdenes = state.orders.filter((o) => o.status !== "pending");
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
+
+    case "SET_HORNO_ORDERS": {
+      const otrasOrdenes = state.orders.filter((o) => o.status !== "preparing");
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
+
+    case "SET_DESPACHO_ORDERS": {
+      const otrasOrdenes = state.orders.filter((o) => o.status !== "delivered");
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
+
+    case "SET_PENDIENTE_ORDERS": {
+      const otrasOrdenes = state.orders.filter((o) => o.status !== "ready");
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
+
+    case "SET_MESERO_ORDERS": {
+      const otrasOrdenes = state.orders.filter(
+        (o) => o.status !== "waiter_pending",
+      );
+      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
+    }
     case "UPDATE_ORDER": {
       const { order } = action.payload;
       const orders = state.orders.map((o) =>
@@ -380,7 +434,14 @@ function reducer(state, action) {
       };
     }
 
-    // ── AUTHENTICATION ─────────────────────────────────────────
+    // ── BD DATA ────────────────────────────────────────────────────────────
+    case "SET_METRICS_HOY":
+      return { ...state, metricsHoy: action.payload };
+
+    case "SET_PEDIDOS_ACTIVOS":
+      return { ...state, pedidosActivos: action.payload };
+
+    // ── AUTHENTICATION ─────────────────────────────────────────────────────
     case "LOGIN":
       return { ...state, currentUser: action.payload };
     case "LOGOUT":
@@ -392,7 +453,17 @@ function reducer(state, action) {
 }
 
 export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const savedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("currentUser")) || null;
+    } catch {
+      return null;
+    }
+  })();
+  const [state, dispatch] = useReducer(reducer, {
+    ...initialState,
+    currentUser: savedUser,
+  });
 
   // Cart totals — sin IVA
   const subtotal = state.currentOrder.items.reduce(
@@ -435,8 +506,25 @@ export function AppProvider({ children }) {
   );
   const clearCart = useCallback(() => dispatch({ type: "CLEAR_CART" }), []);
   const setOrderType = useCallback(
-    (orderType, paymentStatus, advanceAmount) =>
-      dispatch({ type: "SET_ORDER_TYPE", payload: { orderType, paymentStatus, advanceAmount } }),
+    (
+      orderType,
+      paymentStatus,
+      advanceAmount,
+      customer,
+      phoneLastDigits,
+      deliveryId,
+    ) =>
+      dispatch({
+        type: "SET_ORDER_TYPE",
+        payload: {
+          orderType,
+          paymentStatus,
+          advanceAmount,
+          customer,
+          phoneLastDigits,
+          deliveryId,
+        },
+      }),
     [],
   );
   const addPayment = useCallback(
@@ -449,10 +537,47 @@ export function AppProvider({ children }) {
   );
 
   const updateOrderStatus = useCallback(
-    (id, status) =>
-      dispatch({ type: "UPDATE_ORDER_STATUS", payload: { id, status } }),
-    [],
+    async (id, status) => {
+      const order = state.orders.find((o) => o.id === id);
+
+      if (order && order.db_id) {
+        try {
+          // Apuntamos a la nueva ruta unificada para estados
+          const endpoint = `${API_BASE}/actualizar-estado-pedido/${order.db_id}`;
+
+          const res = await fetch(endpoint, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            // Enviamos el estado que el botón haya disparado ("preparing", "ready", etc.)
+            body: JSON.stringify({ status: status }),
+          });
+
+          const json = await res.json();
+
+          if (json.success) {
+            // Si la base de datos se actualizó correctamente, actualizamos la UI
+            dispatch({
+              type: "UPDATE_ORDER_STATUS",
+              payload: { id, status },
+            });
+          } else {
+            console.error(
+              "Error al actualizar la base de datos:",
+              json.message,
+            );
+            return; // Abortamos el cambio visual si el backend falla
+          }
+        } catch (error) {
+          console.error("Error de conexión con la API:", error);
+        }
+      } else {
+        // Fallback por si la orden no tiene db_id o es un movimiento puramente local
+        dispatch({ type: "UPDATE_ORDER_STATUS", payload: { id, status } });
+      }
+    },
+    [state.orders],
   );
+
   const archiveOrder = useCallback(
     (id) => dispatch({ type: "ARCHIVE_ORDER", payload: { id } }),
     [],
@@ -502,14 +627,14 @@ export function AppProvider({ children }) {
 
   const [exchangeRate, setExchangeRate] = useState(0);
 
-  // Fetch exchange rate on mount
+  // Load the operational exchange rate maintained by the backend.
   useEffect(() => {
     const fetchRate = async () => {
       try {
-        const res = await fetch("https://api.now.com.ve/price-rate-bcv");
-        const data = await res.json();
-        if (data && data.PriceRateBCV) {
-          setExchangeRate(data.PriceRateBCV);
+        const res = await fetch(`${API_BASE}/tasa`);
+        const json = await res.json();
+        if (json.success && json.data?.tasa_sistema) {
+          setExchangeRate(Number(json.data.tasa_sistema));
         }
       } catch (error) {
         console.error("Error fetching exchange rate", error);
@@ -517,6 +642,230 @@ export function AppProvider({ children }) {
     };
     fetchRate();
   }, []);
+
+  // ── Datos reales de BD ────────────────────────────────────────────────────
+  const fetchVentasHoy = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-ventas-hoy`);
+      const json = await res.json();
+      if (json.success) {
+        dispatch({ type: "SET_METRICS_HOY", payload: json.data });
+      }
+    } catch (err) {
+      console.error("Error al cargar ventas del día:", err);
+    }
+  }, []);
+
+  const fetchPedidosActivos = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-activos`);
+      const json = await res.json();
+      if (json.success) {
+        dispatch({ type: "SET_PEDIDOS_ACTIVOS", payload: json.data });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos activos:", err);
+    }
+  }, []);
+
+  const fetchPedidosCocina = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-cocina`);
+      const json = await res.json();
+
+      if (json.success) {
+        // Mapeamos los datos de la BD al formato que espera tu KanbanBoard
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden, // Ej: ORD-001
+          db_id: venta.id_venta, // Guardamos el ID real para el PUT
+          status: "pending", // El KanbanBoard suele usar 'pending'
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho, // Local, Delivery, etc.
+          customerName: venta.nombre_cliente,
+          phoneLastDigits: venta.digitos_delivery || "",
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_KITCHEN_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos de cocina:", err);
+    }
+  }, []);
+
+  //fetch para mostrar los pedidos del horno
+  const fetchPendientesDespacho = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-despacho`);
+      const json = await res.json();
+
+      if (json.success) {
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden,
+          db_id: venta.id_venta,
+          status: "delivered",
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho,
+          customerName: venta.nombre_cliente,
+          phoneLastDigits: venta.digitos_delivery || "",
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_DESPACHO_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos de horno:", err);
+    }
+  }, []);
+
+  //fetch para mostrar los pedidos del horno
+  const fetchPedidosHorno = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-horno`);
+      const json = await res.json();
+
+      if (json.success) {
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden,
+          db_id: venta.id_venta,
+          status: "preparing",
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho,
+          customerName: venta.nombre_cliente,
+          phoneLastDigits: venta.digitos_delivery || "",
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_HORNO_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos de horno:", err);
+    }
+  }, []);
+
+  const fetchPendientes = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-pendiente`);
+      const json = await res.json();
+
+      if (json.success) {
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden,
+          db_id: venta.id_venta,
+          status: "ready",
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho,
+          customerName: venta.nombre_cliente,
+          phoneLastDigits: venta.digitos_delivery || "",
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_PENDIENTE_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos de horno:", err);
+    }
+  }, []);
+
+  const fetchMesero = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/obtener-pedidos-mesero`);
+      const json = await res.json();
+
+      if (json.success) {
+        const ordersAdaptadas = json.data.map((venta) => ({
+          id: venta.codigo_orden,
+          db_id: venta.id_venta,
+          status: "waiter_pending",
+          createdAt: venta.fecha_hora,
+          orderType: venta.despacho,
+          table: venta.despacho,
+          customerName: venta.nombre_cliente,
+          items: venta.detalles.map((detalle) => ({
+            id_detalle: detalle.id_detalle,
+            name: detalle.nombre_producto,
+            qty: detalle.cantidad,
+            note: detalle.nota,
+            size: detalle.categoria_pizza,
+            category: "pizzas",
+            extras: detalle.extras || [],
+          })),
+        }));
+
+        dispatch({ type: "SET_MESERO_ORDERS", payload: ordersAdaptadas });
+      }
+    } catch (err) {
+      console.error("Error al cargar pedidos del mesero:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Carga inicial
+    fetchVentasHoy();
+    fetchPedidosActivos();
+    fetchPedidosCocina();
+    fetchPedidosHorno();
+    fetchPendientesDespacho();
+    fetchPendientes();
+    fetchMesero();
+
+    // Polling cada 15 segundos para mantener la cola actualizada
+    const interval = setInterval(() => {
+      fetchVentasHoy();
+      fetchPedidosActivos();
+      fetchPedidosCocina();
+      fetchPedidosHorno();
+      fetchPendientesDespacho();
+      fetchPendientes();
+      fetchMesero();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [
+    fetchVentasHoy,
+    fetchPedidosActivos,
+    fetchPedidosCocina,
+    fetchPedidosHorno,
+    fetchPendientesDespacho,
+    fetchPendientes,
+    fetchMesero,
+  ]);
 
   const updateExchangeRate = useCallback((rate) => {
     setExchangeRate(parseFloat(rate));
@@ -529,6 +878,7 @@ export function AppProvider({ children }) {
       );
       if (user) {
         dispatch({ type: "LOGIN", payload: user });
+        localStorage.setItem("currentUser", JSON.stringify(user));
         return { success: true, user };
       }
       return { success: false, message: "Usuario no encontrado" };
@@ -538,6 +888,7 @@ export function AppProvider({ children }) {
 
   const logout = useCallback(() => {
     dispatch({ type: "LOGOUT" });
+    localStorage.removeItem("currentUser");
   }, []);
 
   return (
@@ -576,6 +927,13 @@ export function AppProvider({ children }) {
         logout,
         exchangeRate,
         updateExchangeRate,
+        fetchVentasHoy,
+        fetchPedidosActivos,
+        fetchPedidosCocina,
+        fetchPedidosHorno,
+        fetchPendientesDespacho,
+        fetchPendientes,
+        fetchMesero,
       }}
     >
       {children}

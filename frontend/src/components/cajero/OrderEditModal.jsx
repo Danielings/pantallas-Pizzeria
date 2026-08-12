@@ -1,264 +1,816 @@
-import React, { useState } from "react";
-import { X } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  X,
+  User,
+  Sparkles,
+  MessageSquareText,
+  ShoppingBag,
+  Home,
+  Truck,
+  MapPin,
+  ChevronRight,
+  ArrowLeftRight,
+} from "lucide-react";
 import { useApp } from "../../context/AppContext";
-import OrderPaymentAdjustmentModal from "./OrderPaymentAdjustmentModal";
 
-export default function OrderEditModal({ order, onClose }) {
-  const { extras, updateOrder, products } = useApp();
+// ── IMPORTANTE: Ajusta esta ruta según donde tengas tu modal de pagos real ──
+import ProcesarPagoModal from "./ProcesarPagoModal";
 
-  const findProductByName = (name) => {
-    if (!products) return null;
-    return Object.values(products)
-      .flat()
-      .find((product) => product.name === name);
+// ─── Constantes ───────────────────────────────────────────────────────────────
+const TIPO_EMOJI = { Pizza: "🍕", Bebida: "🥤", Helado: "🍦" };
+
+const ESTADO_COLOR = {
+  Pendiente: "text-amber-700 bg-amber-50 border-amber-200",
+  Preparado: "text-blue-700 bg-blue-50 border-blue-200",
+  Horno: "text-orange-700 bg-orange-50 border-orange-200",
+  Completado: "text-emerald-700 bg-emerald-50 border-emerald-200",
+};
+
+const DESPACHO_NEXT = {
+  Local: "Llevar",
+  Llevar: "Local",
+  Delivery: "Pick Up",
+  "Pick Up": "Delivery",
+};
+
+const DESPACHO_ICON = {
+  Local: Home,
+  Llevar: ShoppingBag,
+  Delivery: Truck,
+  "Pick Up": MapPin,
+};
+
+const SIZE_TO_CATEGORY = {
+  Normal: 1,
+  Familiar: 2,
+  Gigante: 3,
+};
+
+export default function OrderEditModal({ pedido, displayNum, onClose }) {
+  const { exchangeRate, fetchPedidosActivos } = useApp();
+  const [isSaving, setIsSaving] = useState(false);
+
+  // ── Despacho ─────────────────────────────────────────────────────────────
+  const [localDespacho, setLocalDespacho] = useState(pedido.despacho);
+
+  const mapPaymentMethodToApi = (method) => {
+    switch (method) {
+      case "pos":
+        return "Punto";
+      case "cash":
+        return "Efectivo";
+      case "mobile":
+        return "Pago_Movil";
+      case "advance":
+        return "Abono";
+      default:
+        return method;
+    }
   };
 
-  const calculateItemPrice = (basePrice, size, extras = []) => {
-    let multiplier = 1;
-    if (size === "Mediana") multiplier = 1.3;
-    if (size === "Familiar") multiplier = 1.6;
-    const extrasCost = extras.reduce((sum, e) => sum + (e.price || 0), 0);
-    return basePrice * multiplier + extrasCost;
-  };
+  // ── Pizzas disponibles (traídas del backend, solo para mostrar) ───────────
+  const [availablePizzas, setAvailablePizzas] = useState([]);
 
-  const [localItems, setLocalItems] = useState(
-    order.items.map((it) => {
-      const product = findProductByName(it.name);
-      const basePrice = it.basePrice || product?.price || 0;
-      const size = it.size || (product?.sizes?.[0] ?? null);
-      const itemExtras = it.extras ? [...it.extras] : [];
-      return {
-        ...it,
-        basePrice,
-        extras: itemExtras,
-        note: it.note || "",
-        orderType: it.orderType || "comer",
-        size,
-        price: it.price || calculateItemPrice(basePrice, size, itemExtras),
-      };
-    }),
-  );
-  const [showPaymentAdjust, setShowPaymentAdjust] = useState(false);
+  useEffect(() => {
+    fetch("http://localhost:3001/api/pizzas")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.length) {
+          setAvailablePizzas(
+            json.data.map((p) => ({
+              id: p.id,
+              name: p.name,
+              price:
+                typeof p.price === "number"
+                  ? p.price
+                  : parseFloat(p.price) || 0,
+            })),
+          );
+        } else throw new Error();
+      })
+      .catch((e) => {
+        console.error("Error fetching pizzas:", e);
+        setAvailablePizzas([]);
+      });
+  }, []);
 
-  const splitOne = (index) => {
-    setLocalItems((prev) => {
-      const items = [...prev];
-      const it = items[index];
-      if (!it || it.qty <= 1) return prev;
-      // decrement original
-      items[index] = { ...it, qty: it.qty - 1 };
-      // create new single item copy, mark as new separate
-      const newItem = {
-        ...it,
-        qty: 1,
-        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        isSeparated: true,
-        orderType: it.orderType || "llevar",
-      };
-      items.splice(index + 1, 0, newItem);
-      return items;
-    });
-  };
+  // ── Extras disponibles ─────────
+  const [availableExtras, setAvailableExtras] = useState([]);
+  useEffect(() => {
+    fetch("http://localhost:3001/api/extras")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.length) {
+          setAvailableExtras(
+            json.data.map((e) => ({
+              id: e.id,
+              name: e.name,
+              price:
+                typeof e.price === "number"
+                  ? e.price
+                  : parseFloat(e.price) || 0,
+              // 2. AÑADIDO: Necesitamos guardar estos datos para poder filtrarlos luego
+              id_categoria_pizza: e.id_categoria_pizza,
+              estado: e.estado,
+            })),
+          );
+        } else throw new Error();
+      })
+      .catch((e) => {
+        console.error("Error fetching extras:", e);
+        setAvailableExtras([]);
+      });
+  }, []);
 
-  const toggleExtra = (itemIndex, extra) => {
-    setLocalItems((prev) =>
-      prev.map((it, i) => {
-        if (i !== itemIndex) return it;
-        const has = it.extras.find((e) => e.id === extra.id);
-        const updatedExtras = has
-          ? it.extras.filter((e) => e.id !== extra.id)
-          : [...(it.extras || []), { ...extra, isNew: true }];
+  // ── Detalles locales ──────────────────────────────────────────────────────
+  const [localDetalles, setLocalDetalles] = useState(
+    () =>
+      pedido.detalles?.map((d) => {
+        const cantidad = parseInt(d.cantidad) || 1;
+        const monto_total = parseFloat(d.monto_total) || 0;
+        const extrasCost = (d.extras || []).reduce(
+          (s, e) => s + (parseFloat(e.price ?? e.precio) || 0),
+          0,
+        );
+        const precio_unitario =
+          parseFloat(d.precio_unitario) || monto_total / cantidad - extrasCost;
+
         return {
-          ...it,
-          extras: updatedExtras,
-          price: calculateItemPrice(it.basePrice, it.size, updatedExtras),
+          ...d,
+          cantidad,
+          monto_total,
+          precio_unitario,
+          extras: (d.extras || []).map((e) => ({
+            ...e,
+            price: parseFloat(e.price ?? e.precio) || 0,
+          })),
+        };
+      }) ?? [],
+  );
+
+  const [observacion, setObservacion] = useState(
+    () => pedido.detalles?.find((d) => d.nota?.trim())?.nota ?? "",
+  );
+
+  const recalcTotal = (item, unitPrice, extras) => {
+    const safeExtras = extras || [];
+    const eSum = safeExtras.reduce((s, e) => s + (e.price ?? e.precio ?? 0), 0);
+    return (unitPrice + eSum) * item.cantidad;
+  };
+
+  const [pizzaSelections, setPizzaSelections] = useState({});
+
+  const handleChangePizzaType = (idDetalle, pizzaId) => {
+    const p = availablePizzas.find((x) => String(x.id) === String(pizzaId));
+    if (!p) return;
+
+    setPizzaSelections((prev) => ({ ...prev, [idDetalle]: String(p.id) }));
+    setLocalDetalles((prev) =>
+      prev.map((d) =>
+        d.id_detalle !== idDetalle
+          ? d
+          : {
+              ...d,
+              id_producto_origen: p.id,
+              nombre_producto: p.name,
+              precio_unitario: p.price,
+              monto_total: recalcTotal(d, p.price, d.extras || []),
+            },
+      ),
+    );
+  };
+
+  const handleToggleExtra = (idDetalle, extra) => {
+    setLocalDetalles((prev) =>
+      prev.map((d) => {
+        if (d.id_detalle !== idDetalle) return d;
+        const key = extra.id_extras ?? extra.id;
+        const safeExtras = d.extras || [];
+        const has = safeExtras.some((e) => (e.id_extras ?? e.id) === key);
+        const upd = has
+          ? safeExtras.filter((e) => (e.id_extras ?? e.id) !== key)
+          : [...safeExtras, extra];
+        return {
+          ...d,
+          extras: upd,
+          monto_total: recalcTotal(d, d.precio_unitario, upd),
         };
       }),
     );
   };
 
-  const isPizzaItem = (item) =>
-    products &&
-    products.pizzas &&
-    products.pizzas.some((p) => p.name === item.name);
+  // ── Totales ───────────────────────────────────────────────────────────────
+  const originalTotal = pedido.monto_total_usd ?? 0;
+  const newTotal = useMemo(
+    () => localDetalles.reduce((s, d) => s + (d.monto_total || 0), 0),
+    [localDetalles],
+  );
+  const diff = newTotal - originalTotal;
 
-  const hasEditablePizza = localItems.some((item) => isPizzaItem(item));
+  const paymentItems = localDetalles.map((item) => ({
+    id_detalle: item.id_detalle,
+    nombre_producto: item.nombre_producto,
+    tipo_producto: item.tipo_producto,
+    cantidad: item.cantidad,
+    precio_unitario: item.precio_unitario,
+    monto_total: item.monto_total,
+    extras: (item.extras || []).map((extra) => ({
+      id: extra.id_extras ?? extra.id,
+      nombre: extra.name || extra.nombre,
+      precio: extra.price ?? extra.precio,
+    })),
+  }));
 
-  const handleSave = () => {
-    const total = localItems.reduce(
-      (sum, item) => sum + (item.price || 0) * item.qty,
-      0,
-    );
-    const newOrder = { ...order, items: localItems, total };
-    updateOrder(newOrder);
-    onClose();
+  const DespachoIcon = DESPACHO_ICON[localDespacho] ?? Truck;
+  const nextDespacho = DESPACHO_NEXT[localDespacho];
+
+  // ── NUEVO: Lógica de Guardado e Intercepción de Pago ──────────────────────
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  const handleIntentarGuardar = () => {
+    if (diff > 0) {
+      // Abre la modal de cobro si hay un excedente
+      setShowPaymentModal(true);
+    } else {
+      // Guarda directamente si es 0 o negativo
+      ejecutarGuardadoBD(null);
+    }
   };
 
+  const ejecutarGuardadoBD = async (datosPago = null) => {
+    setIsSaving(true);
+    try {
+      const detallesParaBackend = localDetalles.map((item, index) => ({
+        id_detalle: item.id_detalle,
+        tipo_producto: item.tipo_producto,
+        id_producto_origen: item.id_producto_origen,
+        cantidad: item.cantidad,
+        monto_total: Number((item.monto_total || 0).toFixed(2)),
+        nota: index === 0 ? observacion : item.nota || "",
+        extras: (item.extras || []).map((extra) =>
+          Number(extra.id_extras ?? extra.id ?? 0),
+        ),
+      }));
+
+      const payload = {
+        id_venta: pedido.id_venta,
+        nuevo_despacho: localDespacho,
+        tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
+        monto_total_usd: Number(newTotal.toFixed(2)),
+        monto_total_bs: Number((newTotal * (exchangeRate || 0)).toFixed(2)),
+        detalles_actualizados: detallesParaBackend,
+        info_pago: datosPago
+          ? {
+              metodo: mapPaymentMethodToApi(datosPago.metodo),
+              monto_usd: datosPago.monto_usd,
+              monto_bs:
+                datosPago.moneda === "Bs"
+                  ? datosPago.monto_local
+                  : Number(
+                      (datosPago.monto_usd * (exchangeRate || 0)).toFixed(2),
+                    ),
+              referencia: datosPago.referencia || null,
+            }
+          : null,
+      };
+
+      const response = await fetch("http://localhost:3001/api/editar-venta", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Error actualizando el pedido.");
+      }
+
+      fetchPedidosActivos();
+      onClose();
+      window.Toast.fire({
+        icon: "success",
+        title: "¡Pedido editado exitosamente!",
+      });
+    } catch (error) {
+      console.error("Error al actualizar el pedido:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <>
       <div
-        className="modal-content w-[640px] max-h-[80vh] overflow-auto"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/65 backdrop-blur-sm"
+        onClick={onClose}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h3 className="font-bold">Editar {order.id}</h3>
-          <button onClick={onClose} className="p-1 text-pizza-muted">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 flex flex-col gap-4">
-          {localItems.map((it, idx) => {
-            const isPizza =
-              products &&
-              products.pizzas &&
-              products.pizzas.find((p) => p.name === it.name);
-            return (
-              <div key={idx} className="p-3 border rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-semibold">
-                    {it.qty}x {it.name} {it.size ? `(${it.size})` : ""}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isPizza && it.qty > 1 && (
-                      <button
-                        onClick={() => splitOne(idx)}
-                        className="text-xs px-2 py-1 bg-slate-100 rounded"
-                      >
-                        Separar 1
-                      </button>
-                    )}
-                    <select
-                      value={it.orderType}
-                      onChange={(e) =>
-                        setLocalItems((prev) =>
-                          prev.map((it2, i2) =>
-                            i2 === idx
-                              ? { ...it2, orderType: e.target.value }
-                              : it2,
-                          ),
-                        )
-                      }
-                      className="text-xs border rounded px-2 py-1"
-                    >
-                      <option value="comer">Local</option>
-                      <option value="llevar">Llevar</option>
-                      <option value="delivery_call">Delivery</option>
-                    </select>
-                  </div>
-                </div>
-
-                {isPizza && (
-                  <>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <div>
-                        <label className="text-xs text-slate-500">Tamaño</label>
-                        <select
-                          value={it.size || "Personal"}
-                          onChange={(e) =>
-                            setLocalItems((prev) =>
-                              prev.map((it2, i2) =>
-                                i2 === idx
-                                  ? {
-                                      ...it2,
-                                      size: e.target.value,
-                                      price: calculateItemPrice(
-                                        it2.basePrice,
-                                        e.target.value,
-                                        it2.extras,
-                                      ),
-                                    }
-                                  : it2,
-                              ),
-                            )
-                          }
-                          className="text-xs border rounded px-2 py-1"
-                        >
-                          {products.pizzas
-                            .find((p) => p.name === it.name)
-                            ?.sizes?.map((size) => (
-                              <option key={size} value={size}>
-                                {size}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="text-xs text-pizza-muted mb-2">
-                      Extras disponibles:
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {extras.map((ex) => {
-                        const active = !!(it.extras || []).find(
-                          (e) => e.id === ex.id,
-                        );
-                        return (
-                          <button
-                            key={ex.id}
-                            onClick={() => toggleExtra(idx, ex)}
-                            className={`px-3 py-1 rounded-lg text-sm ${active ? "bg-pizza-red text-white" : "bg-slate-100 text-slate-700"}`}
-                          >
-                            {ex.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {it.extras && it.extras.length > 0 && (
-                      <div className="mt-3 text-sm">
-                        Seleccionados:{" "}
-                        {it.extras
-                          .map((e) => e.name + (e.isNew ? " (nuevo)" : ""))
-                          .join(", ")}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                <div className="mt-3">
-                  <label className="text-xs font-medium text-slate-600">
-                    Nota para cocina
-                  </label>
-                  <textarea
-                    value={it.note || ""}
-                    onChange={(e) =>
-                      setLocalItems((prev) =>
-                        prev.map((it2, i2) =>
-                          i2 === idx ? { ...it2, note: e.target.value } : it2,
-                        ),
-                      )
-                    }
-                    className="w-full mt-1 p-2 border rounded text-sm"
-                    placeholder="p.ej. mitad queso / mitad champiñones"
-                  />
-                </div>
+        <div
+          className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden border border-slate-100"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* ── HEADER ──────────────────────────────────────────────────────── */}
+          <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pizza-red to-pizza-red-dark flex items-center justify-center shadow-lg shadow-pizza-red/20 text-white shrink-0">
+                <ShoppingBag className="w-7 h-7" />
               </div>
-            );
-          })}
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button onClick={handleSave} className="btn-primary flex-1">
-              Guardar y Enviar a Cocina
-            </button>
+              <div>
+                <h2 className="font-black text-slate-800 text-2xl leading-tight">
+                  Editar Pedido{" "}
+                  <span className="text-pizza-red">
+                    #
+                    {displayNum
+                      ? String(displayNum).padStart(3, "0")
+                      : pedido.id_venta}
+                  </span>
+                </h2>
+                <p className="text-sm text-slate-400 font-semibold mt-0.5">
+                  {new Date(pedido.fecha_hora).toLocaleString("es-VE", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            </div>
             <button
-              onClick={() => setShowPaymentAdjust(true)}
-              className="btn-secondary flex-1"
-              disabled={!hasEditablePizza}
+              onClick={onClose}
+              className="p-2.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
             >
-              Modificar Pago
-            </button>
-            <button onClick={onClose} className="btn-secondary flex-1">
-              Cancelar
+              <X className="w-6 h-6" />
             </button>
           </div>
-          {showPaymentAdjust && (
-            <OrderPaymentAdjustmentModal
-              originalOrder={order}
-              editedItems={localItems}
-              onClose={() => setShowPaymentAdjust(false)}
-            />
-          )}
+
+          {/* ── BODY ────────────────────────────────────────────────────────── */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-5 min-h-full">
+              {/* ── Columna Izquierda (2/5) ─────────────────────────────────── */}
+              <div className="lg:col-span-2 p-7 flex flex-col gap-5 bg-slate-50/60 border-r border-slate-100">
+                {/* Cliente */}
+                <section className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <User className="w-4 h-4" /> Datos del Cliente
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">
+                        Nombre
+                      </span>
+                      <span className="text-lg font-bold text-slate-800 leading-tight">
+                        {pedido.nombre_cliente || "Anónimo / General"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-50">
+                      <div>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-0.5">
+                          Cédula
+                        </span>
+                        <span className="text-base font-semibold text-slate-700">
+                          {pedido.cedula_cliente
+                            ? `V-${pedido.cedula_cliente}`
+                            : "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-0.5">
+                          Teléfono
+                        </span>
+                        <span className="text-base font-semibold text-slate-700">
+                          {pedido.telefono_cliente || "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Despacho */}
+                <section className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Truck className="w-4 h-4" /> Método de Despacho
+                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          localDespacho === "Local" ||
+                          localDespacho === "Llevar"
+                            ? "bg-blue-50 text-blue-600"
+                            : "bg-purple-50 text-purple-600"
+                        }`}
+                      >
+                        <DespachoIcon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-400 uppercase block">
+                          Actual
+                        </span>
+                        <span className="text-xl font-black text-slate-800">
+                          {localDespacho}
+                        </span>
+                      </div>
+                    </div>
+                    {nextDespacho && (
+                      <button
+                        onClick={() => setLocalDespacho(nextDespacho)}
+                        className="flex items-center gap-1.5 text-sm font-bold bg-pizza-red/10 text-pizza-red hover:bg-pizza-red hover:text-white px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                      >
+                        <ArrowLeftRight className="w-4 h-4" />
+                        {nextDespacho}
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3 font-medium leading-relaxed">
+                    {localDespacho === "Local" || localDespacho === "Llevar"
+                      ? "Alterna entre consumo en local y para llevar."
+                      : "Alterna entre delivery a domicilio y pick up."}
+                  </p>
+                </section>
+
+                {/* Observaciones */}
+                <section className="bg-amber-50 rounded-2xl p-5 border border-amber-100 shadow-sm flex-1">
+                  <label className="text-xs font-black text-amber-800 uppercase tracking-widest flex items-center gap-2 mb-3">
+                    <MessageSquareText className="w-4 h-4 text-amber-600" />{" "}
+                    Observaciones
+                  </label>
+                  <textarea
+                    value={observacion}
+                    onChange={(e) => setObservacion(e.target.value)}
+                    rows={4}
+                    placeholder="Ej. Sin cebolla, borde crujiente, alergia al gluten..."
+                    className="w-full resize-none rounded-xl border border-amber-200 text-sm px-4 py-3 text-slate-700 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all"
+                  />
+                </section>
+              </div>
+
+              {/* ── Columna Derecha (3/5) ────────────────────────────────────── */}
+              <div className="lg:col-span-3 p-7 flex flex-col gap-4">
+                <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-100">
+                  Productos del Pedido
+                </h4>
+
+                <div className="flex flex-col gap-4 overflow-y-auto max-h-[calc(96vh-280px)] pr-1">
+                  {localDetalles.map((item) => {
+                    const isPizza = item.tipo_producto === "Pizza";
+                    const isEditable =
+                      isPizza &&
+                      item.estado_detalle !== "Horno" &&
+                      item.estado_detalle !== "Completado";
+
+                    // 3. AÑADIDO: Filtramos los extras justo aquí para este item en específico
+                    // NOTA: Asegúrate de que el campo "size" viene en tu detalle de la BD.
+                    const categoriaId = item.id_categoria_pizza || 1;
+                    const extrasFiltrados = availableExtras.filter(
+                      (extra) =>
+                        Number(extra.id_categoria_pizza) ===
+                          Number(categoriaId) && extra.estado === "Activo",
+                    );
+
+                    return (
+                      <div
+                        key={item.id_detalle}
+                        className={`rounded-2xl border bg-white shadow-sm transition-all ${
+                          isEditable
+                            ? "border-slate-200 hover:border-pizza-red/30 hover:shadow-md"
+                            : "border-slate-100 opacity-75"
+                        }`}
+                      >
+                        {/* Cabecera del item */}
+                        <div className="flex items-start gap-4 p-5">
+                          <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-3xl shrink-0">
+                            {TIPO_EMOJI[item.tipo_producto] ?? "📦"}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            {isEditable ? (
+                              <>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                                  Cambiar Especialidad
+                                </span>
+                                <select
+                                  value={
+                                    pizzaSelections[item.id_detalle] ??
+                                    (availablePizzas.find(
+                                      (p) => p.name === item.nombre_producto,
+                                    )?.id
+                                      ? String(
+                                          availablePizzas.find(
+                                            (p) =>
+                                              p.name === item.nombre_producto,
+                                          ).id,
+                                        )
+                                      : "")
+                                  }
+                                  onChange={(e) =>
+                                    handleChangePizzaType(
+                                      item.id_detalle,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="w-full text-base font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pizza-red/20 focus:border-pizza-red cursor-pointer transition-all"
+                                >
+                                  {!(
+                                    pizzaSelections[item.id_detalle] ??
+                                    availablePizzas.find(
+                                      (p) => p.name === item.nombre_producto,
+                                    )
+                                  ) && (
+                                    <option value="">
+                                      {item.nombre_producto ||
+                                        "Especialidad actual"}
+                                    </option>
+                                  )}
+                                  {availablePizzas.map((p) => (
+                                    <option key={p.id} value={String(p.id)}>
+                                      {p.name} — $
+                                      {Number(p.price || 0).toFixed(2)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </>
+                            ) : (
+                              <h5 className="font-bold text-slate-800 text-lg leading-tight truncate">
+                                {item.nombre_producto || item.tipo_producto}
+                              </h5>
+                            )}
+
+                            <div className="flex items-center gap-3 mt-2 flex-wrap">
+                              <span
+                                className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                                  ESTADO_COLOR[item.estado_detalle] ||
+                                  ESTADO_COLOR.Pendiente
+                                }`}
+                              >
+                                {item.estado_detalle}
+                              </span>
+                              <span className="text-sm text-slate-400 font-semibold">
+                                Cant:{" "}
+                                <span className="text-slate-700">
+                                  {item.cantidad}
+                                </span>
+                              </span>
+                              <span className="text-sm text-slate-400 font-semibold">
+                                Unit:{" "}
+                                <span className="text-slate-700">
+                                  $
+                                  {Number(item.precio_unitario || 0).toFixed(2)}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-2xl font-black text-slate-800 block">
+                              $
+                              <span translate="no">
+                                {Number(item.monto_total || 0).toFixed(2)}
+                              </span>
+                            </span>
+                            {!isEditable && (
+                              <span className="text-[10px] text-slate-400 font-bold uppercase mt-1 block">
+                                No editable
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Panel de Extras */}
+                        {isPizza && (
+                          <div
+                            className={`px-5 pb-5 flex flex-col gap-3 ${
+                              isEditable ? "" : "pointer-events-none"
+                            }`}
+                          >
+                            <div className="border-t border-slate-100 pt-4">
+                              <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                                <Sparkles className="w-3.5 h-3.5 text-pizza-red" />{" "}
+                                Ingredientes Extras{" "}
+                                {item.size ? `(${item.size})` : ""}
+                              </p>
+
+                              {isEditable ? (
+                                <>
+                                  <select
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (!val) return;
+                                      const ex = availableExtras.find(
+                                        (x) =>
+                                          String(x.id_extras ?? x.id) ===
+                                          String(val),
+                                      );
+                                      if (ex) {
+                                        const has = item.extras?.some(
+                                          (e) =>
+                                            String(e.id_extras ?? e.id) ===
+                                            String(val),
+                                        );
+                                        if (!has)
+                                          handleToggleExtra(
+                                            item.id_detalle,
+                                            ex,
+                                          );
+                                      }
+                                      e.target.value = "";
+                                    }}
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pizza-red/15 focus:border-pizza-red cursor-pointer transition-all"
+                                  >
+                                    <option value="">
+                                      + Seleccionar ingrediente extra...
+                                    </option>
+
+                                    {/* MODIFICACIÓN: Aquí iteramos sobre extrasFiltrados en lugar de availableExtras */}
+                                    {extrasFiltrados.length === 0 ? (
+                                      <option value="" disabled>
+                                        No hay extras para este tamaño.
+                                      </option>
+                                    ) : (
+                                      extrasFiltrados.map((ex) => {
+                                        const has = item.extras?.some(
+                                          (e) =>
+                                            String(e.id_extras ?? e.id) ===
+                                            String(ex.id_extras ?? ex.id),
+                                        );
+                                        return (
+                                          <option
+                                            key={ex.id_extras ?? ex.id}
+                                            value={ex.id_extras ?? ex.id}
+                                            disabled={has}
+                                          >
+                                            {ex.name || ex.nombre} (+$
+                                            {Number(
+                                              ex.price ?? ex.precio ?? 0,
+                                            ).toFixed(2)}
+                                            ){has ? " ✓" : ""}
+                                          </option>
+                                        );
+                                      })
+                                    )}
+                                  </select>
+
+                                  {item.extras?.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                      {item.extras.map((ex) => (
+                                        <span
+                                          key={ex.id_extras ?? ex.id}
+                                          className="inline-flex items-center gap-1.5 text-sm font-bold bg-pizza-red/10 text-pizza-red border border-pizza-red/25 px-3 py-1.5 rounded-full"
+                                        >
+                                          {ex.name || ex.nombre}
+                                          <span className="font-normal text-pizza-red/70 text-xs">
+                                            +$
+                                            {Number(
+                                              ex.price ?? ex.precio ?? 0,
+                                            ).toFixed(2)}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleToggleExtra(
+                                                item.id_detalle,
+                                                ex,
+                                              )
+                                            }
+                                            className="hover:text-red-700 font-black focus:outline-none leading-none ml-0.5 cursor-pointer"
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {(!item.extras ||
+                                    item.extras.length === 0) && (
+                                    <p className="text-sm text-slate-400 mt-2 italic">
+                                      Sin extras agregados.
+                                    </p>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  {item.extras?.length > 0 ? (
+                                    item.extras.map((ex) => (
+                                      <span
+                                        key={ex.id_extras ?? ex.id}
+                                        className="text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full"
+                                      >
+                                        {ex.name || ex.nombre}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <p className="text-sm text-slate-400 italic">
+                                      Sin extras.
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── BALANCE + FOOTER ─────────────────────────────────────────────── */}
+          <div className="shrink-0 border-t border-slate-100">
+            {/* Balance */}
+            <div className="px-7 pt-4 pb-3 bg-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-8">
+                <div>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    Monto Original
+                  </span>
+                  <span className="text-xl font-black text-white">
+                    $
+                    <span translate="no">
+                      {Number(originalTotal || 0).toFixed(2)}
+                    </span>
+                  </span>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-600 hidden sm:block" />
+                <div>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    Nuevo Total
+                  </span>
+                  <span className="text-xl font-black text-white">
+                    $
+                    <span translate="no">
+                      {Number(newTotal || 0).toFixed(2)}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  Resultado
+                </span>
+                {diff > 0 ? (
+                  <span className="inline-block font-black text-red-400 text-lg bg-red-500/15 border border-red-500/30 px-5 py-1.5 rounded-xl">
+                    +${Number(diff || 0).toFixed(2)} a cobrar
+                  </span>
+                ) : diff < 0 ? (
+                  <span className="inline-block font-black text-emerald-400 text-lg bg-emerald-500/15 border border-emerald-500/30 px-5 py-1.5 rounded-xl">
+                    −${Number(Math.abs(diff) || 0).toFixed(2)} a devolver
+                  </span>
+                ) : (
+                  <span className="inline-block font-black text-slate-400 text-base bg-slate-800 border border-slate-700 px-5 py-1.5 rounded-xl">
+                    Sin diferencia
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="px-7 py-4 bg-white flex gap-4">
+              <button
+                onClick={onClose}
+                className="flex-1 py-3.5 rounded-2xl border-2 border-slate-200 text-slate-700 font-extrabold text-base hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              {/* Botón dinámico */}
+              <button
+                onClick={handleIntentarGuardar}
+                disabled={isSaving}
+                className={`flex-1 py-3.5 rounded-2xl text-white font-extrabold text-base shadow-lg shadow-pizza-red/20 transition-colors ${isSaving ? "bg-slate-400 cursor-not-allowed" : "bg-pizza-red hover:bg-pizza-red-dark cursor-pointer"}`}
+              >
+                {isSaving
+                  ? "Guardando..."
+                  : diff > 0
+                    ? `Cobrar Diferencia ($${diff.toFixed(2)})`
+                    : "Guardar Cambios"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* ── MODAL DE PAGO CONDICIONAL ────────────────────────────────────── */}
+      {showPaymentModal && (
+        <ProcesarPagoModal
+          montoSobreescrito={diff}
+          cliente={{
+            nombre: pedido.nombre_cliente,
+            cedula: pedido.cedula_cliente,
+            telefono: pedido.telefono_cliente,
+          }}
+          pizzaItems={paymentItems}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={(paymentData) => {
+            setShowPaymentModal(false);
+            ejecutarGuardadoBD(paymentData);
+          }}
+        />
+      )}
+    </>
   );
 }

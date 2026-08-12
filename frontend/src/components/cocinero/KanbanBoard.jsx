@@ -1,5 +1,5 @@
-import { useApp } from '../../context/AppContext';
-import { OrderCard } from './OrderCard';
+import { useApp } from "../../context/AppContext";
+import { OrderCard } from "./OrderCard";
 
 /**
  * KanbanBoard — Pantalla del Cocinero
@@ -14,18 +14,20 @@ export default function KanbanBoard() {
   const { orders, updateOrderStatus } = useApp();
 
   const allPendingOrders = orders
-    .filter((o) => o.status === 'pending')
+    .filter((o) => o.status === "pending")
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-    const pendingOrders = allPendingOrders.filter((o) =>
-    o.items.some((it) => it.category && KITCHEN_CATEGORIES.includes(it.category)),
+  const pendingOrders = allPendingOrders.filter((o) =>
+    o.items.some(
+      (it) => it.category && KITCHEN_CATEGORIES.includes(it.category),
+    ),
   );
 
   const nonKitchenPendingCount = allPendingOrders.length - pendingOrders.length;
 
-    // const pendingOrders = orders
-    //   .filter((o) => o.status === 'pending')
-    //   .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  // const pendingOrders = orders
+  //   .filter((o) => o.status === 'pending')
+  //   .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
   return (
     <div className="flex justify-center h-full p-4 sm:p-6 3xl:p-10">
@@ -51,9 +53,9 @@ export default function KanbanBoard() {
               <OrderCard
                 key={order.id}
                 order={order}
-                isFirst={idx === 0}
+                isFirst={idx <= 1}
                 primaryBtnLabel="Preparar"
-                onPrimary={() => updateOrderStatus(order.id, 'preparing')}
+                onPrimary={() => updateOrderStatus(order.id, "preparing")}
                 itemsFilter={KITCHEN_CATEGORIES}
               />
             ))

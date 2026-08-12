@@ -25,13 +25,15 @@ function useTimer(createdAt) {
 const STATUS_CONFIG = {
   pending: {
     border: "border-l-status-pending",
-    badge: "bg-status-pending/20 text-status-pending border border-status-pending/30",
+    badge:
+      "bg-status-pending/20 text-status-pending border border-status-pending/30",
     dot: "bg-status-pending animate-pulse",
     primaryBtn: "bg-status-pending hover:bg-red-600 text-white",
   },
   preparing: {
     border: "border-l-status-preparing",
-    badge: "bg-status-preparing/20 text-status-preparing border border-status-preparing/30",
+    badge:
+      "bg-status-preparing/20 text-status-preparing border border-status-preparing/30",
     dot: "bg-status-preparing animate-pulse",
     primaryBtn: "bg-status-preparing hover:bg-amber-500 text-white",
   },
@@ -77,13 +79,13 @@ const VARIANT_CONFIG = {
 
 // Mapeo principal: orderType técnico → etiqueta
 const ORDER_TYPE_CONFIG = {
-  dine_in:        { label: "Local"},
-  local:          { label: "Local"}, // alias
-  takeaway:       { label: "Para llevar"},
-  delivery_call:  { label: "Delivery"},
-  delivery_ws:    { label: "Delivery"},
-  delivery:       { label: "Delivery"}, // alias
-  pickup:         { label: "Pickup"},
+  dine_in: { label: "Local" },
+  local: { label: "Local" }, // alias
+  takeaway: { label: "Para llevar" },
+  delivery_call: { label: "Delivery" },
+  delivery_ws: { label: "Delivery" },
+  delivery: { label: "Delivery" }, // alias
+  pickup: { label: "Pick Up" },
 };
 
 // Mapeo de respaldo: order.table → etiqueta (para datos legacy)
@@ -91,6 +93,7 @@ const TABLE_TO_LABEL = {
   Mesa: "Local",
   Llevar: "Para llevar",
   Delivery: "Delivery",
+  Pickup: "Pick Up",
 };
 
 // Helper que busca primero en orderType, luego en table
@@ -101,10 +104,10 @@ const getOrderTypeConfig = (order) => {
   }
   // 2. Fallback desde order.table (mock data / datos legacy)
   if (order.table) {
-    if (order.table.startsWith("Mesa"))        return ORDER_TYPE_CONFIG.dine_in;
-    if (order.table === "Llevar")              return ORDER_TYPE_CONFIG.takeaway;
-    if (order.table === "Delivery")            return ORDER_TYPE_CONFIG.delivery_call;
-    if (order.table === "POS" || order.table === "Pickup") {
+    if (order.table.startsWith("Local")) return ORDER_TYPE_CONFIG.dine_in;
+    if (order.table === "Llevar") return ORDER_TYPE_CONFIG.takeaway;
+    if (order.table === "Delivery") return ORDER_TYPE_CONFIG.delivery_call;
+    if (order.table === "POS" || order.table === "Pick Up") {
       return ORDER_TYPE_CONFIG.pickup;
     }
   }
@@ -112,35 +115,13 @@ const getOrderTypeConfig = (order) => {
 };
 
 const getCustomerInfo = (order) => {
-  const orderTypeConfig = getOrderTypeConfig(order);
-  if (!orderTypeConfig) return null;
-
-  const type = orderTypeConfig.label;
-
-  // Delivery: mostrar últimos 4 dígitos del teléfono
-  if (type === "Delivery") {
-    if (order.phoneLastDigits) {
-      return {
-        icon: <Phone className="w-3 h-3" />,
-        label: "Tel:",
-        value: `${order.phoneLastDigits}`,
-        color: "text-blue-700 bg-blue-50 border-blue-200",
-      };
-    }
-    return null;
-  }
-
-  // Local, Para llevar, Pickup: mostrar nombre del cliente
-  if (type === "Local" || type === "Para llevar" || type === "Pickup") {
-    if (order.customerName) {
-      return {
-        icon: <User className="w-3 h-3" />,
-        label: "",
-        value: order.customerName,
-        color: "text-slate-700 bg-slate-100 border-slate-200",
-      };
-    }
-    return null;
+  if (order.customerName) {
+    return {
+      icon: <User className="w-3 h-3" />,
+      label: "",
+      value: order.customerName,
+      color: "text-slate-700 bg-slate-100 border-slate-200",
+    };
   }
 
   return null;
@@ -174,16 +155,21 @@ export function OrderCard({
   const variantCfg = variant ? VARIANT_CONFIG[variant] : null;
 
   const borderClass = variantCfg ? variantCfg.border : statusCfg.border;
-  const badgeClass  = variantCfg ? variantCfg.badge  : statusCfg.badge;
-  const dotClass    = variantCfg ? variantCfg.dot    : statusCfg.dot;
-  const primaryBtnClass   = variantCfg ? variantCfg.primaryBtn   : statusCfg.primaryBtn;
+  const badgeClass = variantCfg ? variantCfg.badge : statusCfg.badge;
+  const dotClass = variantCfg ? variantCfg.dot : statusCfg.dot;
+  const primaryBtnClass = variantCfg
+    ? variantCfg.primaryBtn
+    : statusCfg.primaryBtn;
   const secondaryBtnClass = variantCfg ? variantCfg.secondaryBtn : "";
 
-  const visibleItems = itemsFilter && Array.isArray(itemsFilter)
-    ? order.items.filter((it) => it.category && itemsFilter.includes(it.category))
-    : order.items;
+  const visibleItems =
+    itemsFilter && Array.isArray(itemsFilter)
+      ? order.items.filter(
+          (it) => it.category && itemsFilter.includes(it.category),
+        )
+      : order.items;
 
-     //  Obtener información del cliente
+  //  Obtener información del cliente
   const customerInfo = getCustomerInfo(order);
 
   return (
@@ -193,12 +179,18 @@ export function OrderCard({
       {/* Header: ID + timer */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 3xl:w-3.5 3xl:h-3.5 rounded-full ${dotClass}`} />
-          <span className="text-pizza-dark font-bold text-sm 3xl:text-base">{order.id}</span>
+          <div
+            className={`w-2.5 h-2.5 3xl:w-3.5 3xl:h-3.5 rounded-full ${dotClass}`}
+          />
+          <span className="text-pizza-dark font-bold text-sm 3xl:text-base">
+            {order.id}
+          </span>
         </div>
         <div className="flex items-center gap-1.5 text-pizza-muted">
           <Clock className="w-3.5 h-3.5 3xl:w-5 3xl:h-5" />
-          <span className="text-xs 3xl:text-sm font-mono font-bold">{elapsed}</span>
+          <span className="text-xs 3xl:text-sm font-mono font-bold">
+            {elapsed}
+          </span>
         </div>
       </div>
 
@@ -210,30 +202,40 @@ export function OrderCard({
       )}
 
       {/* Mesa / tipo de orden */}
-{getOrderTypeConfig(order) && (
-  <div className="flex items-center gap-2 flex-wrap">
-    <div
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-bold w-max`}
-    >
-      <span aria-hidden>{getOrderTypeConfig(order).icon}</span>
-      <span>{getOrderTypeConfig(order).label}</span>
-    </div>
-      {/*  NUEVA LÓGICA: Información del cliente según tipo de pedido */}
-      {customerInfo && (
-        <div
-          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-semibold w-max ${customerInfo.color}`}
-        >
-          {customerInfo.icon}
-          {customerInfo.label && <span>{customerInfo.label}</span>}
-          <span>{customerInfo.value}</span>
+      {getOrderTypeConfig(order) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <div
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-bold w-max`}
+          >
+            <span aria-hidden>{getOrderTypeConfig(order).icon}</span>
+            <span>{getOrderTypeConfig(order).label}</span>
+          </div>
+          {/*  NUEVA LÓGICA: Información del cliente según tipo de pedido */}
+          {customerInfo && (
+            <div
+              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-semibold w-max ${customerInfo.color}`}
+            >
+              {customerInfo.icon}
+              {customerInfo.label && <span>{customerInfo.label}</span>}
+              <span>{customerInfo.value}</span>
+            </div>
+          )}
+          {getOrderTypeConfig(order).label === "Delivery" &&
+            order.phoneLastDigits && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-semibold w-max text-blue-700 bg-blue-50 border-blue-200">
+                <Phone className="w-3 h-3" />
+                <span>
+                  Tel:{" "}
+                  <span className="font-bold">{order.phoneLastDigits}</span>
+                </span>
+              </div>
+            )}
         </div>
       )}
-  </div>
-)}
 
       {/* Items */}
       <div className="flex flex-col gap-1.5 3xl:gap-2.5">
-                {visibleItems.length === 0 ? (
+        {visibleItems.length === 0 ? (
           <div className="text-pizza-muted text-xs italic px-2 py-3 text-center border border-dashed border-pizza-gray-3 rounded-lg">
             {itemsFilter
               ? "Sin items de cocina en este pedido"
@@ -249,11 +251,13 @@ export function OrderCard({
                 {item.qty}x
               </span>
               <div className="min-w-0 flex-1">
-              <p className="text-pizza-dark text-sm 3xl:text-base font-medium leading-tight flex items-center gap-1.5">
+                <p className="text-pizza-dark text-sm 3xl:text-base font-medium leading-tight flex items-center gap-1.5">
                   <span>{item.name}</span>
                 </p>
                 {item.size && (
-                  <p className="text-pizza-muted text-xs 3xl:text-sm">{item.size}</p>
+                  <p className="text-pizza-muted text-xs 3xl:text-sm">
+                    {item.size}
+                  </p>
                 )}
                 {item.extras && item.extras.length > 0 && (
                   <p className="text-xs mt-0.5 font-medium">
@@ -273,7 +277,9 @@ export function OrderCard({
                   </p>
                 )}
                 {item.note && (
-                  <p className="text-xs text-slate-600 mt-1">Nota: {item.note}</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Nota: {item.note}
+                  </p>
                 )}
               </div>
             </div>
