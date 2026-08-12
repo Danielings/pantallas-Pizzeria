@@ -10,6 +10,9 @@ import AdminScreen from "./screens/AdminScreen";
 import LoginScreen from "./screens/LoginScreen";
 import Sidebar from "./components/layout/Sidebar";
 import MeseroScreen from "./screens/MeseroScrenn";
+import NuevaPasswordScreen from "./screens/NuevaPasswordScreen";
+import RecuperarPasswordScreen from "./screens/RecuperarPasswordScrenn";
+import {Toaster} from "react-hot-toast";
 
 function MainApp() {
   const { currentUser } = useApp();
@@ -63,7 +66,93 @@ function MainApp() {
 export default function App() {
   return (
     <AppProvider>
+<<<<<<< Updated upstream
       <MainApp />
+=======
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<LoginRoute />} />
+          <Route path="/nueva-password" element={<NuevaPasswordScreen />} />
+          <Route path="/recuperar-password" element={<RecuperarPasswordScreen />} />
+
+          <Route element={<ProtectedRoute roles={["admin"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route
+                path="/dashboard"
+                element={<AdminScreen activeView="dashboard" />}
+              />
+              <Route
+                path="/reportes"
+                element={<AdminScreen activeView="reportes" />}
+              />
+              <Route
+                path="/personal"
+                element={<AdminScreen activeView="personal" />}
+              />
+              <Route
+                path="/bitacora"
+                element={<AdminScreen activeView="bitacora" />}
+              />
+              <Route path="/clientes" element={<ClientesScreen />} />
+              <Route
+                path="/clientes-top"
+                element={<AdminScreen activeView="clientes-top" />}
+              />
+              <Route
+                path="/productos"
+                element={<AdminScreen activeView="productos" />}
+              />
+              <Route path="/tasa" element={<AdminScreen activeView="tasa" />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["cashier"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/nueva-orden" element={<NuevaOrdenScreen />} />
+              <Route path="/cola-trabajos" element={<ColaTrabajoScreen />} />
+              <Route path="/entrega" element={<EntregaScreen />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["chef"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/cocina" element={<CocineroScreen />} />
+            </Route>
+          </Route>
+          <Route element={<ProtectedRoute roles={["despachador"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/despacho" element={<DespachoScreen />} />
+            </Route>
+          </Route>
+          <Route element={<ProtectedRoute roles={["mesero", "waiter"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/mesero" element={<MeseroScreen />} />
+            </Route>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            className:
+              "text-sm font-semibold rounded-xl shadow-lg border border-gray-100",
+            style: {
+              background: "#ffffff",
+              color: "#1f2937",
+              padding: "12px 16px",
+            },
+            success: {
+              iconTheme: { primary: "#059669", secondary: "#ffffff" },
+            },
+            error: {
+              iconTheme: { primary: "#EF4444", secondary: "#ffffff" },
+            },
+          }}
+        />
+>>>>>>> Stashed changes
     </AppProvider>
   );
 }
