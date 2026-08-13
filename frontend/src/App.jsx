@@ -21,7 +21,7 @@ import Sidebar from "./components/layout/Sidebar";
 import MeseroScreen from "./screens/MeseroScrenn";
 import NuevaPasswordScreen from "./screens/NuevaPasswordScreen";
 import RecuperarPasswordScreen from "./screens/RecuperarPasswordScrenn";
-import {Toaster} from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 
 const ROLE_HOME = {
   admin: "/dashboard",
@@ -82,13 +82,15 @@ function AuthenticatedLayout() {
 export default function App() {
   return (
     <AppProvider>
-      <MainApp />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/nueva-password" element={<NuevaPasswordScreen />} />
-          <Route path="/recuperar-password" element={<RecuperarPasswordScreen />} />
+          <Route
+            path="/recuperar-password"
+            element={<RecuperarPasswordScreen />}
+          />
 
           <Route element={<ProtectedRoute roles={["admin"]} />}>
             <Route element={<AuthenticatedLayout />}>
@@ -149,25 +151,24 @@ export default function App() {
         </Routes>
       </BrowserRouter>
 
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            className:
-              "text-sm font-semibold rounded-xl shadow-lg border border-gray-100",
-            style: {
-              background: "#ffffff",
-              color: "#1f2937",
-              padding: "12px 16px",
-            },
-            success: {
-              iconTheme: { primary: "#059669", secondary: "#ffffff" },
-            },
-            error: {
-              iconTheme: { primary: "#EF4444", secondary: "#ffffff" },
-            },
-          }}
-        />
-
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          className:
+            "text-sm font-semibold rounded-xl shadow-lg border border-gray-100",
+          style: {
+            background: "#ffffff",
+            color: "#1f2937",
+            padding: "12px 16px",
+          },
+          success: {
+            iconTheme: { primary: "#059669", secondary: "#ffffff" },
+          },
+          error: {
+            iconTheme: { primary: "#EF4444", secondary: "#ffffff" },
+          },
+        }}
+      />
     </AppProvider>
   );
 }

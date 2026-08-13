@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import pool from "../config/bd.js";
 
 const sanitizePhone = (phone) => {
@@ -226,5 +227,176 @@ export const registrarDelivery = async (req, res) => {
       success: false,
       message: "Error interno del servidor al guardar el repartidor.",
     });
+  }
+};
+
+//-------------------------Usuarios
+export const registrarUsuario = async (req, res) => {
+  try {
+    const { name, nombre_completo, password, id_sucursal, rol } = req.body;
+
+    const nameTrim = String(name || nombre_completo || "").trim();
+    const emailTrim = String(email || "")
+      .trim()
+      .toLowerCase();
+    const passwordTrim = String(password || "").trim();
+
+    if (!nameTrim || !emailTrim || !passwordTrim) {
+      return res.status(400).json({
+        success: false,
+        message: "El nombre, email y la contraseña son obligatorios.",
+      });
+    }
+
+    if (passwordTrim.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "La contraseña debe tener al menos 6 caracteres.",
+      });
+    }
+
+    if (!id_sucursal && id_sucursal !== 0) {
+      return res.status(400).json({
+        success: false,
+        message: "La sucursal es obligatoria.",
+      });
+    }
+
+    const [existingUser] = await pool.query(
+      "SELECT id_usuario FROM usuarios WHERE email = ? LIMIT 1",
+      [emailTrim],
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Ya existe un usuario con ese correo.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(passwordTrim, 10);
+
+    const estadoActivo = "Activo";
+    const [result] = await pool.query(
+      "INSERT INTO usuarios (nombre_completo, email, password, id_sucursal, rol, estado) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        nameTrim,
+        emailTrim,
+        passwordHash,
+        Number(id_sucursal),
+        rol,
+        estadoActivo,
+      ],
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Usuario registrado correctamente.",
+      usuario: {
+        id_usuario: result.insertId,
+        nombre_completo: nameTrim,
+        email: emailTrim,
+        id_sucursal: Number(id_sucursal),
+        rol,
+        estado: estadoActivo,
+      },
+    });
+  } catch (error) {
+    console.error("Error al registrar usuario:", error);
+    res.status(500).json({
+      success: false,
+      message: "No se pudo registrar el usuario.",
+      error: error.message,
+    });
+  }
+};
+
+export const obtenerUsuarios = async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        id_usuario AS id, 
+        nombre_completo AS name, 
+        email, 
+        rol AS role, 
+        id_sucursal AS branchId 
+      FROM usuarios 
+      WHERE estado = 'Activo'
+    `);
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error en servidor" });
+  }
+};
+//----------------------Sucursales
+export const registrarSucursal = async (req, res) => {
+  try {
+    const { name, direccion } = req.body;
+    const nameTrim = String(name || "").trim();
+    const direccionTrim = String(direccion || "").trim();
+
+    if (!nameTrim) {
+      return res.status(400).json({
+        success: false,
+        message: "EL nombre de la sucursal es obligatorio.",
+      });
+    }
+
+    const [existeSucursal] = await pool.query(
+      "SELECT id_sucursal FROM sucursal WHERE sucursal = ? LIMIT 1",
+      [nameTrim],
+    );
+
+    if (existeSucursal.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Ya existe una sucursal  con ese nombre.",
+      });
+    }
+
+    const estadoActivo = "Activo";
+
+    const [sucursalCreada] = await pool.query(
+      "INSERT INTO sucursal (sucursal, direccion, estado) VALUES (?,?,?)",
+      [nameTrim, direccionTrim, estadoActivo],
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "La sucursal ha sido creada exisitosamente!",
+      sucursal: {
+        id_sucursal: sucursalCreada.insertId,
+        sucursal: nameTrim,
+        direccion: direccionTrim,
+        estado: estadoActivo,
+      },
+    });
+  } catch (error) {
+    console.error("Error al registrar una sucursal", error);
+    res.status(500).json({
+      success: false,
+      message: "No se pudo registrar la sucursal.",
+      error: error.message,
+    });
+  }
+};
+
+export const obtenerSucursal = async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        id_sucursal AS id, 
+        sucursal AS name, 
+        direccion AS address 
+      FROM sucursal
+      WHERE estado = 'Activo'
+    `);
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error en servidor" });
   }
 };

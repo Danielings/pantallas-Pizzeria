@@ -1,35 +1,40 @@
-import { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import logoImg from '../assets/login/logo.png';
-import coverImg from '../assets/login/cover.png';
+import { useState } from "react";
+import { useApp } from "../context/AppContext";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import logoImg from "../assets/login/logo.png";
+import coverImg from "../assets/login/cover.png";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('123456'); // Dummy password for aesthetics
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("123456"); // Dummy password for aesthetics
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { login } = useApp();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!email.trim()) {
-      setError('Por favor, ingresa tu correo electrónico');
+      setError("Por favor, ingresa tu correo electrónico");
       return;
     }
 
-    const result = login(email.trim());
+    if (!password.trim()) {
+      setError("Por favor, ingresa tu contraseña");
+      return;
+    }
+
+    const result = await login(email.trim(), password);
     if (!result.success) {
       setError(result.message);
     }
   };
 
-  const handleDemoLogin = (demoEmail) => {
+  const handleDemoLogin = async (demoEmail) => {
     setEmail(demoEmail);
-    setError('');
-    const result = login(demoEmail);
+    setError("");
+    const result = await login(demoEmail, password || "123456");
     if (!result.success) {
       setError(result.message);
     }
@@ -58,10 +63,16 @@ export default function LoginScreen() {
               Ingresa tus credenciales para acceder a tu área de trabajo.
             </p>
 
-            <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+            <form
+              onSubmit={handleSubmit}
+              className="w-full flex flex-col gap-4"
+            >
               {/* Campo de Correo */}
               <div>
-                <label className="block text-sm font-semibold text-pizza-dark mb-1.5" htmlFor="email">
+                <label
+                  className="block text-sm font-semibold text-pizza-dark mb-1.5"
+                  htmlFor="email"
+                >
                   Correo Electrónico
                 </label>
                 <div className="relative">
@@ -80,10 +91,16 @@ export default function LoginScreen() {
               {/* Campo de Contraseña (Aesthetic Dummy Field) */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-sm font-semibold text-pizza-dark" htmlFor="password">
+                  <label
+                    className="block text-sm font-semibold text-pizza-dark"
+                    htmlFor="password"
+                  >
                     Contraseña
                   </label>
-                  <a href="/recuperar-password" className="text-xs font-semibold text-pizza-red hover:underline">
+                  <a
+                    href="/recuperar-password"
+                    className="text-xs font-semibold text-pizza-red hover:underline"
+                  >
                     ¿Olvidaste tu contraseña?
                   </a>
                 </div>
@@ -91,7 +108,7 @@ export default function LoginScreen() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pizza-muted" />
                   <input
                     id="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -102,7 +119,11 @@ export default function LoginScreen() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pizza-muted hover:text-pizza-dark transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -115,7 +136,10 @@ export default function LoginScreen() {
                   defaultChecked
                   className="w-4 h-4 text-pizza-red border-pizza-gray-3 rounded focus:ring-pizza-red focus:ring-offset-0 cursor-pointer"
                 />
-                <label htmlFor="remember-me" className="ml-2 text-sm text-pizza-dark font-medium cursor-pointer select-none">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 text-sm text-pizza-dark font-medium cursor-pointer select-none"
+                >
                   Recordarme
                 </label>
               </div>
@@ -126,7 +150,10 @@ export default function LoginScreen() {
                 </div>
               )}
 
-              <button type="submit" className="btn-primary w-full py-3 mt-3 text-base flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-95 transition-all">
+              <button
+                type="submit"
+                className="btn-primary w-full py-3 mt-3 text-base flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-95 transition-all"
+              >
                 Iniciar Sesión
               </button>
             </form>
@@ -154,7 +181,8 @@ export default function LoginScreen() {
             La mejores Pizzas de la Ciudad.
           </h2>
           <p className="text-white/80 text-sm lg:text-base leading-relaxed drop-shadow-sm">
-            Gestiona pedidos, controla los tiempos de cocina y administra el personal en un solo panel de control unificado.
+            Gestiona pedidos, controla los tiempos de cocina y administra el
+            personal en un solo panel de control unificado.
           </p>
         </div>
       </div>

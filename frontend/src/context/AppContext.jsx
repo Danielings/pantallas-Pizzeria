@@ -14,6 +14,7 @@ import {
   INITIAL_ORDERS,
   EXTRAS,
 } from "../data/mockData";
+import axios from "axios";
 
 const API_BASE = "http://localhost:3001/api";
 
@@ -94,6 +95,26 @@ const initialState = {
 };
 
 const TAX_RATE = 0.16;
+
+const normalizeRole = (role) => {
+  if (!role) return "cashier";
+
+  const roleMap = {
+    administrador: "admin",
+    admin: "admin",
+    cajero: "cashier",
+    cashier: "cashier",
+    cocinero: "chef",
+    chef: "chef",
+    pizzero: "chef",
+    mesero: "mesero",
+    waiter: "waiter",
+    despachador: "despachador",
+  };
+
+  const normalized = String(role).trim().toLowerCase();
+  return roleMap[normalized] || normalized;
+};
 
 const calculateItemPrice = (basePrice, size, extras = []) => {
   let multiplier = 1;
@@ -408,12 +429,12 @@ function reducer(state, action) {
     case "ADD_BRANCH": {
       return {
         ...state,
-        branches: [
-          ...state.branches,
-          { ...action.payload, id: `b-${Date.now()}` },
-        ],
+        branches: [...state.branches, action.payload],
       };
     }
+    case "SET_BRANCHES":
+      return { ...state, branches: action.payload };
+
     case "DELETE_BRANCH": {
       return {
         ...state,
@@ -427,6 +448,15 @@ function reducer(state, action) {
         staff: [...state.staff, { ...action.payload, id: `s-${Date.now()}` }],
       };
     }
+
+    case "SET_STAFF":
+      return {
+        ...state,
+        staff: action.payload.map((user) => ({
+          ...user,
+          role: normalizeRole(user.role),
+        })),
+      };
     case "DELETE_STAFF": {
       return {
         ...state,
@@ -465,6 +495,31 @@ export function AppProvider({ children }) {
     currentUser: savedUser,
   });
 
+  useEffect(() => {
+    const fetchBranchesAndStaff = async () => {
+      try {
+        const [branchesRes, staffRes] = await Promise.all([
+          axios.get(`${API_BASE}/sucursales`),
+          axios.get(`${API_BASE}/usuarios`),
+        ]);
+
+        if (branchesRes.data.success) {
+          dispatch({ type: "SET_BRANCHES", payload: branchesRes.data.data });
+        }
+
+        if (staffRes.data.success) {
+          dispatch({ type: "SET_STAFF", payload: staffRes.data.data });
+        }
+      } catch (error) {
+        console.error(
+          "Error cargando sucursales y personal desde la API:",
+          error,
+        );
+      }
+    };
+
+    fetchBranchesAndStaff();
+  }, []);
   // Cart totals — sin IVA
   const subtotal = state.currentOrder.items.reduce(
     (sum, i) => sum + i.price * i.qty,
@@ -871,24 +926,58 @@ export function AppProvider({ children }) {
     setExchangeRate(parseFloat(rate));
   }, []);
 
-  const login = useCallback(
-    (email) => {
-      const user = state.staff.find(
-        (s) => s.email.toLowerCase() === email.toLowerCase(),
-      );
-      if (user) {
-        dispatch({ type: "LOGIN", payload: user });
-        localStorage.setItem("currentUser", JSON.stringify(user));
-        return { success: true, user };
+  const login = useCallback(async (email, password) => {
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email: String(email || "").trim(),
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.user) {
+        return {
+          success: false,
+          message: data?.message || "Credenciales inválidas",
+        };
       }
-      return { success: false, message: "Usuario no encontrado" };
-    },
-    [state.staff],
-  );
+
+      const normalizedUser = {
+        id: data.user.id ?? data.user.id_login ?? data.user.id_usuario,
+        email: data.user.email,
+        role: normalizeRole(data.user.role ?? data.user.rol),
+        name: data.user.nombre || data.user.name || data.user.email,
+        sucursal: data.user.sucursal ?? data.user.id_sucursal ?? null,
+        estado: data.user.estado,
+      };
+
+      dispatch({ type: "LOGIN", payload: normalizedUser });
+      localStorage.setItem("currentUser", JSON.stringify(normalizedUser));
+      if (data.token) {
+        localStorage.setItem("authToken", data.token);
+      }
+
+      return { success: true, user: normalizedUser, token: data.token };
+    } catch (error) {
+      console.error("Error en login desde API:", error);
+      return {
+        success: false,
+        message: "No se pudo conectar con el servidor",
+      };
+    }
+  }, []);
 
   const logout = useCallback(() => {
     dispatch({ type: "LOGOUT" });
     localStorage.removeItem("currentUser");
+    localStorage.removeItem("authToken");
   }, []);
 
   return (
