@@ -8,6 +8,8 @@ import {
   ChevronDown,
   ChevronRight,
   UserPlus,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import axios from "axios";
 
@@ -33,16 +35,85 @@ const ROLE_CONFIG = {
 const ROLES = ["cashier", "chef", "mesero", "despachador"];
 
 function AddStaffModal({ branchId, onClose, onAdd }) {
-  const [form, setForm] = useState({ name: "", role: "cashier", email: "" });
+  const [form, setForm] = useState({
+    name: "",
+    role: "cashier",
+    email: "",
+    password: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    if (!form.name.trim()) {
-      setError("El nombre es requerido");
+  const handleSubmit = async () => {
+    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
+      setError(
+        "Todos los campos (nombre, email y contraseña) son obligatorios.",
+      );
       return;
     }
-    onAdd({ ...form, branchId });
-    onClose();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setError(
+        "Por favor, ingresa un correo electrónico válido (debe incluir @ y un dominio).",
+      );
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+
+    try {
+      const response = await axios.post(
+        "http://localhost:3001/api/registrar-usuario",
+        {
+          nombre_completo: form.name,
+          email: form.email,
+          password: form.password,
+          id_sucursal: branchId,
+          rol: form.role,
+        },
+      );
+
+      if (response.data.success) {
+        const nuevoUsuario = response.data.usuario;
+
+        onAdd({
+          id: nuevoUsuario.id_usuario,
+          name: nuevoUsuario.nombre_completo,
+          email: nuevoUsuario.email,
+          branchId: nuevoUsuario.id_sucursal,
+          role: nuevoUsuario.rol,
+        });
+
+        if (window.Toast) {
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Empleado registrado exitosamente!",
+          });
+        }
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error al registrar empleado:", error);
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        setError(error.response.data.message);
+      } else {
+        setError("Ocurrió un error al intentar registrar el empleado.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -55,6 +126,7 @@ function AddStaffModal({ branchId, onClose, onAdd }) {
           Agregar Empleado
         </h3>
         <div className="flex flex-col gap-3">
+          {/* Campo Nombre */}
           <div>
             <label className="text-pizza-muted text-xs font-semibold uppercase tracking-wider mb-1.5 block">
               Nombre Completo
@@ -66,12 +138,13 @@ function AddStaffModal({ branchId, onClose, onAdd }) {
                 setForm((p) => ({ ...p, name: e.target.value }));
                 setError("");
               }}
-              className={`input-field ${error ? "border-pizza-red" : ""}`}
+              className={`input-field w-full ${error.includes("nombre") || error.includes("Todos los campos") ? "border-pizza-red" : ""}`}
               placeholder="Ej. Juan Pérez"
               autoFocus
             />
-            {error && <p className="text-pizza-red text-xs mt-1">{error}</p>}
           </div>
+
+          {/* Campo Email */}
           <div>
             <label className="text-pizza-muted text-xs font-semibold uppercase tracking-wider mb-1.5 block">
               Email
@@ -79,13 +152,46 @@ function AddStaffModal({ branchId, onClose, onAdd }) {
             <input
               type="email"
               value={form.email}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, email: e.target.value }))
-              }
-              className="input-field"
+              onChange={(e) => {
+                setForm((p) => ({ ...p, email: e.target.value }));
+                setError("");
+              }}
+              className={`input-field w-full ${error.includes("correo") || error.includes("Todos los campos") || error.includes("email") ? "border-pizza-red" : ""}`}
               placeholder="correo@pizzeria.com"
             />
           </div>
+
+          {/* Campo Contraseña */}
+          <div>
+            <label className="text-pizza-muted text-xs font-semibold uppercase tracking-wider mb-1.5 block">
+              Contraseña
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, password: e.target.value }));
+                  setError("");
+                }}
+                className={`input-field w-full pr-10 ${error.includes("contraseña") || error.includes("Todos los campos") ? "border-pizza-red" : ""}`}
+                placeholder="Mínimo 6 caracteres"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-pizza-muted hover:text-pizza-dark transition-colors focus:outline-none"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Selector de Rol */}
           <div>
             <label className="text-pizza-muted text-xs font-semibold uppercase tracking-wider mb-1.5 block">
               Rol
@@ -106,13 +212,27 @@ function AddStaffModal({ branchId, onClose, onAdd }) {
               ))}
             </div>
           </div>
+
+          {/* Mensaje de Error */}
+          {error && (
+            <p className="text-pizza-red text-xs mt-1 font-semibold">{error}</p>
+          )}
         </div>
+
         <div className="flex gap-2 mt-5">
-          <button onClick={onClose} className="btn-secondary flex-1">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="btn-secondary flex-1 disabled:opacity-50"
+          >
             Cancelar
           </button>
-          <button onClick={handleSubmit} className="btn-primary flex-1">
-            Agregar
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="btn-primary flex-1 disabled:opacity-70"
+          >
+            {isSubmitting ? "Agregando..." : "Agregar"}
           </button>
         </div>
       </div>
@@ -125,8 +245,43 @@ function BranchCard({ branch }) {
   const [expanded, setExpanded] = useState(true);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState(null); // Para manejar el estado de carga individual
 
   const branchStaff = staff.filter((s) => s.branchId === branch.id);
+
+  const handleDeleteStaff = (staffId) => {
+    window.confirmDelete(async () => {
+      setIsDeletingId(staffId);
+
+      try {
+        const response = await axios.put(
+          `http://localhost:3001/api/eliminar-usuario/${staffId}`,
+        );
+
+        if (response.data.success) {
+          deleteStaff(staffId);
+
+          if (window.Toast) {
+            window.Toast.fire({
+              icon: "success",
+              title: "¡Empleado eliminado exitosamente!",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error al eliminar empleado:", error);
+
+        if (window.Toast) {
+          window.Toast.fire({
+            icon: "error",
+            title: "Error al intentar eliminar el empleado",
+          });
+        }
+      } finally {
+        setIsDeletingId(null);
+      }
+    });
+  };
 
   return (
     <>
@@ -226,11 +381,20 @@ function BranchCard({ branch }) {
                               </p>
                             )}
                           </div>
+
+                          {/* Botón de eliminar referenciado en image_4294f3.png */}
                           <button
-                            onClick={() => deleteStaff(member.id)}
-                            className="p-1.5 rounded-lg hover:bg-pizza-red/10 text-pizza-muted hover:text-pizza-red transition-colors"
+                            onClick={() => handleDeleteStaff(member.id)}
+                            disabled={isDeletingId === member.id}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              isDeletingId === member.id
+                                ? "text-pizza-gray-4 cursor-not-allowed"
+                                : "text-pizza-muted hover:bg-pizza-red/10 hover:text-pizza-red"
+                            }`}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2
+                              className={`w-3.5 h-3.5 ${isDeletingId === member.id ? "animate-pulse" : ""}`}
+                            />
                           </button>
                         </div>
                       ))}
