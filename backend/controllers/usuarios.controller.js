@@ -233,7 +233,8 @@ export const registrarDelivery = async (req, res) => {
 //-------------------------Usuarios
 export const registrarUsuario = async (req, res) => {
   try {
-    const { name, nombre_completo, password, id_sucursal, rol } = req.body;
+    const { name, nombre_completo, email, password, id_sucursal, rol } =
+      req.body;
 
     const nameTrim = String(name || nombre_completo || "").trim();
     const emailTrim = String(email || "")
@@ -330,6 +331,35 @@ export const obtenerUsuarios = async (req, res) => {
     res.status(500).json({ success: false, message: "Error en servidor" });
   }
 };
+
+export const eliminarUsuario = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [result] = await pool.query(
+      "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = ?",
+      [id],
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Usuario inactivado correctamente",
+    });
+  } catch (error) {
+    console.error("Error al inactivar usuario:", error);
+    res.status(500).json({
+      success: false,
+      message: "Ocurrió un error al intentar eliminar el usuario",
+    });
+  }
+};
 //----------------------Sucursales
 export const registrarSucursal = async (req, res) => {
   try {
@@ -352,7 +382,7 @@ export const registrarSucursal = async (req, res) => {
     if (existeSucursal.length > 0) {
       return res.status(409).json({
         success: false,
-        message: "Ya existe una sucursal  con ese nombre.",
+        message: "Ya existe una sucursal con ese nombre.",
       });
     }
 
