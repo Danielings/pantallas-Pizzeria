@@ -1,11 +1,16 @@
 import crypto from "crypto";
 import pool from "../config/bd.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 import { env } from "../config/env.js";
 import { sendPasswordResetEmail } from "../config/mailer.js";
 
+dotenv.config();
 const TOKEN_EXPIRY_MS = 15 * 60 * 1000;
 const GENERIC_MESSAGE = "Enlace de recuperación enviado";
 
+//-------Recuperar Contraseña
 export const recuperarPassword = async (req, res) => {
   console.log("[recuperar-password] Solicitud recibida");
   const { email } = req.body;
@@ -135,4 +140,100 @@ export const restablecerPassword = async (req, res) => {
     console.error("Error en restablecer-password:", e);
     res.status(500).json({ message: "No se pudo actualizar la contraseña." });
   }
+};
+
+//---------Login
+const normalizeRole = (rol) => {
+  if (!rol) return "cashier";
+
+  const roleMap = {
+    administrador: "admin",
+    admin: "admin",
+    cajero: "cashier",
+    cashier: "cashier",
+    cocinero: "chef",
+    chef: "chef",
+    pizzero: "chef",
+    mesero: "mesero",
+    waiter: "waiter",
+    despachador: "despachador",
+  };
+
+  const normalized = String(rol).trim().toLowerCase();
+  return roleMap[normalized] || normalized;
+};
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const query = `
+      SELECT u.*, s.sucursal
+      FROM usuarios u
+      LEFT JOIN sucursal s ON u.id_sucursal = s.id_sucursal
+      WHERE u.email = ?`;
+    const [rows] = await pool.execute(query, [email]);
+
+    // Usamos un mensaje genérico para seguridad
+    if (rows.length === 0) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
+    }
+
+    const usuario = rows[0];
+    const match = await bcrypt.compare(password, usuario.password);
+
+    if (!match) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
+    }
+
+    // 1 hora de expiración (3600 segundos)
+    const token = jwt.sign(
+      {
+        id: usuario.id_usuario,
+        rol: usuario.rol,
+        sucursal: usuario.sucursal,
+        email: usuario.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" },
+    );
+
+    res.cookie("acceso_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 3600000,
+    });
+
+    const userPayload = {
+      id: usuario.id_usuario,
+      id_login: usuario.id_usuario,
+      email: usuario.email,
+      rol: usuario.rol,
+      role: normalizeRole(usuario.rol),
+      nombre: usuario.nombre_completo || usuario.email,
+      sucursal: usuario.sucursal,
+      estado: usuario.estado,
+    };
+
+    console.log(`Sesión iniciada para: ${usuario.email}`);
+
+    return res.status(200).json({
+      message: "Login exitoso",
+      token,
+      user: userPayload,
+    });
+  } catch (error) {
+    console.error("Error en login:", error);
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+export const logout = async (req, res) => {
+  res.clearCookie("acceso_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
+  return res.status(200).json({ message: "Sesión cerrada con éxito" });
 };

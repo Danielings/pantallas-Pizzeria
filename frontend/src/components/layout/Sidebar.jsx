@@ -13,10 +13,13 @@ import {
   DollarSign,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function Sidebar({ module, activeView, onNavigate }) {
   const { currentUser, logout } = useApp();
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
 
   const cashierLinks = [
     {
@@ -68,6 +71,20 @@ export default function Sidebar({ module, activeView, onNavigate }) {
   ];
 
   const links = module === "admin" ? adminLinks : cashierLinks;
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        "http://localhost:3001/api/logout",
+        {},
+        { withCredentials: true },
+      );
+      logout();
+      navigate("/");
+    } catch (error) {
+      console.error("Error al cerrar sesión", error);
+    }
+  };
 
   return (
     <aside
@@ -127,7 +144,7 @@ export default function Sidebar({ module, activeView, onNavigate }) {
         </div>
 
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className={`flex items-center justify-center gap-2 text-sm font-semibold w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all shadow-sm ${collapsed ? "px-0" : ""}`}
           title="Cerrar Sesión"
         >
