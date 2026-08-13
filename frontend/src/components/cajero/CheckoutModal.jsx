@@ -365,9 +365,9 @@ export default function CheckoutModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
       <div
-        className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+        className="bg-white rounded-xl sm:rounded-2xl w-full max-w-md mx-h-[92vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -385,7 +385,7 @@ export default function CheckoutModal({ onClose }) {
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {step === 1 && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl p-4">
@@ -439,7 +439,7 @@ export default function CheckoutModal({ onClose }) {
                   <p className="text-slate-600 font-medium text-sm">
                     ¿Tipo de orden?
                   </p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     <button
                       onClick={() => setOrderType("dine_in")}
                       className="btn-secondary hover:bg-pizza-red/10 hover:text-pizza-red"
@@ -534,7 +534,7 @@ export default function CheckoutModal({ onClose }) {
           {step === 2 && (
             <div className="flex flex-col items-center gap-4">
               {/* Ticket Preview */}
-              <div className="w-full bg-slate-50 border border-slate-200 border-dashed rounded-lg p-5 font-mono text-sm shadow-sm relative">
+              <div className="w-full bg-slate-50 border border-slate-200 border-dashed rounded-lg p-3 sm:p-5 font-mono text-xs sm:text-sm shadow-sm relative">
                 <div className="text-center mb-4 mt-1">
                   <div className="flex justify-center items-center gap-3 mb-3">
                     <img

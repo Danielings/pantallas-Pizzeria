@@ -323,11 +323,11 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
     >
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div
-          className="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col"
+          className="bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-5 rounded-t-3xl">
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-4 sm:px-6 sm:py-5 rounded-t-2xl sm:rounded-t-3xl">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-white font-extrabold text-xl tracking-tight">
@@ -382,12 +382,12 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
           </div>
 
           {/* Cuerpo */}
-          <div className="p-6 flex flex-col gap-5">
+          <div className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
             {/* ══ PASO 1: Tipo de pedido y Estado de pago ══ */}
             {step === 1 && (
               <div className="flex flex-col gap-5 animate-fade-in">
                 {/* Opciones de tipo de pedido */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   {ORDER_TYPES.map((type) => {
                     const Icon = type.icon;
                     const isSelected = selectedType === type.id;
@@ -395,7 +395,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                       <button
                         key={type.id}
                         onClick={() => handleTypeSelect(type.id)}
-                        className={`relative flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all duration-200 active:scale-[0.97] cursor-pointer ${
+                        className={`relative flex flex-col items-center justify-center gap-2 sm:gap-3 p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 active:scale-[0.97] cursor-pointer ${
                           isSelected
                             ? `${type.colorSelected} shadow-lg`
                             : `${type.colorLight} hover:shadow-md`
@@ -407,10 +407,10 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                           </span>
                         )}
                         <div
-                          className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${isSelected ? "bg-white/20" : "bg-white"}`}
+                          className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm ${isSelected ? "bg-white/20" : "bg-white"}`}
                         >
                           <Icon
-                            className={`w-7 h-7 ${isSelected ? "text-white" : type.colorIcon}`}
+                            className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${isSelected ? "text-white" : type.colorIcon}`}
                           />
                         </div>
                         <div className="text-center">
@@ -720,7 +720,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
           </div>
 
           {/* Footer de Navegación */}
-          <div className="px-6 pb-6 pt-2 flex gap-3">
+          <div className="px-4 pb-4 sm:px-6 sm:pb-6 pt-2 flex gap-2 sm:gap-3">
             {step === 2 && (
               <button
                 onClick={goBack}

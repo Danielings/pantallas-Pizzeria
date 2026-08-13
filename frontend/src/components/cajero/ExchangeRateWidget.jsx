@@ -25,7 +25,7 @@ export default function ExchangeRateWidget() {
   };
 
   return (
-    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+    <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
       <CurrencyDollar className="w-4 h-4 text-emerald-600" />
       <span className="text-xs font-semibold text-slate-500">BCV:</span>
       
@@ -36,7 +36,7 @@ export default function ExchangeRateWidget() {
             step="0.01"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="w-20 text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded px-1 py-0.5 focus:outline-none focus:border-pizza-red"
+            className="w-16 sm:w-20 text-xs sm:text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded px-1 py-0.5 focus:outline-none focus:border-pizza-red"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSave();

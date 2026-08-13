@@ -308,17 +308,17 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
         onClick={onClose}
       >
         <div
-          className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden border border-slate-100"
+          className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden border border-slate-100"
           onClick={(e) => e.stopPropagation()}
         >
           {/* ── HEADER ──────────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pizza-red to-pizza-red-dark flex items-center justify-center shadow-lg shadow-pizza-red/20 text-white shrink-0">
-                <ShoppingBag className="w-7 h-7" />
+          <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-pizza-red to-pizza-red-dark flex items-center justify-center shadow-lg shadow-pizza-red/20 text-white shrink-0">
+                <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
               </div>
               <div>
-                <h2 className="font-black text-slate-800 text-2xl leading-tight">
+                <h2 className="font-black text-slate-800 text-lg sm:text-xl md:text-2xl leading-tight">
                   Editar Pedido{" "}
                   <span className="text-pizza-red">
                     #
@@ -350,7 +350,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
           <div className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-1 lg:grid-cols-5 min-h-full">
               {/* ── Columna Izquierda (2/5) ─────────────────────────────────── */}
-              <div className="lg:col-span-2 p-7 flex flex-col gap-5 bg-slate-50/60 border-r border-slate-100">
+              <div className="lg:col-span-2 p-4 sm:p-5 md:p-7 flex flex-col gap-3 sm:gap-4 md:gap-5 bg-slate-50/60 lg:border-r border-slate-100">
                 {/* Cliente */}
                 <section className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -448,12 +448,12 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
               </div>
 
               {/* ── Columna Derecha (3/5) ────────────────────────────────────── */}
-              <div className="lg:col-span-3 p-7 flex flex-col gap-4">
+              <div className="lg:col-span-3 p-4 sm:p-5 md:p-7 flex flex-col gap-3 sm:gap-4">
                 <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-100">
                   Productos del Pedido
                 </h4>
 
-                <div className="flex flex-col gap-4 overflow-y-auto max-h-[calc(96vh-280px)] pr-1">
+                <div className="flex flex-col gap-3 sm:gap-4 overflow-y-auto max-h-[calc(96vh-280px)] pr-1">
                   {localDetalles.map((item) => {
                     const isPizza = item.tipo_producto === "Pizza";
                     const isEditable =
@@ -722,8 +722,8 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
           {/* ── BALANCE + FOOTER ─────────────────────────────────────────────── */}
           <div className="shrink-0 border-t border-slate-100">
             {/* Balance */}
-            <div className="px-7 pt-4 pb-3 bg-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-8">
+            <div className="px-4 pt-3 pb-2 sm:px-7 sm:pt-4 sm:pb-3 bg-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+              <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
                 <div>
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                     Monto Original
@@ -770,7 +770,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
             </div>
 
             {/* Botones */}
-            <div className="px-7 py-4 bg-white flex gap-4">
+            <div className="px-4 py-3 sm:px-7 sm:py-4 bg-white flex flex-col sm:flex-row gap-2 sm:gap-4">
               <button
                 onClick={onClose}
                 className="flex-1 py-3.5 rounded-2xl border-2 border-slate-200 text-slate-700 font-extrabold text-base hover:bg-slate-50 transition-colors cursor-pointer"

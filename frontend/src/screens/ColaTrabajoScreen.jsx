@@ -108,10 +108,10 @@ export default function ColaTrabajoScreen() {
   }, [pedidosActivos, currentPage]);
 
   return (
-    <div className="w-full h-full overflow-y-auto bg-slate-50 p-6 flex flex-col gap-6">
+    <div className="w-full h-full overflow-y-auto bg-slate-50 p-3 sm:p-4 md:p-6 flex flex-col gap-4 md:gap-6">
       
       {/* Header Superior */}
-      <div className="bg-white border border-slate-200/60 rounded-2xl px-6 py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm shrink-0">
+      <div className="bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 shadow-sm shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-11 h-11 bg-pizza-red/10 rounded-xl flex items-center justify-center shrink-0">
             <ShoppingBag className="w-5 h-5 text-pizza-red" />
@@ -150,7 +150,7 @@ export default function ColaTrabajoScreen() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
           icon={DollarSign}
           label="Ingresos del Día"
@@ -205,13 +205,13 @@ export default function ColaTrabajoScreen() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-100/70 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-6">Pedido</th>
-                <th className="py-3.5 px-6">Cliente</th>
-                <th className="py-3.5 px-6">Tipo Despacho</th>
-                <th className="py-3.5 px-6">Productos / Detalle</th>
-                <th className="py-3.5 px-6 text-right">Total</th>
-                <th className="py-3.5 px-6 text-center">Estado</th>
-                <th className="py-3.5 px-6 text-center">Acciones</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Pedido</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Cliente</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Tipo Despacho</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Productos / Detalle</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5 text-right">Total</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5 text-center">Estado</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -241,7 +241,7 @@ export default function ColaTrabajoScreen() {
                   return (
                     <tr key={pedido.id_venta} className="hover:bg-slate-50/80 transition-colors">
                       {/* Pedido # + Tiempo */}
-                      <td className="py-4 px-6 whitespace-nowrap">
+                      <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5 whitespace-nowrap">
                         <span className="font-bold text-slate-800 text-base">
                           #{String(num).padStart(3, "0")}
                         </span>
@@ -252,7 +252,7 @@ export default function ColaTrabajoScreen() {
                       </td>
 
                       {/* Cliente */}
-                      <td className="py-4 px-6 whitespace-nowrap">
+                      <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5 whitespace-nowrap">
                         <p className="font-semibold text-slate-800 text-sm">
                           {pedido.nombre_cliente || "Sin cliente"}
                         </p>
@@ -262,7 +262,7 @@ export default function ColaTrabajoScreen() {
                       </td>
 
                       {/* Tipo Despacho */}
-                      <td className="py-4 px-6 whitespace-nowrap">
+                      <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5 whitespace-nowrap">
                         <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-md border ${despacho.bg} ${despacho.text} ${despacho.border}`}>
                           {despacho.label}
                         </span>
@@ -324,7 +324,7 @@ export default function ColaTrabajoScreen() {
 
         {/* Paginación de 15 por página al pie de la tabla */}
         {pedidosActivos.length > 0 && (
-          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600 shrink-0">
+          <div className="px-4 py-3 sm:px-6 sm:py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 text-xs text-slate-600 shrink-0">
             <span>
               Mostrando <span className="font-bold text-slate-800">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> - <span className="font-bold text-slate-800">{Math.min(currentPage * ITEMS_PER_PAGE, pedidosActivos.length)}</span> de <span className="font-bold text-slate-800">{pedidosActivos.length}</span> pedidos
             </span>

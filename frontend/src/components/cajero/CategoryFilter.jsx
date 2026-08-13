@@ -35,7 +35,7 @@ export default function CategoryFilter({ selected, onSelect }) {
   ];
 
   return (
-    <div className="flex gap-2 items-center overflow-x-auto pb-1 hide-scrollbar">
+    <div className="flex gap-1.5 sm:gap-2 items-center overflow-x-auto pb-1 hide-scrollbar w-full lg:w-auto">
       {categories.map((cat) => {
         const isSelected = selected === cat.id;
 
@@ -43,7 +43,7 @@ export default function CategoryFilter({ selected, onSelect }) {
           <div key={cat.id} className="flex items-center gap-2">
             <button
               onClick={() => onSelect(cat.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full whitespace-nowrap text-xs sm:text-sm font-medium transition-all ${
                 isSelected
                   ? "bg-slate-800 text-white shadow-md"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"

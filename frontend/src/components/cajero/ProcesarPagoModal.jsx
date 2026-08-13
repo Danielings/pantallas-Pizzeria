@@ -167,7 +167,7 @@ export default function ProcesarPagoModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-content w-[520px] max-w-full overflow-hidden"
+        className="modal-content w-full max-w-[520px] overflow-hidden max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
@@ -190,9 +190,9 @@ export default function ProcesarPagoModal({
           </button>
         </div>
 
-        <div className="p-6 bg-slate-50 space-y-5">
+        <div className="p-4 sm:p-6 bg-slate-50 space-y-4 sm:space-y-5">
           {step !== 3 && (
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-400">

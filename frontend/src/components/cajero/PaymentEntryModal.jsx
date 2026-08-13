@@ -61,11 +61,11 @@ export default function PaymentEntryModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-content w-[420px]"
+        className="modal-content w-full max-w-[420px]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100">
           <div>
             <h3 className="font-bold text-slate-800">{method.label}</h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -80,7 +80,7 @@ export default function PaymentEntryModal({
           </button>
         </div>
 
-        <div className="p-6 flex flex-col gap-4">
+        <div className="p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
           {/* Input de monto — precargado y editable */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
@@ -98,7 +98,7 @@ export default function PaymentEntryModal({
                 onChange={(e) => { setAmountInput(e.target.value); setError(""); }}
                 onKeyDown={handleKeyDown}
                 onFocus={(e) => e.target.select()}
-                className="w-full pl-12 pr-4 py-4 text-2xl font-extrabold text-slate-800 bg-slate-50 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-pizza-red focus:ring-2 focus:ring-pizza-red/20 transition-all"
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 text-xl sm:text-2xl font-extrabold text-slate-800 bg-slate-50 border-2 border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:border-pizza-red focus:ring-2 focus:ring-pizza-red/20 transition-all"
                 autoFocus
               />
             </div>

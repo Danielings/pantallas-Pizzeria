@@ -142,7 +142,7 @@ export default function OrderItem({ item }) {
 
   return (
     <>
-      <div className="bg-pizza-gray-2 rounded-xl p-3 flex flex-col gap-2 animate-slide-in border border-pizza-gray-3">
+      <div className="bg-pizza-gray-2 rounded-lg sm:rounded-xl p-2 sm:p-3 flex flex-col gap-1.5 sm:gap-2 animate-slide-in border border-pizza-gray-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -171,17 +171,17 @@ export default function OrderItem({ item }) {
         </div>
 
         {/* Controls row */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {/* Qty */}
           <div className="flex items-center gap-1 bg-pizza-gray-3/50 rounded-lg p-1 border border-pizza-gray-3">
             <button
               onClick={() => updateItemQty(item.id, item.qty - 1)}
               disabled={item.qty <= 1}
-              className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-pizza-gray-3 disabled:opacity-30 transition-colors"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded-md flex items-center justify-center hover:bg-pizza-gray-3 disabled:opacity-30 transition-colors"
             >
-              <Minus className="w-3 h-3 text-pizza-dark" />
+              <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-pizza-dark" />
             </button>
-            <span className="text-pizza-dark text-sm font-bold w-6 text-center">
+            <span className="text-pizza-dark text-xs sm:text-sm font-bold w-5 sm:w-6 text-center">
               {item.qty}
             </span>
             <button

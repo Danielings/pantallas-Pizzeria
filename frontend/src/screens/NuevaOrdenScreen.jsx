@@ -49,9 +49,9 @@ export default function NuevaOrdenScreen() {
   const TypeIcon = typeConfig?.icon;
 
   return (
-    <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden w-full h-full relative">
+    <div className="flex-1 flex flex-col p-3 gap-4 md:gap-6 sm:p-4 md:p-6 overflow-hidden w-full h-full relative">
       {/* Cabecera y Filtros */}
-      <header className="bg-white border border-slate-200/60 rounded-2xl px-6 py-5 flex flex-wrap lg:flex-nowrap gap-4 justify-between items-center shadow-sm shrink-0">
+      <header className="bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 flex flex-wrap lg:flex-nowrap gap-3 sm:gap-4 justify-between items-center shadow-sm shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-11 h-11 bg-pizza-red/10 rounded-xl flex items-center justify-center shrink-0">
             <ShoppingCart className="w-5 h-5 text-pizza-red" />
@@ -77,7 +77,7 @@ export default function NuevaOrdenScreen() {
       </header>
 
       {/* Cuerpo: Grilla de Productos (ahora ocupa todo el ancho) */}
-      <div className="flex flex-1 gap-6 min-h-0 overflow-hidden pb-14">
+      <div className="flex flex-1 gap-4 md:gap-6 min-h-0 overflow-hidden pb-12 sm:pb-14">
         <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden min-w-0">
           <MenuGrid category={selectedCategory} />
         </div>
@@ -94,7 +94,7 @@ export default function NuevaOrdenScreen() {
       />
 
       {/* Bottom Sheet del Ticket */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 flex flex-col w-[520px] max-w-[calc(100%-2rem)]">
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 flex flex-col w-full sm:w-[520px] max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-2rem)]">
         {/* Encabezado siempre visible */}
         <div
           onClick={() => setIsTicketOpen(!isTicketOpen)}

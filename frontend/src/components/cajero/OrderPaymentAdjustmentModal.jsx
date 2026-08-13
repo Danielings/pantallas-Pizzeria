@@ -167,7 +167,7 @@ export default function OrderPaymentAdjustmentModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-content w-[760px] max-h-[90vh] overflow-auto"
+        className="modal-content w-full max-w-[760px] max-h-[90vh] overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -184,8 +184,8 @@ export default function OrderPaymentAdjustmentModal({
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
             <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4">
               <h4 className="font-semibold text-slate-800 mb-3">
                 Pizza actual

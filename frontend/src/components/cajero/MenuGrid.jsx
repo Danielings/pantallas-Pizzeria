@@ -144,7 +144,7 @@ export default function MenuGrid({ category }) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 hide-scrollbar relative">
+    <div className="flex-1 overflow-y-auto p-2 md:p-4 sm:p-3 hide-scrollbar relative">
       {/* Pantalla de Carga */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-3">
@@ -152,7 +152,7 @@ export default function MenuGrid({ category }) {
           <p className="text-sm font-medium">Cargando menú...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-max">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4 auto-rows-max">
           {displayedProducts.map((product) => (
             <div
               key={product.id}
@@ -160,7 +160,7 @@ export default function MenuGrid({ category }) {
               onClick={() => handleAddToCart(product, product.size)}
             >
               {product.url || product.image ? (
-                <div className="h-32 w-full shrink-0 overflow-hidden bg-slate-50 relative">
+                <div className="h-24 sm:h-28 md:h-32 w-full shrink-0 overflow-hidden bg-slate-50 relative">
                   <img
                     src={product.url || product.image}
                     alt={product.name}
@@ -172,7 +172,7 @@ export default function MenuGrid({ category }) {
                   </span>
                 </div>
               ) : (
-                <div className="h-24 w-full shrink-0 bg-slate-50 flex items-center justify-center text-4xl relative">
+                <div className="h-16 sm:h-20 md:h-24 w-full shrink-0 bg-slate-50 flex items-center justify-center text-3xl sm:text-4xl  relative">
                   {product.emoji}
                   <span className="absolute bottom-2 right-2 text-slate-800 font-bold text-sm bg-white/80 px-2 rounded-full backdrop-blur-sm">
                     ${product.price.toFixed(2)}
@@ -180,17 +180,17 @@ export default function MenuGrid({ category }) {
                 </div>
               )}
 
-              <div className="p-3 flex-1 flex flex-col justify-between">
+              <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-bold text-sm text-slate-800 line-clamp-1">
+                  <h3 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">
                     {product.name}
                   </h3>
-                  <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-tight">
+                  <p className="text-[9px] sm:text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-tight">
                     {product.description}
                   </p>
                 </div>
 
-                <button className="mt-3 w-full shrink-0 py-1.5 flex items-center justify-center gap-1 bg-slate-50 hover:bg-pizza-red hover:text-white text-slate-600 rounded-lg text-xs font-semibold transition-colors">
+                <button className="mt-2 sm:mt-3 w-full shrink-0 py-1 sm:py-1.5 flex items-center justify-center gap-1 bg-slate-50 hover:bg-pizza-red hover:text-white text-slate-600 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors">
                   <Plus className="w-3 h-3" />
                   Agregar
                 </button>

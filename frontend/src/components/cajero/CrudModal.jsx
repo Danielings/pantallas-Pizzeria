@@ -240,11 +240,11 @@ export default function CrudModal({ onClose }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-content w-[640px] max-h-[85vh] flex flex-col"
+        className="modal-content w-full max-w-[640px] max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-pizza-gray-3">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-pizza-gray-3">
           <h2 className="text-pizza-dark font-bold text-lg">
             Gestión de Productos
           </h2>
@@ -257,7 +257,7 @@ export default function CrudModal({ onClose }) {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-4 pb-0">
+        <div className="flex gap-1 p-3 sm:p-4 pb-0 overflow-x-auto">
           {Object.entries(CATEGORIES_MAP).map(([key, { label, icon }]) => (
             <button
               key={key}
@@ -266,7 +266,7 @@ export default function CrudModal({ onClose }) {
                 setEditingId(null);
                 setCreating(false);
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
                 activeTab === key ? "tab-active" : "tab-inactive"
               }`}
             >
@@ -276,7 +276,7 @@ export default function CrudModal({ onClose }) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
           {/* Create form */}
           {creating && (
             <div className="card p-4 border-pizza-red/30 bg-pizza-gray-2 relative">
@@ -388,7 +388,7 @@ export default function CrudModal({ onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-pizza-gray-3 p-4">
+        <div className="border-t border-pizza-gray-3 p-3 sm:p-4">
           <button
             onClick={() => {
               setCreating(true);

@@ -101,7 +101,7 @@ export default function FastCustomerForm() {
   };
 
   return (
-    <div className="p-4 bg-white border-b border-slate-100 shrink-0">
+    <div className="p-3 sm:p-4 bg-white border-b border-slate-100 shrink-0">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
           <UserPlus className="w-4 h-4 text-pizza-red" />

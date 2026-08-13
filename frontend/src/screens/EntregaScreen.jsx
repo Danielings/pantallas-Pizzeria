@@ -439,11 +439,11 @@ export default function EntregaScreen() {
       )}
 
       {/* Main scrolling content area */}
-      <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 hide-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 flex flex-col gap-4 sm:gap-6 md:gap-8 hide-scrollbar">
         {/* Metrics Overview based on Selected Group */}
         {selectedGroup === "delivery_pickup" ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+            <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
                 <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
                   Delivery Hoy
@@ -603,7 +603,7 @@ export default function EntregaScreen() {
         {selectedGroup === "delivery_pickup" ? (
           <div className="flex flex-col xl:flex-row gap-8 shrink-0">
             {/* Delivery Column */}
-            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm h-[450px] sm:h-[550px] md:h-[650px]">
               <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
@@ -624,7 +624,7 @@ export default function EntregaScreen() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
                     {pendingDelivery.map((order) => (
                       <OrderCard
                         key={order.id}
@@ -639,7 +639,7 @@ export default function EntregaScreen() {
             </div>
 
             {/* Pickup Column */}
-            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm h-[450px] sm:h-[550px] md:h-[650px]">
               <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
@@ -658,7 +658,7 @@ export default function EntregaScreen() {
                     <p className="font-bold">No hay órdenes de pick up activas</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
                     {pendingPickup.map((order) => (
                       <OrderCard
                         key={order.id}
@@ -675,7 +675,7 @@ export default function EntregaScreen() {
         ) : (
           <div className="flex flex-col xl:flex-row gap-8 shrink-0">
             {/* Local Column */}
-            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm h-[450px] sm:h-[550px] md:h-[650px]">
               <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -696,7 +696,7 @@ export default function EntregaScreen() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
                     {pendingLocal.map((order) => (
                       <OrderCard
                         key={order.id}
@@ -711,7 +711,7 @@ export default function EntregaScreen() {
             </div>
 
             {/* Llevar Column */}
-            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm h-[650px]">
+            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm h-[450px] sm:h-[550px] md:h-[650px]">
               <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
                 <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
@@ -730,7 +730,7 @@ export default function EntregaScreen() {
                     <p className="font-bold">No hay órdenes para Llevar activas</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
                     {pendingLlevar.map((order) => (
                       <OrderCard
                         key={order.id}
@@ -748,7 +748,7 @@ export default function EntregaScreen() {
 
         {/* History of delivered orders */}
         <div className="bg-white border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-sm shrink-0">
-          <div className="bg-white px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+          <div className="bg-white px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -896,7 +896,7 @@ export default function EntregaScreen() {
             onClick={() => setSelectedOrder(null)}
           >
             <div
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">

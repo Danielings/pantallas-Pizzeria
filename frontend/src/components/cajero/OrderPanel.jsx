@@ -9,7 +9,7 @@ export default function OrderPanel({ onPay }) {
   return (
     <div className="flex flex-col h-full bg-pizza-gray border-l border-pizza-gray-3">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-pizza-gray-3">
+      <div className="flex items-center justify-between px-3 py-3 sm:px-4 sm:py-3  border-b border-pizza-gray-3">
         <div className="flex items-center gap-2">
           <ShoppingCart className="w-5 h-5 text-pizza-red" />
           <h2 className="text-pizza-dark font-bold text-base">Orden Actual</h2>
@@ -29,7 +29,7 @@ export default function OrderPanel({ onPay }) {
       </div>
 
       {/* Items */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col gap-1.5 sm:gap-2">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-pizza-muted">
             <div className="w-16 h-16 rounded-2xl bg-pizza-gray-2 flex items-center justify-center border border-pizza-gray-3">
@@ -46,7 +46,7 @@ export default function OrderPanel({ onPay }) {
 
       {/* Totals */}
       {items.length > 0 && (
-        <div className="border-t border-pizza-gray-3 p-4 flex flex-col gap-3">
+        <div className="border-t border-pizza-gray-3 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center pt-2 border-t border-pizza-gray-3 mt-1">
               <span className="text-pizza-dark font-bold text-base">Total</span>

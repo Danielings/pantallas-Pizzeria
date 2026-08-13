@@ -167,11 +167,11 @@ export default function PaymentModal({ onClose }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-content w-[480px] overflow-hidden"
+        className="modal-content w-full max-w-[480px] overflow-hidden max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-pizza-gray-3">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-pizza-gray-3">
           <div>
             <h2 className="text-pizza-dark font-bold text-lg">
               {step === 3 ? "¡Pago Completado!" : "Procesar Pago"}
@@ -191,7 +191,7 @@ export default function PaymentModal({ onClose }) {
           </button>
         </div>
 
-        <div className="p-6 flex flex-col gap-5">
+        <div className="p-4 sm:p-6 flex flex-col gap-3 sm:gap-5">
           {/* Payments applied so far */}
           {currentOrder.payments.length > 0 && (
             <div className="flex flex-col gap-2">
