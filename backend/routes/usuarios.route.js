@@ -7,6 +7,7 @@ import {
   buscarClientes,
   buscarDelivery,
   registrarDelivery,
+  registrarUsuario,
 } from "../controllers/usuarios.controller.js";
 
 const router = Router();
@@ -18,5 +19,7 @@ router.put("/editar-cliente/:id", editarCliente);
 
 router.get("/buscar-delivery", buscarDelivery);
 router.post("/registrar-delivery", registrarDelivery);
+
+router.post("/registrar-usuario", registrarUsuario);
 
 export default router;
