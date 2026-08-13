@@ -14,6 +14,7 @@ import {
   INITIAL_ORDERS,
   EXTRAS,
 } from "../data/mockData";
+import axios from "axios";
 
 const API_BASE = "http://localhost:3001/api";
 
@@ -428,12 +429,12 @@ function reducer(state, action) {
     case "ADD_BRANCH": {
       return {
         ...state,
-        branches: [
-          ...state.branches,
-          { ...action.payload, id: `b-${Date.now()}` },
-        ],
+        branches: [...state.branches, action.payload],
       };
     }
+    case "SET_BRANCHES":
+      return { ...state, branches: action.payload };
+
     case "DELETE_BRANCH": {
       return {
         ...state,
@@ -447,6 +448,15 @@ function reducer(state, action) {
         staff: [...state.staff, { ...action.payload, id: `s-${Date.now()}` }],
       };
     }
+
+    case "SET_STAFF":
+      return {
+        ...state,
+        staff: action.payload.map((user) => ({
+          ...user,
+          role: normalizeRole(user.role),
+        })),
+      };
     case "DELETE_STAFF": {
       return {
         ...state,
@@ -485,6 +495,31 @@ export function AppProvider({ children }) {
     currentUser: savedUser,
   });
 
+  useEffect(() => {
+    const fetchBranchesAndStaff = async () => {
+      try {
+        const [branchesRes, staffRes] = await Promise.all([
+          axios.get(`${API_BASE}/sucursales`),
+          axios.get(`${API_BASE}/usuarios`),
+        ]);
+
+        if (branchesRes.data.success) {
+          dispatch({ type: "SET_BRANCHES", payload: branchesRes.data.data });
+        }
+
+        if (staffRes.data.success) {
+          dispatch({ type: "SET_STAFF", payload: staffRes.data.data });
+        }
+      } catch (error) {
+        console.error(
+          "Error cargando sucursales y personal desde la API:",
+          error,
+        );
+      }
+    };
+
+    fetchBranchesAndStaff();
+  }, []);
   // Cart totals — sin IVA
   const subtotal = state.currentOrder.items.reduce(
     (sum, i) => sum + i.price * i.qty,
