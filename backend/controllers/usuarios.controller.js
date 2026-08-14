@@ -264,8 +264,8 @@ export const registrarUsuario = async (req, res) => {
     }
 
     const [existingUser] = await pool.query(
-      "SELECT id_usuario FROM usuarios WHERE email = ? LIMIT 1",
-      [emailTrim],
+      "SELECT u.id_usuario, s.id_sucursal FROM usuarios u LEFT JOIN sucursal s ON u.id_sucursal = s.id_sucursal WHERE u.email = ? AND s.id_sucursal = ? LIMIT 1",
+      [emailTrim, id_sucursal],
     );
 
     if (existingUser.length > 0) {
