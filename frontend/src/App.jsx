@@ -13,6 +13,8 @@ import ColaTrabajoScreen from "./screens/ColaTrabajoScreen";
 import ClientesScreen from "./screens/ClientesScreen";
 import DeliveryScreen from "./screens/DeliveryScreen";
 import EntregaScreen from "./screens/EntregaScreen";
+import CierreScreen from "./screens/CierreScreen";
+
 import CocineroScreen from "./screens/CocineroScreen";
 import DespachoScreen from "./screens/DespachoScreen";
 import AdminScreen from "./screens/AdminScreen";
@@ -128,6 +130,8 @@ export default function App() {
               <Route path="/nueva-orden" element={<NuevaOrdenScreen />} />
               <Route path="/cola-trabajos" element={<ColaTrabajoScreen />} />
               <Route path="/entrega" element={<EntregaScreen />} />
+              <Route path="/cierre" element={<CierreScreen />} />
+
             </Route>
           </Route>
 
