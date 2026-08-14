@@ -373,6 +373,7 @@ export const obtenerPedidosActivos = async (req, res) => {
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
             AND vd.estado != 'Completado'
+            AND vd.estado != 'Cerrado'
         )
       ORDER BY v.fecha_hora DESC`,
     );
