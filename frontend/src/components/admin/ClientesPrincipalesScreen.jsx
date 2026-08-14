@@ -125,7 +125,7 @@ export default function ClientesPrincipalesScreen() {
     const load = async () => {
       setIsPaymentsLoading(true);
       try {
-        const pRes = await axios.get(`${API_BASE}/metodos-pago`, {
+        const pRes = await axios.get(`${API_BASE}/metodos-pagos`, {
           params: { clientes: vipIds.join(",") },
         });
         if (pRes.data.success) setPaymentMethods(pRes.data.data);

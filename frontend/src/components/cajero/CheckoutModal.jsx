@@ -192,9 +192,11 @@ export default function CheckoutModal({ onClose }) {
         method: selectedMethod.id,
         label: selectedMethod.label,
         amount: amountUSD,
+        currency: currency,
       },
     ]);
     setShowPaymentEntry(false);
+
     setSelectedMethod(null);
     if (
       totalToUse -
@@ -226,9 +228,11 @@ export default function CheckoutModal({ onClose }) {
         method: selectedMethod.id,
         label: selectedMethod.label,
         amount: amountUSD,
+        currency: currency,
       },
     ]);
     setSelectedMethod(null);
+
     setAmountInput("");
     if (remainingLocalUSD - amountUSD <= 0.01) {
       setStep(2);
@@ -282,12 +286,19 @@ export default function CheckoutModal({ onClose }) {
       tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
       monto_total_usd: Number(totalToUse.toFixed(2)),
       monto_total_bs: Number((totalToUse * (exchangeRate || 0)).toFixed(2)),
-      pagos: paymentsInternal.map((payment) => ({
-        metodo: mapPaymentMethodToApi(payment.method),
-        monto_usd: Number(payment.amount.toFixed(2)),
-        monto_bs: Number((payment.amount * (exchangeRate || 0)).toFixed(2)),
-        referencia: null,
-      })),
+      pagos: paymentsInternal.map((payment) => {
+        const isUSD = payment.currency === "USD";
+        const isBs = payment.currency === "Bs";
+        const isCash = mapPaymentMethodToApi(payment.method) === "Efectivo";
+
+        return {
+          metodo: mapPaymentMethodToApi(payment.method),
+          monto_usd: isCash ? (isUSD ? Number(payment.amount.toFixed(2)) : 0) : Number(payment.amount.toFixed(2)),
+          monto_bs: isCash ? (isBs ? Number((payment.amount * (exchangeRate || 0)).toFixed(2)) : 0) : Number((payment.amount * (exchangeRate || 0)).toFixed(2)),
+          referencia: payment.currency || "Bs",
+        };
+      }),
+
       detalles: currentOrder.items.map((item) => {
         const idOrigen =
           typeof item.productId === "string"
