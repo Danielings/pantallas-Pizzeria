@@ -356,7 +356,7 @@ export const obtenerContadorCajero = async (req, res) => {
       `SELECT COUNT(vd.id_detalle) AS total
        FROM venta_detalle vd
        JOIN ventas v ON vd.id_venta = v.id_venta
-       WHERE vd.estado != 'Completado' 
+       WHERE vd.estado != 'Completado' AND vd.estado != 'Cerrado' 
          AND DATE(v.fecha_hora) = CURDATE()`,
     );
 
@@ -475,10 +475,13 @@ export const obtenerEntregas = async (req, res) => {
           status: det.estado_detalle,
         }));
 
-        // Si todos los detalles están completados, la orden está entregada
-        const allCompleted =
-          detalles.length > 0 &&
-          detalles.every((det) => det.estado_detalle === "Completado");
+        const tienePendientes = detalles.some(
+          (det) =>
+            det.estado_detalle !== "Completado" &&
+            det.estado_detalle !== "Cerrado",
+        );
+
+        if (!tienePendientes && detalles.length > 0) return null;
 
         return {
           id: venta.id_venta,
@@ -496,12 +499,14 @@ export const obtenerEntregas = async (req, res) => {
           items: items,
           total: venta.monto_total_usd,
           orderedAt: venta.fecha_hora,
-          status: allCompleted ? "delivered" : "ready",
+          status: "ready", // Como filtramos los completados, todos los que quedan están "pendientes"
         };
       }),
     );
 
-    res.json(ordenes);
+    const ordenesFiltradas = ordenes.filter((o) => o !== null);
+
+    res.json(ordenesFiltradas);
   } catch (error) {
     console.error("Error fetching entregas:", error);
     res.status(500).json({ error: "Internal server error" });
