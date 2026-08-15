@@ -1,16 +1,16 @@
 import { useApp } from '../../context/AppContext';
 import OrderItem from './OrderItem';
-import { ShoppingCart, Trash2, Receipt, UtensilsCrossed, ShoppingBag, Bike, Store } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 
-const ORDER_TYPE_CONFIG = {
-  local: { label: 'Local', icon: UtensilsCrossed, color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  takeaway: { label: 'Para Llevar', icon: ShoppingBag, color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  delivery: { label: 'Delivery', icon: Bike, color: 'bg-red-100 text-red-700 border-red-200' },
-  pickup: { label: 'Pickup', icon: Store, color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-};
+// const ORDER_TYPE_CONFIG = {
+//   local: { label: 'Local', icon: UtensilsCrossed, color: 'bg-blue-100 text-blue-700 border-blue-200' },
+//   takeaway: { label: 'Para Llevar', icon: ShoppingBag, color: 'bg-amber-100 text-amber-700 border-amber-200' },
+//   delivery: { label: 'Delivery', icon: Bike, color: 'bg-red-100 text-red-700 border-red-200' },
+//   pickup: { label: 'Pickup', icon: Store, color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+// };
 
 const PAYMENT_STATUS_LABELS = {
-  paid:    { label: 'Pagado', color: 'bg-emerald-100 text-emerald-700' },
+  paid: { label: 'Pagado', color: 'bg-emerald-100 text-emerald-700' },
   partial: { label: 'Abono', color: 'bg-blue-100 text-blue-700' },
   pending: { label: 'Pendiente', color: 'bg-amber-100 text-amber-700' },
 };
@@ -44,7 +44,7 @@ export default function OrderTicket({ onCheckout }) {
           <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
             <ShoppingCart className="w-8 h-8 opacity-50" />
             <p className="text-xs text-center font-medium">Ticket vacío</p>
-            <p className="text-[10px] text-center text-slate-300">Agrega un producto para<br/>seleccionar el tipo de pedido</p>
+            <p className="text-[10px] text-center text-slate-300">Agrega un producto para<br />seleccionar el tipo de pedido</p>
           </div>
         ) : (
           items.map(item => <OrderItem key={item.id} item={item} />)

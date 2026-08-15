@@ -1,30 +1,44 @@
-import { useState } from 'react';
-import MenuGrid from '../components/cajero/MenuGrid';
-import OrderTicket from '../components/cajero/OrderTicket';
-import JobQueue from '../components/cajero/JobQueue';
-import CategoryFilter from '../components/cajero/CategoryFilter';
-import CheckoutModal from '../components/cajero/CheckoutModal';
-import ExchangeRateWidget from '../components/cajero/ExchangeRateWidget';
+import { useState } from "react";
+import { ShoppingCart } from "lucide-react";
+import MenuGrid from "../components/cajero/MenuGrid";
+import OrderTicket from "../components/cajero/OrderTicket";
+import JobQueue from "../components/cajero/JobQueue";
+import CategoryFilter from "../components/cajero/CategoryFilter";
+import CheckoutModal from "../components/cajero/CheckoutModal";
+import ExchangeRateWidget from "../components/cajero/ExchangeRateWidget";
 
 export default function CajeroScreen() {
   const [showCheckout, setShowCheckout] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('tradicionales');
+  const [selectedCategory, setSelectedCategory] = useState("Normal");
 
   return (
     <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto w-full h-full">
       {/* Cabecera y Filtros */}
-      <header className="flex flex-wrap lg:flex-nowrap gap-4 justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100 shrink-0">
-         <div className="flex items-center gap-6">
-           <div>
-             <h1 className="text-2xl font-bold tracking-tight text-slate-800">Punto de Venta</h1>
-             <p className="text-sm text-slate-500 capitalize">
-               {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-             </p>
-           </div>
-           <ExchangeRateWidget />
-         </div>
-         <CategoryFilter selected={selectedCategory} onSelect={setSelectedCategory} />
-       </header>
+      <header className="bg-white border border-slate-200/60 rounded-2xl px-6 py-5 flex flex-wrap lg:flex-nowrap gap-4 justify-between items-center shadow-sm shrink-0">
+        <div className="flex items-center gap-5">
+          <div className="w-11 h-11 bg-pizza-red/10 rounded-xl flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-5 h-5 text-pizza-red" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+              Punto de Venta
+            </h1>
+            <p className="text-xs font-medium text-slate-500 mt-0.5 capitalize">
+              {new Date().toLocaleDateString("es-ES", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+          </div>
+          <ExchangeRateWidget />
+        </div>
+        <CategoryFilter
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+      </header>
 
       <div className="flex flex-1 gap-6 min-h-0 flex-col xl:flex-row">
         {/* Grilla de Productos y Cola de Trabajos */}
@@ -32,9 +46,11 @@ export default function CajeroScreen() {
           <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
             <MenuGrid category={selectedCategory} />
           </div>
-          
+
           <div className="h-64 bg-white rounded-xl shadow-sm border border-slate-100 p-4 shrink-0 flex flex-col overflow-hidden">
-            <h2 className="text-lg font-bold text-slate-800 mb-3 shrink-0">Cola de Trabajos Activos</h2>
+            <h2 className="text-lg font-bold text-slate-800 mb-3 shrink-0">
+              Cola de Trabajos Activos
+            </h2>
             <div className="flex-1 overflow-x-auto overflow-y-hidden">
               <JobQueue />
             </div>

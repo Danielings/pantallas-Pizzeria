@@ -2,8 +2,6 @@ import express from "express";
 import pool from "./config/bd.js";
 import cors from "cors";
 import agregarProductos from "./apis/agregarProductos.js";
-<<<<<<< Updated upstream
-=======
 import ventas from "./apis/ventas.js";
 import clientes from "./apis/clientes.js";
 import obtenerProductos from "./apis/obtenerProductos.js";
@@ -15,7 +13,7 @@ import tasaRoutes, { actualizarTasaDesdeApi } from "./apis/tasa.js";
 import cron from "node-cron";
 import { getTransporter } from "./config/mailer.js";
 import recuperarPassword from "./apis/recuperarPassword.js";
->>>>>>> Stashed changes
+
 
 const app = express();
 app.use(
@@ -31,8 +29,6 @@ app.use(express.json());
 
 // Rutitas
 app.use("/api", agregarProductos);
-<<<<<<< Updated upstream
-=======
 app.use("/api", ventas);
 app.use("/api", clientes);
 app.use("/api", obtenerProductos);
@@ -51,7 +47,6 @@ cron.schedule("*/30 * * * *", async () => {
     console.error("Error actualizando la tasa automáticamente:", error);
   }
 });
->>>>>>> Stashed changes
 
 app.listen(3001, () => {
   console.log("Escuchandoo, oh oh");

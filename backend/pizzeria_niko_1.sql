@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 29-07-2026 a las 18:13:06
+-- Tiempo de generación: 30-07-2026 a las 22:07:30
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -33,6 +33,13 @@ CREATE TABLE `bebidas` (
   `precio` float NOT NULL,
   `descripcion` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+--
+-- Volcado de datos para la tabla `bebidas`
+--
+
+INSERT INTO `bebidas` (`id_bebida`, `nombre`, `precio`, `descripcion`) VALUES
+(1, 'Pepsi', 2, '2 litros');
 
 -- --------------------------------------------------------
 
@@ -68,6 +75,14 @@ CREATE TABLE `clientes` (
   `descripcion` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
+--
+-- Volcado de datos para la tabla `clientes`
+--
+
+INSERT INTO `clientes` (`id_cliente`, `cedula`, `nombre`, `telefono`, `descripcion`) VALUES
+(1, '12345678', 'a', 11, 'd'),
+(2, '123456', 'gol', 123456, '');
+
 -- --------------------------------------------------------
 
 --
@@ -92,6 +107,13 @@ CREATE TABLE `detalle_venta_extras` (
   `id_extra` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
+--
+-- Volcado de datos para la tabla `detalle_venta_extras`
+--
+
+INSERT INTO `detalle_venta_extras` (`id_detalle_extra`, `id_detalle`, `id_extra`) VALUES
+(6, 11, 2);
+
 -- --------------------------------------------------------
 
 --
@@ -104,6 +126,14 @@ CREATE TABLE `extras` (
   `precio` float NOT NULL,
   `id_categoria_pizza` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+--
+-- Volcado de datos para la tabla `extras`
+--
+
+INSERT INTO `extras` (`id_extras`, `nombre`, `precio`, `id_categoria_pizza`) VALUES
+(1, 'Extra Pepperoni', 2, 2),
+(2, 'Jalapeños', 3, 1);
 
 -- --------------------------------------------------------
 
@@ -151,6 +181,13 @@ CREATE TABLE `sucursal` (
   `sucursal` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
+--
+-- Volcado de datos para la tabla `sucursal`
+--
+
+INSERT INTO `sucursal` (`id_sucursal`, `sucursal`) VALUES
+(1, 'sucur');
+
 -- --------------------------------------------------------
 
 --
@@ -165,6 +202,13 @@ CREATE TABLE `usuarios` (
   `rol` enum('Administrador','Cocinero','Pizzero','Cajero','Mesero') NOT NULL,
   `estado` enum('Activo','Inactivo') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+--
+-- Volcado de datos para la tabla `usuarios`
+--
+
+INSERT INTO `usuarios` (`id_usuario`, `email`, `password`, `id_sucursal`, `rol`, `estado`) VALUES
+(1, 'a@a.com', '', 1, 'Administrador', 'Activo');
 
 -- --------------------------------------------------------
 
@@ -185,6 +229,18 @@ CREATE TABLE `ventas` (
   `estado` enum('Completado','Pendiente','Rechazado') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
+--
+-- Volcado de datos para la tabla `ventas`
+--
+
+INSERT INTO `ventas` (`id_venta`, `id_cliente`, `id_usuario`, `id_delivery`, `fecha_hora`, `tasa_cambio`, `monto_total_usd`, `monto_total_bs`, `despacho`, `estado`) VALUES
+(5, 1, 1, NULL, '2026-07-30 19:03:07', 744.23, 13.5, 10047.1, 'Local', 'Completado'),
+(6, 1, 1, NULL, '2026-07-30 19:07:10', 744.23, 28, 20838.3, 'Llevar', 'Completado'),
+(7, 1, 1, NULL, '2026-07-30 19:08:29', 744.23, 36, 26792.2, 'Local', 'Completado'),
+(11, 1, 1, NULL, '2026-07-30 19:17:14', 744.23, 16.5, 12279.7, 'Local', 'Completado'),
+(12, 1, 1, NULL, '2026-07-30 19:57:03', 744.23, 13.5, 10047.1, 'Local', 'Completado'),
+(13, 2, 1, NULL, '2026-07-30 19:57:46', 744.23, 13, 9674.94, 'Local', 'Completado');
+
 -- --------------------------------------------------------
 
 --
@@ -194,11 +250,25 @@ CREATE TABLE `ventas` (
 CREATE TABLE `ventas_pagos` (
   `id_pago` int(11) NOT NULL,
   `id_venta` int(11) NOT NULL,
-  `metodo_pago` enum('Punto_Venta','Pago_Movil','Efectivo') NOT NULL,
+  `metodo_pago` enum('Punto','Pago_Movil','Efectivo') NOT NULL,
   `monto_usd` float NOT NULL,
   `monto_bs` float NOT NULL,
   `referencia` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+--
+-- Volcado de datos para la tabla `ventas_pagos`
+--
+
+INSERT INTO `ventas_pagos` (`id_pago`, `id_venta`, `metodo_pago`, `monto_usd`, `monto_bs`, `referencia`) VALUES
+(5, 5, 'Punto', 13.5, 10047.1, NULL),
+(6, 6, 'Efectivo', 14.56, 10838.3, NULL),
+(7, 6, 'Punto', 13.44, 10000, NULL),
+(8, 7, 'Pago_Movil', 20.16, 15000, NULL),
+(9, 7, 'Punto', 15.84, 11792.2, NULL),
+(13, 11, 'Punto', 16.5, 12279.7, NULL),
+(14, 12, 'Punto', 13.5, 10047.1, NULL),
+(15, 13, 'Punto', 13, 9674.94, NULL);
 
 -- --------------------------------------------------------
 
@@ -216,6 +286,22 @@ CREATE TABLE `venta_detalle` (
   `nota` text DEFAULT NULL,
   `estado` enum('Pendiente','Preparado','Horno','Completado') NOT NULL DEFAULT 'Pendiente'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+--
+-- Volcado de datos para la tabla `venta_detalle`
+--
+
+INSERT INTO `venta_detalle` (`id_detalle`, `id_venta`, `tipo_producto`, `id_producto_origen`, `cantidad`, `monto_total`, `nota`, `estado`) VALUES
+(1, 5, 'Pizza', 6, 1, 13.5, '', 'Pendiente'),
+(2, 6, 'Pizza', 5, 1, 13, '', 'Pendiente'),
+(3, 6, 'Bebida', 3, 1, 1.5, '', 'Completado'),
+(4, 6, 'Pizza', 6, 1, 13.5, '', 'Pendiente'),
+(5, 7, 'Pizza', 5, 1, 13, '', 'Pendiente'),
+(6, 7, 'Pizza', 7, 1, 17, '', 'Pendiente'),
+(7, 7, 'Bebida', 8, 1, 6, '', 'Completado'),
+(11, 11, 'Pizza', 2, 1, 16.5, 'Mucho queso', 'Pendiente'),
+(12, 12, 'Pizza', 6, 1, 13.5, '', 'Pendiente'),
+(13, 13, 'Pizza', 5, 1, 13, '', 'Pendiente');
 
 --
 -- Índices para tablas volcadas
@@ -318,7 +404,7 @@ ALTER TABLE `venta_detalle`
 -- AUTO_INCREMENT de la tabla `bebidas`
 --
 ALTER TABLE `bebidas`
-  MODIFY `id_bebida` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_bebida` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `categoria_pizza`
@@ -330,7 +416,7 @@ ALTER TABLE `categoria_pizza`
 -- AUTO_INCREMENT de la tabla `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `delivery`
@@ -342,13 +428,13 @@ ALTER TABLE `delivery`
 -- AUTO_INCREMENT de la tabla `detalle_venta_extras`
 --
 ALTER TABLE `detalle_venta_extras`
-  MODIFY `id_detalle_extra` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle_extra` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `extras`
 --
 ALTER TABLE `extras`
-  MODIFY `id_extras` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_extras` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `heladeria`
@@ -366,31 +452,31 @@ ALTER TABLE `pizza`
 -- AUTO_INCREMENT de la tabla `sucursal`
 --
 ALTER TABLE `sucursal`
-  MODIFY `id_sucursal` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_sucursal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id_venta` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de la tabla `ventas_pagos`
 --
 ALTER TABLE `ventas_pagos`
-  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_pago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `venta_detalle`
 --
 ALTER TABLE `venta_detalle`
-  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- Restricciones para tablas volcadas
