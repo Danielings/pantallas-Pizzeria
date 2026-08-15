@@ -19,10 +19,10 @@ import OrderEditModal from "../components/cajero/OrderEditModal";
 
 // ─── CONFIGURACIONES DE ESTADO Y DESPACHO ────────────────────────────────────
 const DESPACHO_BADGES = {
-  Local:    { label: "Local",    bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200" },
-  Llevar:   { label: "Llevar",   bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200" },
-  Delivery: { label: "Delivery", bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
-  "Pick Up":{ label: "Pick Up",  bg: "bg-teal-50",   text: "text-teal-700",   border: "border-teal-200" },
+  Local:    { label: "Local",    bg: "bg-blue-100",   text: "text-blue-700",   border: "border-blue-200" },
+  Llevar:   { label: "Llevar",   bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-200" },
+  Delivery: { label: "Delivery", bg: "bg-red-100",    text: "text-red-700",    border: "border-red-200" },
+  "Pick Up":{ label: "Pick Up",  bg: "bg-green-100",  text: "text-green-700",  border: "border-green-200" },
 };
 
 const ESTADO_BADGES = {
@@ -44,28 +44,36 @@ function getElapsed(iso) {
 // ─── KPI CARD ─────────────────────────────────────────────────────────────────
 function KpiCard({ icon: Icon, label, value, sub, iconBg, iconColor, trend, loading }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-3 shadow-xs">
-      <div className="flex items-center justify-between">
-        <div className={`w-11 h-11 rounded-lg ${iconBg} flex items-center justify-center`}>
-          <Icon className={`w-5.5 h-5.5 ${iconColor}`} />
+    <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+      <div className="min-w-0">
+        <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+          {label}
+        </p>
+        <div className="flex items-end gap-2">
+          {loading ? (
+            <div className="h-9 w-24 bg-slate-100 rounded-md animate-pulse" />
+          ) : (
+            <h3 className="text-4xl font-black text-slate-800 leading-none whitespace-nowrap shrink-0">
+              {value}
+            </h3>
+          )}
+          {sub && (
+            <span className="text-slate-400 font-bold text-sm mb-1 truncate">
+              {sub}
+            </span>
+          )}
         </div>
         {trend && (
-          <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+          <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
             <ArrowUpRight className="w-3 h-3" />
             {trend}
           </span>
         )}
       </div>
-      <div>
-        {loading ? (
-          <div className="h-8 w-24 bg-slate-100 rounded-md animate-pulse mb-1" />
-        ) : (
-          <p className="text-2xl font-extrabold text-slate-800 tracking-tight leading-none">
-            {value}
-          </p>
-        )}
-        <p className="text-xs font-semibold text-slate-500 mt-1">{label}</p>
-        {sub && <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>}
+      <div
+        className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center shrink-0 transition-colors`}
+      >
+        <Icon className={`w-7 h-7 ${iconColor}`} />
       </div>
     </div>
   );
@@ -155,7 +163,7 @@ export default function ColaTrabajoScreen() {
           icon={DollarSign}
           label="Ingresos del Día"
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${totalTx} transacciones hoy`}
+          sub={`${totalTx} ventas`}
           iconBg="bg-red-50"
           iconColor="text-pizza-red"
           loading={loading}
@@ -190,21 +198,30 @@ export default function ColaTrabajoScreen() {
       </div>
 
       {/* Tabla Limpia de Pedidos */}
-      <div className="flex-1 flex flex-col min-h-[520px] bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50 shrink-0">
-          <div>
-            <h2 className="font-bold text-slate-800 text-sm">Historial y Cola de Pedidos</h2>
-            <p className="text-xs text-slate-500">Pedidos registrados hoy</p>
+      <div className="flex-1 flex flex-col min-h-[520px] bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm">
+        <div className="bg-white px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between items-start gap-2 lg:gap-0 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+            <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center gap-2.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
+              </div>
+              Historial y Cola de Pedidos
+            </h2>
+            <span className="bg-emerald-100 text-emerald-700 text-xs sm:text-sm font-black px-3 py-1.5 rounded-full border border-emerald-200/50 shadow-sm shrink-0">
+              {pedidosActivos.length} Pedidos
+            </span>
           </div>
-          <span className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-md">
-            Total: {pedidosActivos.length} pedidos
-          </span>
+          <p className="text-xs font-medium text-slate-500">
+            Pedidos registrados hoy
+          </p>
         </div>
 
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-100/70 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+        <div className="flex-1 overflow-auto bg-slate-50/30 p-3 sm:p-4 md:p-5">
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
                 <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Pedido</th>
                 <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Cliente</th>
                 <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Tipo Despacho</th>
@@ -309,7 +326,7 @@ export default function ColaTrabajoScreen() {
                       <td className="py-4 px-6 text-center whitespace-nowrap">
                         <button
                           onClick={() => setEditState({ pedido: JSON.parse(JSON.stringify(pedido)), displayNum: num })}
-                          className="px-3.5 py-1.5 rounded-md border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer shadow-2xs"
+                          className="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-extrabold text-slate-700 hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all cursor-pointer shadow-sm"
                         >
                           Editar
                         </button>
@@ -321,10 +338,12 @@ export default function ColaTrabajoScreen() {
             </tbody>
           </table>
         </div>
+          </div>
+        </div>
 
         {/* Paginación de 15 por página al pie de la tabla */}
         {pedidosActivos.length > 0 && (
-          <div className="px-4 py-3 sm:px-6 sm:py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 text-xs text-slate-600 shrink-0">
+          <div className="px-4 py-3 sm:px-6 sm:py-4 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 text-xs text-slate-600 shrink-0">
             <span>
               Mostrando <span className="font-bold text-slate-800">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> - <span className="font-bold text-slate-800">{Math.min(currentPage * ITEMS_PER_PAGE, pedidosActivos.length)}</span> de <span className="font-bold text-slate-800">{pedidosActivos.length}</span> pedidos
             </span>
@@ -333,7 +352,7 @@ export default function ColaTrabajoScreen() {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                className="flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm"
               >
                 <ChevronLeft className="w-4 h-4" /> Anterior
               </button>
@@ -343,7 +362,7 @@ export default function ColaTrabajoScreen() {
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                className="flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm"
               >
                 Siguiente <ChevronRight className="w-4 h-4" />
               </button>
