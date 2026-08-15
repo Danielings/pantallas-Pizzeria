@@ -195,18 +195,9 @@ export default function OrderItem({ item }) {
           {/* Size selector */}
           {hasSize && (
             <div className="relative flex-1">
-              <select
-                value={item.size || ""}
-                onChange={(e) => updateItemSize(item.id, e.target.value)}
-                className="input-field py-1.5 text-xs appearance-none pr-6 cursor-pointer"
-              >
-                {SIZE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-pizza-muted pointer-events-none" />
+              <p className="text-sm border px-2 py-1 rounded ml-2">
+                {item.size}
+              </p>
             </div>
           )}
 

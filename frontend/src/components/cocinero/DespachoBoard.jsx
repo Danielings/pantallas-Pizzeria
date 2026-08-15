@@ -117,6 +117,7 @@ export default function DespachoBoard() {
             order={order}
             isFirst={isSwapping ? true : idx === 0}
             variant={isSwapping ? "orange" : "yellow"}
+            compactText={true}
             primaryBtnLabel={isSwapping ? "Seleccionar para Cambio" : "Listo"}
             onPrimary={() => {
               if (isSwapping) {
@@ -143,6 +144,7 @@ export default function DespachoBoard() {
             variant="orange"
             primaryBtnLabel="Entregar"
             onPrimary={() => handlePendienteComplete(order)}
+            compactText={true}
           />
         )}
       />
@@ -159,6 +161,7 @@ export default function DespachoBoard() {
             order={order}
             isFirst={true}
             variant="green"
+            compactText={true}
             primaryBtnLabel={isLocalOrder(order) ? "Entregado" : "Entregar"}
             onPrimary={() => handleDespachoComplete(order)}
             secondaryBtnLabel="Pendiente"

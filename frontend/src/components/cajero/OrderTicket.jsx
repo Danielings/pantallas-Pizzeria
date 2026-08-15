@@ -60,7 +60,7 @@ export default function OrderTicket({ onCheckout }) {
               <div className="text-right">
                 <div className="text-slate-800 font-extrabold text-lg sm:text-xl">${total.toFixed(2)}</div>
                 {exchangeRate > 0 && (
-                  <div className="text-slate-500 text-xs font-semibold mt-0.5">
+                  <div className="text-slate-500 text-sm font-semibold mt-0.5">
                     Bs. {(total * exchangeRate).toFixed(2)}
                   </div>
                 )}

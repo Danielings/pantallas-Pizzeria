@@ -65,6 +65,7 @@ export default function MeseroBoard() {
                 order={order}
                 isFirst={true}
                 variant="green"
+                compactText={true}
                 primaryBtnLabel="Entregado en Mesa"
                 onPrimary={() => handleEntregadoEnMesa(order)}
               />

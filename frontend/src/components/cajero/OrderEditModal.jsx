@@ -304,7 +304,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/65 backdrop-blur-sm"
+        className="fixed inset-0 z-[80] flex items-center justify-center p-3 bg-slate-900/65 backdrop-blur-sm"
         onClick={onClose}
       >
         <div

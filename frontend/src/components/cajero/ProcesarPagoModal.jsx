@@ -165,7 +165,7 @@ export default function ProcesarPagoModal({
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop z-[90]" onClick={onClose}>
       <div
         className="modal-content w-full max-w-[520px] overflow-hidden max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
