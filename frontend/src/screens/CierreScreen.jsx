@@ -54,7 +54,23 @@ export default function CierreScreen() {
   };
 
   const handleStartCierre = async () => {
-    // 1. Verificar pedidos pendientes primero
+    if (!data || data.total_divisa <= 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Caja sin Movimientos",
+        text: "No se puede efectuar el cierre de caja porque los montos se encuentran en 0Bs/$.",
+        confirmButtonColor: "#EA2A33",
+        background: "#ffffff",
+        customClass: {
+          popup: "rounded-2xl font-sans shadow-xl border border-slate-100",
+          title: "text-base font-black text-slate-800",
+          confirmButton: "px-5 py-2.5 font-bold rounded-xl text-sm",
+        },
+      });
+      return;
+    }
+
+    // 2. Verificar pedidos pendientes primero
     try {
       const check = await axios.get(`${API}/cierre/pedidos-pendientes`, {
         withCredentials: true,
@@ -95,7 +111,7 @@ export default function CierreScreen() {
       return;
     }
 
-    // 2. Si no hay pendientes, mostrar confirmación
+    // 3. Si no hay pendientes y los montos son > 0, mostrar confirmación
     Swal.fire({
       title: "¿Efectuar Cierre de Caja?",
       text: "¿Está seguro de que desea iniciar el proceso de cierre de caja para el día de hoy?",

@@ -205,17 +205,19 @@ export const cerrarCaja = async (req, res) => {
   }
 
   let connection;
+  const LIMITE_CIERRES_DIARIOS = 3;
 
   try {
     connection = await pool.getConnection();
 
     const [adminRows] = await connection.execute(
-      `SELECT id_usuario 
-       FROM usuarios 
-       WHERE (rol = 'admin' OR rol = 'cashier') 
-         AND estado = 'Activo' 
-         AND pin = ? 
-       LIMIT 1`,
+      `SELECT u.id_usuario 
+      FROM usuarios u
+      INNER JOIN pin p ON u.id_usuario = p.id_usuario
+      WHERE (u.rol = 'admin' OR u.rol = 'cashier') 
+        AND u.estado = 'Activo' 
+        AND p.pin = ? 
+      LIMIT 1`,
       [String(pin).trim()],
     );
 
@@ -224,6 +226,23 @@ export const cerrarCaja = async (req, res) => {
       return res
         .status(401)
         .json({ success: false, mensaje: "Clave de cierre incorrecta" });
+    }
+
+    const [cierresHoy] = await connection.execute(
+      `SELECT COUNT(*) as totalCierres 
+       FROM cierres_caja 
+       WHERE DATE(fecha_hora) = CURDATE()`,
+    );
+
+    const totalCierresRealizados = cierresHoy[0].totalCierres;
+
+    if (totalCierresRealizados >= LIMITE_CIERRES_DIARIOS) {
+      connection.release();
+      return res.status(403).json({
+        success: false,
+        mensaje: `Límite alcanzado: Ya se han realizado los ${LIMITE_CIERRES_DIARIOS} cierres permitidos para hoy.`,
+        cierres_restantes: 0,
+      });
     }
 
     const usuarioEjecutor = Number(id_usuario || adminRows[0].id_usuario || 0);
@@ -266,11 +285,15 @@ export const cerrarCaja = async (req, res) => {
 
     await connection.commit();
 
+    const cierresRestantes =
+      LIMITE_CIERRES_DIARIOS - (totalCierresRealizados + 1);
+
     return res.status(200).json({
       ok: true,
       success: true,
-      mensaje: "Cierre de caja realizado exitosamente",
+      mensaje: `Cierre de caja realizado exitosamente. Te quedan ${cierresRestantes} cierres disponibles por hoy.`,
       id_cierre: insertResult.insertId,
+      cierres_restantes: cierresRestantes,
     });
   } catch (error) {
     if (connection) {
@@ -302,7 +325,7 @@ export const obtenerHistorialCierres = async (req, res) => {
         IFNULL(AVG(total_usdt), 0) AS promedio_usd
        FROM cierres_caja 
        WHERE MONTH(fecha_hora) = MONTH(CURRENT_DATE()) 
-         AND YEAR(fecha_hora) = YEAR(CURRENT_DATE())`
+         AND YEAR(fecha_hora) = YEAR(CURRENT_DATE())`,
     );
 
     const cantidad_cierres = mesMetrics[0].cantidad_cierres;
@@ -315,24 +338,28 @@ export const obtenerHistorialCierres = async (req, res) => {
        FROM cierres_caja 
        WHERE DATE(fecha_hora) < CURDATE() 
        ORDER BY fecha_hora DESC 
-       LIMIT 1`
+       LIMIT 1`,
     );
 
-    const ultima_hora_ayer = lastClosureYesterday.length > 0 
-      ? `${lastClosureYesterday[0].hora} (${new Date(lastClosureYesterday[0].fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })})`
-      : "Ninguno";
+    const ultima_hora_ayer =
+      lastClosureYesterday.length > 0
+        ? `${lastClosureYesterday[0].hora} (${new Date(lastClosureYesterday[0].fecha).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })})`
+        : "Ninguno";
 
     // 3. Obtener el listado completo de cierres ordenados por fecha desc por defecto
     const [cierres] = await pool.query(
       `SELECT c.*, u.nombre_completo AS usuario_nombre
        FROM cierres_caja c
        INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
-       ORDER BY c.fecha_hora DESC`
+       ORDER BY c.fecha_hora DESC`,
     );
 
     // Obtener mes actual en español
-    const nombre_mes = new Date().toLocaleDateString("es-ES", { month: "long" });
-    const nombre_mes_capitalizado = nombre_mes.charAt(0).toUpperCase() + nombre_mes.slice(1);
+    const nombre_mes = new Date().toLocaleDateString("es-ES", {
+      month: "long",
+    });
+    const nombre_mes_capitalizado =
+      nombre_mes.charAt(0).toUpperCase() + nombre_mes.slice(1);
 
     return res.status(200).json({
       success: true,
@@ -341,13 +368,15 @@ export const obtenerHistorialCierres = async (req, res) => {
         cantidad_cierres,
         total_usd,
         promedio_usd,
-        ultima_hora_ayer
+        ultima_hora_ayer,
       },
-      cierres
+      cierres,
     });
   } catch (error) {
     console.error("Error al obtener historial de cierres:", error);
-    return res.status(500).json({ success: false, mensaje: "Error interno del servidor" });
+    return res
+      .status(500)
+      .json({ success: false, mensaje: "Error interno del servidor" });
   }
 };
 
@@ -355,14 +384,17 @@ export const obtenerHistorialCierres = async (req, res) => {
 export const obtenerCajeros = async (req, res) => {
   try {
     const [cajeros] = await pool.query(
-      `SELECT id_usuario, nombre_completo, email, pin 
-       FROM usuarios 
-       WHERE rol = 'cashier' AND estado = 'Activo'`
+      `SELECT u.id_usuario, u.nombre_completo, u.email, p.pin 
+       FROM usuarios u
+       LEFT JOIN pin p ON u.id_usuario = p.id_usuario
+       WHERE rol = 'cashier' AND estado = 'Activo'`,
     );
     return res.status(200).json({ success: true, cajeros });
   } catch (error) {
     console.error("Error al obtener cajeros:", error);
-    return res.status(500).json({ success: false, mensaje: "Error interno del servidor" });
+    return res
+      .status(500)
+      .json({ success: false, mensaje: "Error interno del servidor" });
   }
 };
 
@@ -371,26 +403,56 @@ export const actualizarPinCajero = async (req, res) => {
   const { id_usuario, pin } = req.body;
 
   if (!id_usuario) {
-    return res.status(400).json({ success: false, mensaje: "ID de usuario requerido" });
+    return res
+      .status(400)
+      .json({ success: false, mensaje: "ID de usuario requerido" });
   }
 
   // Validar PIN de 4 números
   const pinRegex = /^\d{4}$/;
   if (pin !== null && pin !== "" && !pinRegex.test(String(pin))) {
-    return res.status(400).json({ success: false, mensaje: "El PIN debe tener exactamente 4 números" });
+    return res.status(400).json({
+      success: false,
+      mensaje: "El PIN debe tener exactamente 4 números",
+    });
   }
 
   try {
-    await pool.query(
-      `UPDATE usuarios 
-       SET pin = ? 
-       WHERE id_usuario = ? AND rol = 'cashier'`,
-      [pin || null, id_usuario]
+    const [user] = await pool.query(
+      `SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND rol = 'cashier'`,
+      [id_usuario],
     );
-    return res.status(200).json({ success: true, mensaje: "PIN actualizado correctamente" });
+
+    if (user.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, mensaje: "Cajero no encontrado" });
+    }
+
+    const [pinExistente] = await pool.query(
+      `SELECT id_pin FROM pin WHERE id_usuario = ?`,
+      [id_usuario],
+    );
+
+    if (pinExistente.length > 0) {
+      await pool.query(`UPDATE pin SET pin = ? WHERE id_usuario = ?`, [
+        pin || null,
+        id_usuario,
+      ]);
+    } else {
+      await pool.query(`INSERT INTO pin (id_usuario, pin) VALUES (?, ?)`, [
+        id_usuario,
+        pin || null,
+      ]);
+    }
+
+    return res
+      .status(200)
+      .json({ success: true, mensaje: "PIN actualizado correctamente" });
   } catch (error) {
     console.error("Error al actualizar PIN de cajero:", error);
-    return res.status(500).json({ success: false, mensaje: "Error interno del servidor" });
+    return res
+      .status(500)
+      .json({ success: false, mensaje: "Error interno del servidor" });
   }
 };
-
