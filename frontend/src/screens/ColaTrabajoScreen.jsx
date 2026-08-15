@@ -4,55 +4,35 @@ import {
   Pizza,
   DollarSign,
   ShoppingBag,
-  CheckCircle2,
   Clock,
-  Flame,
   TrendingUp,
-  Users,
   CalendarDays,
   ArrowUpRight,
   Edit3,
+  RefreshCw,
+  Package,
+  ChevronLeft,
+  ChevronRight,
+  MessageSquare,
 } from "lucide-react";
-import JobQueue from "../components/cajero/JobQueue";
 import OrderEditModal from "../components/cajero/OrderEditModal";
 
-const STATUS_LABELS = {
-  pending: {
-    label: "Pendiente",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    dot: "bg-amber-400",
-  },
-  preparing: {
-    label: "En Cocina",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    dot: "bg-blue-400",
-  },
-  baking: {
-    label: "En Horno",
-    color: "text-orange-600",
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-    dot: "bg-orange-400",
-  },
-  ready: {
-    label: "Listo",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
-    dot: "bg-emerald-400",
-  },
-  completed: {
-    label: "Entregado",
-    color: "text-slate-500",
-    bg: "bg-slate-50",
-    border: "border-slate-200",
-    dot: "bg-slate-400",
-  },
+// ─── CONFIGURACIONES DE ESTADO Y DESPACHO ────────────────────────────────────
+const DESPACHO_BADGES = {
+  Local:    { label: "Local",    bg: "bg-blue-100",   text: "text-blue-700",   border: "border-blue-200" },
+  Llevar:   { label: "Llevar",   bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-200" },
+  Delivery: { label: "Delivery", bg: "bg-red-100",    text: "text-red-700",    border: "border-red-200" },
+  "Pick Up":{ label: "Pick Up",  bg: "bg-green-100",  text: "text-green-700",  border: "border-green-200" },
 };
+
+const ESTADO_BADGES = {
+  Pendiente:  { label: "Pendiente", bg: "bg-amber-100",  text: "text-amber-800",  dot: "bg-amber-500" },
+  Preparado:  { label: "En Prep.",  bg: "bg-blue-100",   text: "text-blue-800",   dot: "bg-blue-500" },
+  Horno:      { label: "En Horno",  bg: "bg-orange-100", text: "text-orange-800", dot: "bg-orange-500" },
+  Completado: { label: "Listo ✓",   bg: "bg-emerald-100",text: "text-emerald-800",dot: "bg-emerald-500" },
+};
+
+const ITEMS_PER_PAGE = 15;
 
 function getElapsed(iso) {
   const mins = Math.floor((Date.now() - new Date(iso)) / 60000);
@@ -61,159 +41,95 @@ function getElapsed(iso) {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 }
 
-function KpiCard({ icon: Icon, label, value, sub, iconBg, iconColor, trend }) {
+// ─── KPI CARD ─────────────────────────────────────────────────────────────────
+function KpiCard({ icon: Icon, label, value, sub, iconBg, iconColor, trend, loading }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-4 group hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div
-          className={`w-12 h-12 rounded-xl ${iconBg} flex items-center justify-center`}
-        >
-          <Icon className={`w-6 h-6 ${iconColor}`} />
+    <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+      <div className="min-w-0">
+        <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+          {label}
+        </p>
+        <div className="flex items-end gap-2">
+          {loading ? (
+            <div className="h-9 w-24 bg-slate-100 rounded-md animate-pulse" />
+          ) : (
+            <h3 className="text-4xl font-black text-slate-800 leading-none whitespace-nowrap shrink-0">
+              {value}
+            </h3>
+          )}
+          {sub && (
+            <span className="text-slate-400 font-bold text-sm mb-1 truncate">
+              {sub}
+            </span>
+          )}
         </div>
         {trend && (
-          <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+          <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
             <ArrowUpRight className="w-3 h-3" />
             {trend}
           </span>
         )}
       </div>
-      <div>
-        <p className="text-3xl font-extrabold text-slate-800 tracking-tight leading-none">
-          {value}
-        </p>
-        <p className="text-sm font-semibold text-slate-500 mt-1.5">{label}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-function OrderRow({ order }) {
-  const cfg = STATUS_LABELS[order.status] || STATUS_LABELS.pending;
-  const isCompleted = order.status === "completed";
-  const [openEdit, setOpenEdit] = useState(false);
-  const { products } = useApp();
-  const hasPizza =
-    products &&
-    products.pizzas &&
-    order.items.some((i) => products.pizzas.find((p) => p.name === i.name));
-
-  return (
-    <div
-      className={`flex items-center gap-4 px-5 py-4 border-b border-slate-50 hover:bg-slate-50/80 transition-colors group`}
-    >
-      {/* Order ID & Time */}
-      <div className="w-24 shrink-0">
-        <p className="font-extrabold text-slate-800 text-sm">{order.id}</p>
-        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-          <Clock className="w-3 h-3" />
-          {getElapsed(order.createdAt)}
-        </p>
-      </div>
-
-      {/* Items summary */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-700 truncate">
-          {order.items.map((i) => `${i.qty}x ${i.name}`).join(", ")}
-        </p>
-        <p className="text-xs text-slate-400 mt-0.5">{order.table || "POS"}</p>
-      </div>
-
-      {/* Total */}
-      <div className="text-right shrink-0 w-20">
-        <p className="font-bold text-slate-800">
-          ${order.total?.toFixed(2) || "—"}
-        </p>
-      </div>
-
-      {/* Status badge */}
       <div
-        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.bg} ${cfg.color} ${cfg.border}`}
+        className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center shrink-0 transition-colors`}
       >
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${!isCompleted ? "animate-pulse" : ""}`}
-        ></span>
-        {cfg.label}
+        <Icon className={`w-7 h-7 ${iconColor}`} />
       </div>
-
-      {/* Actions column */}
-      {hasPizza ? (
-        <div className="w-28 flex items-center justify-center">
-          <button
-            onClick={() => setOpenEdit(true)}
-            className="px-3 py-1.5 rounded-lg border bg-white text-sm flex items-center gap-2"
-          >
-            <Edit3 className="w-4 h-4" /> Editar
-          </button>
-        </div>
-      ) : (
-        <div className="w-28 flex items-center justify-center text-xs text-slate-400">
-          No editable
-        </div>
-      )}
-
-      {openEdit && (
-        <OrderEditModal order={order} onClose={() => setOpenEdit(false)} />
-      )}
     </div>
   );
 }
 
+// ─── PANTALLA PRINCIPAL ───────────────────────────────────────────────────────
 export default function ColaTrabajoScreen() {
-  const { orders, sales } = useApp();
+  const { metricsHoy, pedidosActivos, fetchVentasHoy, fetchPedidosActivos } = useApp();
+  const [editState, setEditState] = useState(null); // { pedido, displayNum }
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const today = new Date().toDateString();
+  const loading = metricsHoy === null;
 
-  // All today's sales (historical completed)
-  const todaySales = useMemo(
-    () => sales.filter((s) => new Date(s.date).toDateString() === today),
-    [sales, today],
-  );
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchVentasHoy(), fetchPedidosActivos()]);
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
-  // Active orders
-  const activeOrders = orders;
+  const totalRevenue = metricsHoy?.totalRevenue ?? 0;
+  const totalPizzas = metricsHoy?.totalPizzas ?? 0;
+  const avgTicket = metricsHoy?.avgTicket ?? 0;
+  const totalTx = metricsHoy?.totalTransactions ?? 0;
+  const activos = pedidosActivos.length;
 
-  // Metrics
-  const totalRevenue = useMemo(
-    () => todaySales.reduce((sum, s) => sum + s.total, 0),
-    [todaySales],
-  );
+  // Mapa de número cronológico del día (#1, #2, ...)
+  const numMap = useMemo(() => {
+    const sorted = [...pedidosActivos].sort(
+      (a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora)
+    );
+    return Object.fromEntries(sorted.map((p, i) => [p.id_venta, i + 1]));
+  }, [pedidosActivos]);
 
-  const totalPizzas = useMemo(
-    () => todaySales.reduce((sum, s) => sum + s.items, 0),
-    [todaySales],
-  );
-
-  const completedOrders = useMemo(
-    () => activeOrders.filter((o) => o.status === "completed").length,
-    [activeOrders],
-  );
-
-  const pendingOrders = useMemo(
-    () => activeOrders.filter((o) => o.status !== "completed").length,
-    [activeOrders],
-  );
-
-  const avgTicket =
-    todaySales.length > 0 ? totalRevenue / todaySales.length : 0;
-
-  // All orders to show: active + completed, sorted newest first
-  const allOrders = [...activeOrders].sort(
-    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-  );
+  // Paginación (15 elementos por página)
+  const totalPages = Math.max(1, Math.ceil(pedidosActivos.length / ITEMS_PER_PAGE));
+  const paginatedPedidos = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return pedidosActivos.slice(start, start + ITEMS_PER_PAGE);
+  }, [pedidosActivos, currentPage]);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-6 py-5 shrink-0">
-        <div className="flex items-center justify-between">
+    <div className="w-full h-full overflow-y-auto bg-slate-50 p-3 sm:p-4 md:p-6 flex flex-col gap-4 md:gap-6">
+      
+      {/* Header Superior */}
+      <div className="bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 shadow-sm shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-11 h-11 bg-pizza-red/10 rounded-xl flex items-center justify-center shrink-0">
+            <ShoppingBag className="w-5 h-5 text-pizza-red" />
+          </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-              <ShoppingBag className="w-6 h-6 text-pizza-red" />
-              Pedidos del Día
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+              Cola de Trabajo
             </h1>
-            <p className="text-sm text-slate-500 mt-0.5 capitalize flex items-center gap-1.5">
-              <CalendarDays className="w-3.5 h-3.5" />
+            <p className="text-xs font-medium text-slate-500 mt-0.5 capitalize flex items-center gap-1">
+              <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
               {new Date().toLocaleDateString("es-ES", {
                 weekday: "long",
                 day: "numeric",
@@ -222,106 +138,248 @@ export default function ColaTrabajoScreen() {
               })}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {pendingOrders > 0 && (
-              <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full">
-                <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
-                {pendingOrders} activo{pendingOrders !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {activos > 0 && (
+            <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold px-3 py-1.5 rounded-full">
+              <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+              {activos} pedido{activos !== 1 ? "s" : ""} activo{activos !== 1 ? "s" : ""}
+            </span>
+          )}
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-1.5 text-xs font-extrabold text-white bg-slate-900 hover:bg-black border border-slate-800 px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            Actualizar
+          </button>
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto p-6 hide-scrollbar">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-          <KpiCard
-            icon={DollarSign}
-            label="Ingresos del Día"
-            value={`$${totalRevenue.toFixed(2)}`}
-            sub={`${todaySales.length} transacciones`}
-            iconBg="bg-red-50"
-            iconColor="text-pizza-red"
-            trend="+12%"
-          />
-          <KpiCard
-            icon={Pizza}
-            label="Pizzas Vendidas"
-            value={totalPizzas}
-            sub="Unidades totales"
-            iconBg="bg-orange-50"
-            iconColor="text-orange-500"
-            trend="+8%"
-          />
-          <KpiCard
-            icon={ShoppingBag}
-            label="Pedidos Totales"
-            value={todaySales.length + activeOrders.length}
-            sub={`${completedOrders} entregados · ${pendingOrders} activos`}
-            iconBg="bg-blue-50"
-            iconColor="text-blue-500"
-          />
-          <KpiCard
-            icon={TrendingUp}
-            label="Ticket Promedio"
-            value={`$${avgTicket.toFixed(2)}`}
-            sub="Por pedido"
-            iconBg="bg-emerald-50"
-            iconColor="text-emerald-500"
-            trend="+5%"
-          />
-        </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+        <KpiCard
+          icon={DollarSign}
+          label="Ingresos del Día"
+          value={`$${totalRevenue.toFixed(2)}`}
+          sub={`${totalTx} ventas`}
+          iconBg="bg-red-50"
+          iconColor="text-pizza-red"
+          loading={loading}
+        />
+        <KpiCard
+          icon={Pizza}
+          label="Pizzas Vendidas"
+          value={totalPizzas}
+          sub="Unidades vendidas"
+          iconBg="bg-orange-50"
+          iconColor="text-orange-500"
+          loading={loading}
+        />
+        <KpiCard
+          icon={ShoppingBag}
+          label="Pedidos Activos"
+          value={activos}
+          sub={`${totalTx} ventas hoy`}
+          iconBg="bg-blue-50"
+          iconColor="text-blue-500"
+          loading={loading}
+        />
+        <KpiCard
+          icon={TrendingUp}
+          label="Ticket Promedio"
+          value={`$${avgTicket.toFixed(2)}`}
+          sub="Por pedido"
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-500"
+          loading={loading}
+        />
+      </div>
 
-        {/* Job queue horizontal */}
-        <div className="mb-6">
-          <h3 className="font-bold text-slate-700 mb-3">Cola de Trabajos</h3>
-        </div>
-
-        {/* Orders list */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          {/* Table header */}
-          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="font-bold text-slate-800">Historial de Pedidos</h2>
-            <span className="text-xs text-slate-400 font-medium">
-              {allOrders.length} pedido(s)
+      {/* Tabla Limpia de Pedidos */}
+      <div className="flex-1 flex flex-col min-h-[520px] bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm">
+        <div className="bg-white px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between items-start gap-2 lg:gap-0 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+            <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center gap-2.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
+              </div>
+              Historial y Cola de Pedidos
+            </h2>
+            <span className="bg-emerald-100 text-emerald-700 text-xs sm:text-sm font-black px-3 py-1.5 rounded-full border border-emerald-200/50 shadow-sm shrink-0">
+              {pedidosActivos.length} Pedidos
             </span>
           </div>
+          <p className="text-xs font-medium text-slate-500">
+            Pedidos registrados hoy
+          </p>
+        </div>
 
-          <div className="divide-y divide-slate-50">
-            {/* Column labels */}
-            <div className="flex items-center gap-4 px-5 py-2.5 bg-slate-50/60">
-              <span className="w-24 shrink-0 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Pedido
-              </span>
-              <span className="flex-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Detalle
-              </span>
-              <span className="w-20 shrink-0 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Total
-              </span>
-              <span className="shrink-0 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-28 text-center">
-                Estado
-              </span>
-              <span className="shrink-0 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-28 text-center">
-                Acciones
-              </span>
-            </div>
+        <div className="flex-1 overflow-auto bg-slate-50/30 p-3 sm:p-4 md:p-5">
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Pedido</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Cliente</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Tipo Despacho</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">Productos / Detalle</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5 text-right">Total</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5 text-center">Estado</th>
+                <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm">
+              {pedidosActivos.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-20 text-center text-slate-400">
+                    <Package className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-slate-600 text-base">No hay pedidos activos</p>
+                    <p className="text-xs">Los nuevos pedidos se listarán aquí</p>
+                  </td>
+                </tr>
+              ) : (
+                paginatedPedidos.map((pedido) => {
+                  const num = numMap[pedido.id_venta] ?? 1;
+                  const despacho = DESPACHO_BADGES[pedido.despacho] || DESPACHO_BADGES.Local;
 
-            {allOrders.length === 0 ? (
-              <div className="py-16 flex flex-col items-center gap-3 text-slate-300">
-                <ShoppingBag className="w-12 h-12" />
-                <p className="font-semibold">Sin pedidos registrados hoy</p>
-              </div>
-            ) : (
-              allOrders.map((order) => (
-                <OrderRow key={order.id} order={order} />
-              ))
-            )}
+                  // Estado más crítico
+                  const estados = pedido.detalles?.map((d) => d.estado_detalle) || [];
+                  let estadoObj = ESTADO_BADGES.Completado;
+                  if (estados.includes("Pendiente")) estadoObj = ESTADO_BADGES.Pendiente;
+                  else if (estados.includes("Preparado")) estadoObj = ESTADO_BADGES.Preparado;
+                  else if (estados.includes("Horno")) estadoObj = ESTADO_BADGES.Horno;
+
+                  // Observación general si existe
+                  const obs = pedido.detalles?.find((d) => d.nota && d.nota.trim())?.nota;
+
+                  return (
+                    <tr key={pedido.id_venta} className="hover:bg-slate-50/80 transition-colors">
+                      {/* Pedido # + Tiempo */}
+                      <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5 whitespace-nowrap">
+                        <span className="font-bold text-slate-800 text-base">
+                          #{String(num).padStart(3, "0")}
+                        </span>
+                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5 font-medium">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          {getElapsed(pedido.fecha_hora)}
+                        </div>
+                      </td>
+
+                      {/* Cliente */}
+                      <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5 whitespace-nowrap">
+                        <p className="font-semibold text-slate-800 text-sm">
+                          {pedido.nombre_cliente || "Sin cliente"}
+                        </p>
+                        {pedido.cedula_cliente && (
+                          <p className="text-xs text-slate-400">V-{pedido.cedula_cliente}</p>
+                        )}
+                      </td>
+
+                      {/* Tipo Despacho */}
+                      <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5 whitespace-nowrap">
+                        <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-md border ${despacho.bg} ${despacho.text} ${despacho.border}`}>
+                          {despacho.label}
+                        </span>
+                      </td>
+
+                      {/* Detalle */}
+                      <td className="py-4 px-6">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-wrap gap-1.5">
+                            {pedido.detalles?.map((d, i) => (
+                              <span key={i} className="text-xs bg-slate-100 text-slate-800 px-2.5 py-1 rounded font-medium border border-slate-200/60">
+                                <span className="font-bold">{d.cantidad}x</span> {d.nombre_producto || d.tipo_producto}
+                                {d.extras?.length > 0 && (
+                                  <span className="text-pizza-red ml-1 font-bold">
+                                    (+{d.extras.length} ext)
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                          {obs && (
+                            <p className="text-xs text-amber-700 font-medium flex items-center gap-1 mt-0.5">
+                              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">"{obs}"</span>
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Total */}
+                      <td className="py-4 px-6 text-right font-black text-slate-800 text-base whitespace-nowrap">
+                        ${pedido.monto_total_usd?.toFixed(2) ?? "—"}
+                      </td>
+
+                      {/* Estado */}
+                      <td className="py-4 px-6 text-center whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${estadoObj.bg} ${estadoObj.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${estadoObj.dot}`} />
+                          {estadoObj.label}
+                        </span>
+                      </td>
+
+                      {/* Acciones */}
+                      <td className="py-4 px-6 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => setEditState({ pedido: JSON.parse(JSON.stringify(pedido)), displayNum: num })}
+                          className="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-extrabold text-slate-700 hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all cursor-pointer shadow-sm"
+                        >
+                          Editar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
           </div>
         </div>
+
+        {/* Paginación de 15 por página al pie de la tabla */}
+        {pedidosActivos.length > 0 && (
+          <div className="px-4 py-3 sm:px-6 sm:py-4 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 text-xs text-slate-600 shrink-0">
+            <span>
+              Mostrando <span className="font-bold text-slate-800">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> - <span className="font-bold text-slate-800">{Math.min(currentPage * ITEMS_PER_PAGE, pedidosActivos.length)}</span> de <span className="font-bold text-slate-800">{pedidosActivos.length}</span> pedidos
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm"
+              >
+                <ChevronLeft className="w-4 h-4" /> Anterior
+              </button>
+              <span className="font-bold text-slate-800 px-2">
+                Página {currentPage} de {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm"
+              >
+                Siguiente <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Modal de edición */}
+      {editState && (
+        <OrderEditModal
+          key={editState.pedido.id_venta}
+          pedido={editState.pedido}
+          displayNum={editState.displayNum}
+          onClose={() => setEditState(null)}
+        />
+      )}
     </div>
   );
 }
