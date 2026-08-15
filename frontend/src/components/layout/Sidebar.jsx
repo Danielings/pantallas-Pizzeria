@@ -13,6 +13,7 @@ import {
   DollarSign,
   Menu,
   X,
+  Archive,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -70,6 +71,11 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       id: "productos",
       name: "Productos",
       icon: <Package className="w-5 h-5" />,
+    },
+    {
+      id: "cierres",
+      name: "Cierres",
+      icon: <Archive className="w-5 h-5" />,
     },
     {
       id: "tasa",

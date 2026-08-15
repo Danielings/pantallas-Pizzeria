@@ -290,3 +290,107 @@ export const cerrarCaja = async (req, res) => {
     if (connection) connection.release();
   }
 };
+
+// Obtener historial de cierres y métricas para el panel de administración
+export const obtenerHistorialCierres = async (req, res) => {
+  try {
+    // 1. Métricas del mes actual
+    const [mesMetrics] = await pool.query(
+      `SELECT 
+        COUNT(*) AS cantidad_cierres,
+        IFNULL(SUM(total_usdt), 0) AS total_usd,
+        IFNULL(AVG(total_usdt), 0) AS promedio_usd
+       FROM cierres_caja 
+       WHERE MONTH(fecha_hora) = MONTH(CURRENT_DATE()) 
+         AND YEAR(fecha_hora) = YEAR(CURRENT_DATE())`
+    );
+
+    const cantidad_cierres = mesMetrics[0].cantidad_cierres;
+    const total_usd = Number(mesMetrics[0].total_usd);
+    const promedio_usd = Number(mesMetrics[0].promedio_usd);
+
+    // 2. Última hora de cierre del día anterior (o el último cierre antes de hoy)
+    const [lastClosureYesterday] = await pool.query(
+      `SELECT DATE_FORMAT(fecha_hora, '%h:%i %p') AS hora, DATE(fecha_hora) AS fecha
+       FROM cierres_caja 
+       WHERE DATE(fecha_hora) < CURDATE() 
+       ORDER BY fecha_hora DESC 
+       LIMIT 1`
+    );
+
+    const ultima_hora_ayer = lastClosureYesterday.length > 0 
+      ? `${lastClosureYesterday[0].hora} (${new Date(lastClosureYesterday[0].fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })})`
+      : "Ninguno";
+
+    // 3. Obtener el listado completo de cierres ordenados por fecha desc por defecto
+    const [cierres] = await pool.query(
+      `SELECT c.*, u.nombre_completo AS usuario_nombre
+       FROM cierres_caja c
+       INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
+       ORDER BY c.fecha_hora DESC`
+    );
+
+    // Obtener mes actual en español
+    const nombre_mes = new Date().toLocaleDateString("es-ES", { month: "long" });
+    const nombre_mes_capitalizado = nombre_mes.charAt(0).toUpperCase() + nombre_mes.slice(1);
+
+    return res.status(200).json({
+      success: true,
+      metrics: {
+        mes: nombre_mes_capitalizado,
+        cantidad_cierres,
+        total_usd,
+        promedio_usd,
+        ultima_hora_ayer
+      },
+      cierres
+    });
+  } catch (error) {
+    console.error("Error al obtener historial de cierres:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno del servidor" });
+  }
+};
+
+// Obtener cajeros activos para gestionar su PIN de cierre
+export const obtenerCajeros = async (req, res) => {
+  try {
+    const [cajeros] = await pool.query(
+      `SELECT id_usuario, nombre_completo, email, pin 
+       FROM usuarios 
+       WHERE rol = 'cashier' AND estado = 'Activo'`
+    );
+    return res.status(200).json({ success: true, cajeros });
+  } catch (error) {
+    console.error("Error al obtener cajeros:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno del servidor" });
+  }
+};
+
+// Actualizar el PIN de cierre de un cajero (debe ser de 4 dígitos)
+export const actualizarPinCajero = async (req, res) => {
+  const { id_usuario, pin } = req.body;
+
+  if (!id_usuario) {
+    return res.status(400).json({ success: false, mensaje: "ID de usuario requerido" });
+  }
+
+  // Validar PIN de 4 números
+  const pinRegex = /^\d{4}$/;
+  if (pin !== null && pin !== "" && !pinRegex.test(String(pin))) {
+    return res.status(400).json({ success: false, mensaje: "El PIN debe tener exactamente 4 números" });
+  }
+
+  try {
+    await pool.query(
+      `UPDATE usuarios 
+       SET pin = ? 
+       WHERE id_usuario = ? AND rol = 'cashier'`,
+      [pin || null, id_usuario]
+    );
+    return res.status(200).json({ success: true, mensaje: "PIN actualizado correctamente" });
+  } catch (error) {
+    console.error("Error al actualizar PIN de cajero:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno del servidor" });
+  }
+};
+
