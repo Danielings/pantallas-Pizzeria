@@ -201,7 +201,7 @@ export default function ClientesPrincipalesScreen() {
   }, [topClients, search]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 p-6 hide-scrollbar flex flex-col gap-6">
+    <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 hide-scrollbar flex flex-col gap-4 sm:gap-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div>
@@ -225,7 +225,7 @@ export default function ClientesPrincipalesScreen() {
       </div>
 
       {/* Cards de estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 shrink-0">
         {/* Clientes VIP */}
         <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
@@ -308,9 +308,9 @@ export default function ClientesPrincipalesScreen() {
       </div>
 
       {/* Cuadrícula central */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Métodos de Pago más Usados */}
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col min-w-0">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-slate-800 font-extrabold text-base">
@@ -393,7 +393,7 @@ export default function ClientesPrincipalesScreen() {
             </div>
           </div>
 
-          <div className="flex-1 h-[180px]">
+          <div className="flex-1 h-[200px] sm:h-[240px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={topSpendersData}
@@ -437,7 +437,7 @@ export default function ClientesPrincipalesScreen() {
 
       {/* Tabla: Top 10 Clientes */}
       <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-4 sm:px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-extrabold text-slate-800 text-base">
               Clientes Top
@@ -453,7 +453,7 @@ export default function ClientesPrincipalesScreen() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[860px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-400 font-bold text-xs uppercase tracking-wider text-left">
                 <th className="px-5 py-3.5">#</th>

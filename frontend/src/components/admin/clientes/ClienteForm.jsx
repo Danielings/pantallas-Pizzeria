@@ -152,18 +152,18 @@ export default function ClienteForm({
       </Field>
 
       {/* Acciones */}
-      <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 mt-2">
         <button
           onClick={onCancel}
           disabled={isSaving}
-          className="px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] w-1/3 transition-all flex items-center justify-center gap-2"
+          className="px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] w-full sm:w-1/3 transition-all flex items-center justify-center gap-2"
         >
           <XCircle className="w-4 h-4" /> Cancelar
         </button>
         <button
           onClick={handleSubmit}
           disabled={isSaving}
-          className="flex-1 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-3 rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          className="flex-1 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-3 rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98] w-full"
         >
           <Save className="w-4 h-4" /> Guardar Cliente
         </button>

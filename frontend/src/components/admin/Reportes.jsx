@@ -110,24 +110,24 @@ export default function SalesReport() {
   const dateInputType = period === 'Día' ? 'date' : period === 'Mes' ? 'month' : 'number';
 
   return (
-    <div className="flex-1 flex flex-col gap-6 p-6 overflow-y-auto h-full bg-slate-50 hide-scrollbar">
+    <div className="flex-1 flex flex-col gap-4 p-4 sm:p-6 sm:gap-6 overflow-y-auto h-full bg-slate-50 hide-scrollbar">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-800">Reporte de Ventas</h2>
           <p className="text-slate-500 text-sm">Historial de transacciones y conciliación</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100/50 rounded-xl text-sm font-semibold transition-all">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button onClick={handleExportExcel} className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100/50 rounded-xl text-sm font-semibold transition-all flex-1 sm:flex-none">
             <FileSpreadsheet className="w-4 h-4" /> Excel
           </button>
-          <button onClick={handleExportPDF} className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-100 text-red-600 hover:bg-red-100/50 rounded-xl text-sm font-semibold transition-all">
+          <button onClick={handleExportPDF} className="flex items-center justify-center gap-2 px-4 py-2 bg-red-50 border border-red-100 text-red-600 hover:bg-red-100/50 rounded-xl text-sm font-semibold transition-all flex-1 sm:flex-none">
             <FileText className="w-4 h-4" /> PDF
           </button>
         </div>
       </div>
 
       {/* Filters & Actions */}
-      <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col lg:flex-row gap-3 items-center justify-between">
+      <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1 gap-1">
             {PERIODS.map(p => (
@@ -174,7 +174,7 @@ export default function SalesReport() {
 
       {/* Dashboard Gráfico & KPIs */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-2">
-        <div className="lg:col-span-1 flex flex-col gap-4">
+        <div className="lg:col-span-1 flex flex-col gap-4 min-w-0">
           <div className="bg-white border border-slate-100 rounded-2xl shadow-sm px-5 py-6 flex flex-col justify-center flex-1">
             <span className="text-slate-500 text-sm font-semibold mb-1">Total Transacciones</span>
             <div className="flex items-end justify-between">
@@ -195,7 +195,7 @@ export default function SalesReport() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm p-5 h-[220px] flex flex-col">
+        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm p-5 h-[220px] sm:h-[260px] flex flex-col min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-slate-700 text-sm font-bold">Tendencia de Ventas</span>
           </div>
@@ -231,7 +231,7 @@ export default function SalesReport() {
       {/* Table Card */}
       <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-[300px]">
         <div className="overflow-x-auto flex-1">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-400 font-bold text-xs uppercase tracking-wider text-left">
                 <th className="px-5 py-3.5">ID</th>
@@ -278,11 +278,11 @@ export default function SalesReport() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-slate-50/30">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-slate-100 bg-slate-50/30">
             <p className="text-slate-400 text-xs font-semibold">
               Mostrando {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, totalCount)} de {totalCount}
             </p>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap justify-center gap-1">
               <button 
                 onClick={() => setPage(p => Math.max(1, p - 1))} 
                 disabled={page === 1} 

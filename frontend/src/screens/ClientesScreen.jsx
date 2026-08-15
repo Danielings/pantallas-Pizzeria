@@ -220,7 +220,7 @@ export default function ClientesScreen() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden w-full h-full bg-slate-50">
+    <div className="flex-1 flex flex-col p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto lg:overflow-hidden w-full h-full bg-slate-50">
       {/* Header */}
       <header className="flex flex-wrap gap-4 justify-between items-center bg-white p-5 rounded-xl shadow-sm border border-slate-100 shrink-0">
         <div>
@@ -236,7 +236,7 @@ export default function ClientesScreen() {
               : `${customers.length} clientes registrados`}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col xl:flex-row items-center gap-3 w-full xl:w-auto">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -244,13 +244,13 @@ export default function ClientesScreen() {
               placeholder="Buscar por nombre, cédula o teléfono..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-72 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all"
+              className="w-full xl:w-72 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all"
             />
           </div>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all cursor-pointer"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all cursor-pointer w-full sm:w-auto"
           >
             <option value="name">Orden: Nombre</option>
             <option value="gasto-desc">Más gasto (desc)</option>
@@ -258,7 +258,7 @@ export default function ClientesScreen() {
           </select>
           <button
             onClick={openCreate}
-            className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2 active:scale-[0.98]"
+            className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2 active:scale-[0.98] w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" /> Nuevo Cliente
           </button>
@@ -266,83 +266,83 @@ export default function ClientesScreen() {
       </header>
 
       {/* Cards de estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 shrink-0">
         {/* Total Clientes */}
-        <div className="bg-red-50/70 border border-red-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-pizza-red flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(234,42,51,0.25)]">
-              <Users className="w-6 h-6" />
+        <div className="bg-red-50/70 border border-red-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-pizza-red flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(234,42,51,0.25)]">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-[11px] font-extrabold text-pizza-red uppercase tracking-wider">
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-pizza-red uppercase tracking-wider truncate">
                 Total Clientes
               </p>
-              <p className="text-slate-800 text-2xl font-black leading-none mt-1.5">
+              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1">
                 {stats.total}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-red-600 bg-red-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             En total
           </span>
         </div>
 
         {/* Clientes con Compras */}
-        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(16,185,129,0.25)]">
-              <ShoppingBag className="w-6 h-6" />
+        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(16,185,129,0.25)]">
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-[11px] font-extrabold text-emerald-500 uppercase tracking-wider">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-extrabold text-emerald-500 uppercase tracking-wider truncate">
                 Con Compras
               </p>
-              <p className="text-slate-800 text-2xl font-black leading-none mt-1.5">
+              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5">
                 {stats.conCompras}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Con ventas
           </span>
         </div>
 
         {/* Ventas Totales */}
-        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.25)]">
-              <DollarSign className="w-6 h-6" />
+        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.25)]">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-[11px] font-extrabold text-blue-500 uppercase tracking-wider">
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-blue-500 uppercase tracking-wider truncate">
                 Ventas Totales
               </p>
-              <p className="text-slate-800 text-2xl font-black leading-none mt-1.5">
+              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 break-words">
                 {formatTotal(stats.ventasTotales)}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
             USD acumulado
           </span>
         </div>
 
         {/* Ticket Promedio */}
-        <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.25)]">
-              <TrendingUp className="w-6 h-6" />
+        <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.25)]">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-[11px] font-extrabold text-purple-500 uppercase tracking-wider">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-extrabold text-purple-500 uppercase tracking-wider truncate">
                 Ticket Promedio
               </p>
-              <p className="text-slate-800 text-2xl font-black leading-none mt-1.5">
+              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 break-words">
                 {formatTotal(stats.ticketPromedio)}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
             Por cliente
           </span>
         </div>
@@ -362,7 +362,7 @@ export default function ClientesScreen() {
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[860px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -445,7 +445,7 @@ export default function ClientesScreen() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEdit(customer)}
-                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-800 transition-all p-1.5 rounded-lg hover:bg-slate-100"
+                          className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-slate-400 hover:text-slate-800 transition-all p-1.5 rounded-lg hover:bg-slate-100"
                           title="Editar cliente"
                         >
                           <Pencil className="w-4 h-4" />
@@ -517,7 +517,7 @@ export default function ClientesScreen() {
       {/* Modal Crear / Editar */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in max-h-[90vh]">
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-white relative">
               <button
                 onClick={closeModal}
@@ -542,7 +542,7 @@ export default function ClientesScreen() {
               </p>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6 overflow-y-auto">
               <ClienteForm
                 initial={editingClient}
                 customers={customers}

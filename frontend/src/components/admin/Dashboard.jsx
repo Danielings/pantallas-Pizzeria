@@ -49,29 +49,29 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 text-slate-800 p-8 hide-scrollbar">
+    <div className="flex-1 overflow-y-auto bg-slate-50 text-slate-800 p-4 sm:p-6 lg:p-8 hide-scrollbar">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 lg:mb-8 gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-800 mb-1">Dashboard</h2>
           <p className="text-slate-500 text-sm">Resumen general y métricas de rendimiento de la Pizzería.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto">
+          <button className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm w-full sm:w-auto">
             <Calendar className="w-4 h-4" /> Histórico
           </button>
-          <button className="flex items-center gap-2 px-5 py-2 rounded-xl bg-pizza-red text-white text-sm font-semibold hover:bg-pizza-red-dark transition-colors shadow-[0_0_15px_rgba(234,42,51,0.2)]">
+          <button className="flex items-center justify-center gap-2 px-5 py-2 rounded-xl bg-pizza-red text-white text-sm font-semibold hover:bg-pizza-red-dark transition-colors shadow-[0_0_15px_rgba(234,42,51,0.2)] w-full sm:w-auto">
             Generar Reporte
           </button>
         </div>
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-6">
         
         {/* Total Assets Card */}
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col min-w-0 ">
           <div className="flex items-center gap-2 text-slate-500 mb-2">
             <span className="font-semibold text-sm">Ingresos Totales</span>
             <Info className="w-4 h-4" />
@@ -132,7 +132,7 @@ export default function Dashboard() {
         </div>
 
         {/* Total Investments Card */}
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col min-w-0">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 text-slate-500">
               <span className="font-semibold text-sm">Ventas Totales</span>
@@ -149,8 +149,8 @@ export default function Dashboard() {
             <span className="text-slate-500 text-xs font-medium">+$54,112.04 este año</span>
           </div>
 
-          <div className="h-[250px] w-full mt-auto relative">
-             <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[220px] sm:h-[250px] w-full mt-auto relative min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={areaData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -170,10 +170,10 @@ export default function Dashboard() {
 
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         
         {/* Total Profits Card */}
-        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm p-6">
+        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm p-4 sm:p-6 min-w-0">
           <div className="flex items-center gap-2 text-slate-500 mb-2">
             <span className="font-semibold text-sm">Ganancias Netas</span>
             <Info className="w-4 h-4" />
@@ -199,7 +199,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="h-[200px] w-full">
+          <div className="h-[180px] sm:h-[200px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -215,7 +215,7 @@ export default function Dashboard() {
         </div>
 
         {/* Ticket Promedio Card */}
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col justify-center relative overflow-hidden">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col justify-center relative overflow-hidden min-w-0">
           <div className="absolute -right-6 -top-6 w-24 h-24 bg-pizza-red/5 rounded-full blur-xl pointer-events-none"></div>
           <div className="flex items-center gap-2 text-slate-500 mb-2">
             <span className="font-semibold text-sm">Ticket Promedio</span>

@@ -89,9 +89,9 @@ export default function TasaScreen() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 p-8">
+    <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-6 lg:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-slate-800">
               Tasa del dólar
@@ -104,7 +104,7 @@ export default function TasaScreen() {
             type="button"
             onClick={loadRate}
             disabled={loading || saving}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 w-full sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Actualizar
@@ -117,12 +117,12 @@ export default function TasaScreen() {
           </div>
         ) : rate ? (
           <>
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
               <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
                 <p className="text-sm font-semibold text-slate-500">
                   Tasa del sistema
                 </p>
-                <p className="mt-3 text-3xl font-extrabold text-slate-800">
+                <p className="mt-3 text-2xl sm:text-3xl font-extrabold text-slate-800">
                   Bs. {Number(rate.tasa_sistema).toFixed(2)}
                 </p>
                 <p className="mt-2 text-xs text-slate-400">
@@ -133,7 +133,7 @@ export default function TasaScreen() {
                 <p className="text-sm font-semibold text-slate-500">
                   Tasa del BCV
                 </p>
-                <p className="mt-3 text-3xl font-extrabold text-slate-800">
+                <p className="mt-3 text-2xl sm:text-3xl font-extrabold text-slate-800">
                   Bs. {Number(rate.tasa_api).toFixed(2)}
                 </p>
                 <p className="mt-2 text-xs text-slate-400">
@@ -178,14 +178,14 @@ export default function TasaScreen() {
                     step="0.01"
                     value={manualRate}
                     onChange={(event) => setManualRate(event.target.value)}
-                    className="input-field mt-2"
+                    className="input-field mt-2 w-full"
                     placeholder="36.50"
                   />
                 </label>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-xl bg-pizza-red px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-pizza-red-dark disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-pizza-red px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-pizza-red-dark disabled:cursor-not-allowed disabled:opacity-60 w-full sm:w-auto"
                 >
                   Fijar y Anclar Tasa
                 </button>
@@ -193,7 +193,7 @@ export default function TasaScreen() {
                   type="button"
                   onClick={handleUnanchor}
                   disabled={saving || !rate.anclado}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 w-full sm:w-auto"
                 >
                   <UnlockKeyhole className="h-4 w-4" />
                   Quitar Anclaje

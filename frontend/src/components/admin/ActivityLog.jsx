@@ -94,9 +94,9 @@ export default function ActivityLog({ isWidget = false }) {
 
   // Auditing Panel Full screen view
   return (
-    <div className="flex-1 flex flex-col gap-6 h-full overflow-hidden">
+    <div className="flex-1 flex flex-col gap-4 sm:gap-6 h-full overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 p-6 rounded-2xl shadow-sm shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="bg-white border-b border-slate-100 p-4 sm:p-6 rounded-2xl shadow-sm shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
             <Terminal className="w-6 h-6 text-pizza-red" />
@@ -104,52 +104,52 @@ export default function ActivityLog({ isWidget = false }) {
           </h1>
           <p className="text-slate-500 text-sm">Registro detallado de transacciones, seguridad y operaciones del sistema</p>
         </div>
-        <button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
+        <button className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all w-full sm:w-auto">
           <RefreshCw className="w-4 h-4" />
           Actualizar Logs
         </button>
       </div>
 
       {/* KPI summaries */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex items-center justify-between">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-3 sm:p-4 flex items-center justify-between gap-2 min-w-0">
           <div>
             <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Eventos Totales</p>
-            <p className="text-2xl font-extrabold text-slate-800 mt-1">{MOCK_EXTENDED_LOGS.length}</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-800 mt-1">{MOCK_EXTENDED_LOGS.length}</p>
           </div>
           <Activity className="w-8 h-8 text-blue-500 bg-blue-50 p-1.5 rounded-lg" />
         </div>
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex items-center justify-between">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-3 sm:p-4 flex items-center justify-between gap-2 min-w-0">
           <div>
             <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Alertas Criticas</p>
-            <p className="text-2xl font-extrabold text-red-600 mt-1">2</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-red-600 mt-1">2</p>
           </div>
           <ShieldAlert className="w-8 h-8 text-red-500 bg-red-50 p-1.5 rounded-lg" />
         </div>
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex items-center justify-between">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-3 sm:p-4 flex items-center justify-between gap-2 min-w-0">
           <div>
             <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Advertencias</p>
-            <p className="text-2xl font-extrabold text-amber-600 mt-1">2</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-amber-600 mt-1">2</p>
           </div>
           <AlertTriangle className="w-8 h-8 text-amber-500 bg-amber-50 p-1.5 rounded-lg" />
         </div>
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 flex items-center justify-between">
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-3 sm:p-4 flex items-center justify-between gap-2 min-w-0">
           <div>
             <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Operadores Activos</p>
-            <p className="text-2xl font-extrabold text-emerald-600 mt-1">3</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-1">3</p>
           </div>
           <User className="w-8 h-8 text-emerald-500 bg-emerald-50 p-1.5 rounded-lg" />
         </div>
       </div>
 
       {/* Filter and Search */}
-      <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
-        <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1 gap-1 w-full md:w-auto">
+      <div className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between shrink-0">
+        <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1 gap-1 w-full md:w-auto overflow-x-auto">
           {['all', 'info', 'success', 'warning', 'danger'].map((t) => (
             <button
               key={t}
               onClick={() => setFilterType(t)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all capitalize shrink-0 ${
                 filterType === t 
                   ? 'bg-slate-800 text-white shadow-sm' 
                   : 'text-slate-500 hover:text-slate-800'
@@ -185,7 +185,7 @@ export default function ActivityLog({ isWidget = false }) {
               <p className="font-semibold">No se encontraron logs coincidentes</p>
             </div>
           ) : (
-            <div className="relative border-l border-slate-150 pl-6 ml-3 space-y-6">
+            <div className="relative border-l border-slate-150 pl-4 sm:pl-6 ml-2 sm:ml-3 space-y-4 sm:space-y-6">
               {filteredLogs.map(log => {
                 const isExpanded = expandedLog === log.id;
                 return (

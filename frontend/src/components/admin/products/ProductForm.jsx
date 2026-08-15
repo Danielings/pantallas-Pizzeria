@@ -7,10 +7,6 @@ const EMOJIS = [
   "🍦",
   "🍫",
   "🍌",
-  "🍓",
-  "🥦",
-  "🍺",
-  "🍷",
   "🥩",
   "🍍",
   "🦐",
@@ -167,7 +163,7 @@ export default function ProductForm({
       </div>
 
       {/* Precio + Icono */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
             Precio ($)
@@ -194,7 +190,7 @@ export default function ProductForm({
           <select
             value={form.emoji}
             onChange={(e) => handleChange("emoji", e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-xl focus:outline-none focus:border-slate-400 h-[42px]"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-xl focus:outline-none focus:border-slate-400 h-[42px] w-full sm:w-auto"
           >
             {EMOJIS.map((e) => (
               <option key={e} value={e}>
@@ -226,7 +222,7 @@ export default function ProductForm({
           <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
             Imagen
           </label>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {imagePreview && (
               <div className="relative">
                 <img
@@ -244,7 +240,7 @@ export default function ProductForm({
               </div>
             )}
 
-            <label className="cursor-pointer bg-slate-50 border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-lg px-4 py-3 text-sm text-slate-600 flex items-center justify-center flex-1 transition-colors group">
+            <label className="cursor-pointer bg-slate-50 border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-lg px-4 py-3 text-sm text-slate-600 flex items-center justify-center flex-1 transition-colors group w-full">
               <div className="flex items-center gap-2">
                 <ImagePlus className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
                 <span className="font-medium">
@@ -268,7 +264,7 @@ export default function ProductForm({
           <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
             {category === "extras" ? "Aplica para el tamaño" : "Tamaño"}
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {["Normal", "Familiar", "Gigante"].map((s) => (
               <button
                 key={s}
@@ -293,18 +289,18 @@ export default function ProductForm({
       )}
 
       {/* Acciones */}
-      <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 mt-2">
         <button
           onClick={onCancel}
           disabled={isSaving}
-          className="px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 w-1/3 transition-colors flex items-center justify-center gap-2"
+          className="px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 w-full sm:w-1/3 transition-colors flex items-center justify-center gap-2"
         >
           <XCircle className="w-4 h-4" /> Cancelar
         </button>
         <button
           onClick={handleSubmit}
           disabled={isSaving}
-          className="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+          className="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 w-full"
         >
           <Save className="w-4 h-4" /> Guardar{" "}
           {category === "extras" ? "Extra" : "Producto"}

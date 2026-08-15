@@ -117,9 +117,9 @@ function AddStaffModal({ branchId, onClose, onAdd }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop p-4" onClick={onClose}>
       <div
-        className="modal-content p-6 w-96"
+        className="modal-content w-full max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-pizza-dark font-bold text-lg mb-4">
@@ -196,7 +196,7 @@ function AddStaffModal({ branchId, onClose, onAdd }) {
             <label className="text-pizza-muted text-xs font-semibold uppercase tracking-wider mb-1.5 block">
               Rol
             </label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {ROLES.map((r) => (
                 <button
                   key={r}
@@ -287,7 +287,7 @@ function BranchCard({ branch }) {
     <>
       <div className="card overflow-hidden bg-white">
         {/* Branch header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-pizza-gray-3 bg-pizza-gray-2">
+        <div className="flex flex-wrap items-center gap-3 px-4 sm:px-5 py-4 border-b border-pizza-gray-3 bg-pizza-gray-2">
           <Building2 className="w-5 h-5 text-pizza-red flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <h3 className="text-pizza-dark font-bold">{branch.name}</h3>
@@ -296,7 +296,7 @@ function BranchCard({ branch }) {
               {branchStaff.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowAddStaff(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-pizza-red/10 hover:bg-pizza-red/20 border border-pizza-red/30 text-pizza-red rounded-lg text-xs font-semibold transition-all"
@@ -478,7 +478,7 @@ export default function StaffManagement() {
   };
 
   return (
-    <div className="flex-1 flex flex-col gap-6 p-6 overflow-y-auto h-full bg-slate-50 hide-scrollbar">
+    <div className="flex-1 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 overflow-y-auto h-full bg-slate-50 hide-scrollbar">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -491,7 +491,7 @@ export default function StaffManagement() {
         </div>
         <button
           onClick={() => setShowAddBranch((s) => !s)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-all shadow-sm  w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" /> Nueva Sucursal
         </button>
@@ -503,7 +503,7 @@ export default function StaffManagement() {
           <h3 className="text-slate-800 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
             <Building2 className="w-4 h-4 text-pizza-red" /> Nueva Sucursal
           </h3>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col lg:flex-row gap-3">
             <div className="flex-1">
               <input
                 type="text"
@@ -531,7 +531,7 @@ export default function StaffManagement() {
               }
               className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all flex-1"
             />
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
               <button
                 onClick={handleAddBranch}
                 disabled={isSubmitting}
@@ -567,7 +567,7 @@ export default function StaffManagement() {
       </div>
 
       {/* Branches */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {branches.map((branch) => (
           <BranchCard key={branch.id} branch={branch} />
         ))}
