@@ -2,9 +2,11 @@ import { useApp } from "../context/AppContext";
 import { LogOut } from "lucide-react";
 import DespachoBoard from "../components/cocinero/DespachoBoard";
 import Header from "../components/layout/Header";
+import { useKitchenOrders } from "../hooks/useKitchenOrders";
 
 export default function DespachoScreen() {
-  const { orders, logout } = useApp();
+  const { logout } = useApp();
+  const { orders } = useKitchenOrders();
 
   const preparing = orders.filter((o) => o.status === "preparing").length;
   const ready     = orders.filter((o) => o.status === "ready").length;

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useApp } from "../../context/AppContext";
 import { Plus, Search, X } from "lucide-react";
 import CrudModal from "./CrudModal";
+import { useProducts } from "../../hooks/useProducts";
 
 const CATEGORIES = [
   { key: "pizzas", label: "Pizzas", icon: "🍕" },
@@ -122,15 +122,15 @@ function ProductCard({ product }) {
 }
 
 export default function ProductCatalog() {
-  const { products } = useApp();
+  const { data: products } = useProducts();
   const [activeTab, setActiveTab] = useState("pizzas");
   const [search, setSearch] = useState("");
   const [showCrud, setShowCrud] = useState(false);
 
   const allProducts = [
-    ...products.pizzas,
-    ...products.drinks,
-    ...products.icecream,
+    ...(products?.pizzas || []),
+    ...(products?.drinks || []),
+    ...(products?.icecream || []),
   ];
 
   const isSearching = search.trim().length > 0;
@@ -138,9 +138,9 @@ export default function ProductCatalog() {
     ? allProducts.filter(
         (p) =>
           p.name.toLowerCase().includes(search.toLowerCase()) ||
-          p.description.toLowerCase().includes(search.toLowerCase()),
+          (p.description || "").toLowerCase().includes(search.toLowerCase()),
       )
-    : products[activeTab];
+    : products?.[activeTab] || [];
 
   return (
     <div className="flex flex-col h-full">
@@ -190,7 +190,7 @@ export default function ProductCatalog() {
                   activeTab === cat.key ? "bg-white/20" : "bg-pizza-gray-3"
                 }`}
               >
-                {products[cat.key].length}
+                {(products?.[cat.key] || []).length}
               </span>
             </button>
           ))}

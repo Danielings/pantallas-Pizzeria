@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   X,
   User,
@@ -11,7 +12,8 @@ import {
   ChevronRight,
   ArrowLeftRight,
 } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
+import { useProducts, useExtras } from "../../hooks/useProducts";
 
 // ── IMPORTANTE: Ajusta esta ruta según donde tengas tu modal de pagos real ──
 import ProcesarPagoModal from "./ProcesarPagoModal";
@@ -46,12 +48,20 @@ const SIZE_TO_CATEGORY = {
   Gigante: 3,
 };
 
-export default function OrderEditModal({ pedido, displayNum, onClose }) {
-  const { exchangeRate, fetchPedidosActivos } = useApp();
+export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
+  const safePedido = pedido ?? {};
+  const { exchangeRate } = useExchangeRate();
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
 
+  if (!safePedido || !safePedido.id_venta) {
+    return null;
+  }
+
   // ── Despacho ─────────────────────────────────────────────────────────────
-  const [localDespacho, setLocalDespacho] = useState(pedido.despacho);
+  const [localDespacho, setLocalDespacho] = useState(
+    safePedido.despacho ?? "Local",
+  );
 
   const mapPaymentMethodToApi = (method) => {
     switch (method) {
@@ -68,88 +78,55 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
     }
   };
 
-  // ── Pizzas disponibles (traídas del backend, solo para mostrar) ───────────
-  const [availablePizzas, setAvailablePizzas] = useState([]);
-
-  useEffect(() => {
-    fetch("http://localhost:3001/api/pizzas")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success && json.data?.length) {
-          setAvailablePizzas(
-            json.data.map((p) => ({
-              id: p.id,
-              name: p.name,
-              price:
-                typeof p.price === "number"
-                  ? p.price
-                  : parseFloat(p.price) || 0,
-            })),
-          );
-        } else throw new Error();
-      })
-      .catch((e) => {
-        console.error("Error fetching pizzas:", e);
-        setAvailablePizzas([]);
-      });
-  }, []);
+  // ── Pizzas disponibles (cargadas diferidamente con TanStack Query) ─────────
+  const { data: catalog } = useProducts();
+  const safeCatalogPizzas = Array.isArray(catalog?.pizzas)
+    ? catalog.pizzas
+    : [];
+  const availablePizzas = safeCatalogPizzas.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: typeof p.price === "number" ? p.price : parseFloat(p.price) || 0,
+  }));
 
   // ── Extras disponibles ─────────
-  const [availableExtras, setAvailableExtras] = useState([]);
-  useEffect(() => {
-    fetch("http://localhost:3001/api/extras")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success && json.data?.length) {
-          setAvailableExtras(
-            json.data.map((e) => ({
-              id: e.id,
-              name: e.name,
-              price:
-                typeof e.price === "number"
-                  ? e.price
-                  : parseFloat(e.price) || 0,
-              // 2. AÑADIDO: Necesitamos guardar estos datos para poder filtrarlos luego
-              id_categoria_pizza: e.id_categoria_pizza,
-              estado: e.estado,
-            })),
-          );
-        } else throw new Error();
-      })
-      .catch((e) => {
-        console.error("Error fetching extras:", e);
-        setAvailableExtras([]);
-      });
-  }, []);
+  const { data: availableExtras } = useExtras();
+  const safeAvailableExtras = Array.isArray(availableExtras)
+    ? availableExtras
+    : [];
 
   // ── Detalles locales ──────────────────────────────────────────────────────
-  const [localDetalles, setLocalDetalles] = useState(
-    () =>
-      pedido.detalles?.map((d) => {
-        const cantidad = parseInt(d.cantidad) || 1;
-        const monto_total = parseFloat(d.monto_total) || 0;
-        const extrasCost = (d.extras || []).reduce(
-          (s, e) => s + (parseFloat(e.price ?? e.precio) || 0),
-          0,
-        );
-        const precio_unitario =
-          parseFloat(d.precio_unitario) || monto_total / cantidad - extrasCost;
+  const safePedidoDetalles = Array.isArray(safePedido.detalles)
+    ? safePedido.detalles
+    : [];
 
-        return {
-          ...d,
-          cantidad,
-          monto_total,
-          precio_unitario,
-          extras: (d.extras || []).map((e) => ({
-            ...e,
-            price: parseFloat(e.price ?? e.precio) || 0,
-          })),
-        };
-      }) ?? [],
+  const [localDetalles, setLocalDetalles] = useState(() =>
+    safePedidoDetalles.map((d) => {
+      const cantidad = parseInt(d.cantidad) || 1;
+      const monto_total = parseFloat(d.monto_total) || 0;
+      const extras = Array.isArray(d.extras) ? d.extras : [];
+      const extrasCost = extras.reduce(
+        (s, e) => s + (parseFloat(e.price ?? e.precio) || 0),
+        0,
+      );
+      const precio_unitario =
+        parseFloat(d.precio_unitario) || monto_total / cantidad - extrasCost;
+
+      return {
+        ...d,
+        cantidad,
+        monto_total,
+        precio_unitario,
+        extras: extras.map((e) => ({
+          ...e,
+          price: parseFloat(e.price ?? e.precio) || 0,
+        })),
+      };
+    }),
   );
 
   const [observacion, setObservacion] = useState(
-    () => pedido.detalles?.find((d) => d.nota?.trim())?.nota ?? "",
+    () => safePedidoDetalles.find((d) => d.nota?.trim())?.nota ?? "",
   );
 
   const recalcTotal = (item, unitPrice, extras) => {
@@ -200,14 +177,14 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
   };
 
   // ── Totales ───────────────────────────────────────────────────────────────
-  const originalTotal = pedido.monto_total_usd ?? 0;
+  const originalTotal = safePedido.monto_total_usd ?? 0;
   const newTotal = useMemo(
     () => localDetalles.reduce((s, d) => s + (d.monto_total || 0), 0),
     [localDetalles],
   );
   const diff = newTotal - originalTotal;
 
-  const paymentItems = localDetalles.map((item) => ({
+  const paymentItems = (localDetalles || []).map((item) => ({
     id_detalle: item.id_detalle,
     nombre_producto: item.nombre_producto,
     tipo_producto: item.tipo_producto,
@@ -240,7 +217,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
   const ejecutarGuardadoBD = async (datosPago = null) => {
     setIsSaving(true);
     try {
-      const detallesParaBackend = localDetalles.map((item, index) => ({
+      const detallesParaBackend = (localDetalles || []).map((item, index) => ({
         id_detalle: item.id_detalle,
         tipo_producto: item.tipo_producto,
         id_producto_origen: item.id_producto_origen,
@@ -253,7 +230,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
       }));
 
       const payload = {
-        id_venta: pedido.id_venta,
+        id_venta: safePedido.id_venta,
         nuevo_despacho: localDespacho,
         tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
         monto_total_usd: Number(newTotal.toFixed(2)),
@@ -287,7 +264,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
         throw new Error(result.message || "Error actualizando el pedido.");
       }
 
-      fetchPedidosActivos();
+      queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
       onClose();
       window.Toast.fire({
         icon: "success",
@@ -324,17 +301,20 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                     #
                     {displayNum
                       ? String(displayNum).padStart(3, "0")
-                      : pedido.id_venta}
+                      : safePedido.id_venta}
                   </span>
                 </h2>
                 <p className="text-sm text-slate-400 font-semibold mt-0.5">
-                  {new Date(pedido.fecha_hora).toLocaleString("es-VE", {
-                    weekday: "short",
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {new Date(safePedido.fecha_hora ?? Date.now()).toLocaleString(
+                    "es-VE",
+                    {
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
                 </p>
               </div>
             </div>
@@ -362,7 +342,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                         Nombre
                       </span>
                       <span className="text-lg font-bold text-slate-800 leading-tight">
-                        {pedido.nombre_cliente || "Anónimo / General"}
+                        {safePedido.nombre_cliente || "Anónimo / General"}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-50">
@@ -371,8 +351,8 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                           Cédula
                         </span>
                         <span className="text-base font-semibold text-slate-700">
-                          {pedido.cedula_cliente
-                            ? `V-${pedido.cedula_cliente}`
+                          {safePedido.cedula_cliente
+                            ? `V-${safePedido.cedula_cliente}`
                             : "—"}
                         </span>
                       </div>
@@ -381,7 +361,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                           Teléfono
                         </span>
                         <span className="text-base font-semibold text-slate-700">
-                          {pedido.telefono_cliente || "—"}
+                          {safePedido.telefono_cliente || "—"}
                         </span>
                       </div>
                     </div>
@@ -454,20 +434,21 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                 </h4>
 
                 <div className="flex flex-col gap-3 sm:gap-4 overflow-y-auto max-h-[calc(96vh-280px)] pr-1">
-                  {localDetalles.map((item) => {
-                    const isPizza = item.tipo_producto === "Pizza";
+                  {(localDetalles || []).map((item) => {
+                    const safeItem = item ?? {};
+                    const isPizza = safeItem.tipo_producto === "Pizza";
                     const isEditable =
                       isPizza &&
-                      item.estado_detalle !== "Horno" &&
-                      item.estado_detalle !== "Completado";
+                      safeItem.estado_detalle !== "Horno" &&
+                      safeItem.estado_detalle !== "Completado";
 
                     // 3. AÑADIDO: Filtramos los extras justo aquí para este item en específico
                     // NOTA: Asegúrate de que el campo "size" viene en tu detalle de la BD.
-                    const categoriaId = item.id_categoria_pizza || 1;
-                    const extrasFiltrados = availableExtras.filter(
+                    const categoriaId = safeItem.id_categoria_pizza || 1;
+                    const extrasFiltrados = safeAvailableExtras.filter(
                       (extra) =>
-                        Number(extra.id_categoria_pizza) ===
-                          Number(categoriaId) && extra.estado === "Activo",
+                        Number(extra?.id_categoria_pizza ?? 0) ===
+                          Number(categoriaId) && extra?.estado === "Activo",
                     );
 
                     return (
@@ -482,7 +463,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                         {/* Cabecera del item */}
                         <div className="flex items-start gap-4 p-5">
                           <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-3xl shrink-0">
-                            {TIPO_EMOJI[item.tipo_producto] ?? "📦"}
+                            {TIPO_EMOJI[safeItem.tipo_producto] ?? "📦"}
                           </div>
 
                           <div className="flex-1 min-w-0">
@@ -534,7 +515,8 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                               </>
                             ) : (
                               <h5 className="font-bold text-slate-800 text-lg leading-tight truncate">
-                                {item.nombre_producto || item.tipo_producto}
+                                {safeItem.nombre_producto ||
+                                  safeItem.tipo_producto}
                               </h5>
                             )}
 
@@ -545,12 +527,12 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                                   ESTADO_COLOR.Pendiente
                                 }`}
                               >
-                                {item.estado_detalle}
+                                {safeItem.estado_detalle}
                               </span>
                               <span className="text-sm text-slate-400 font-semibold">
                                 Cant:{" "}
                                 <span className="text-slate-700">
-                                  {item.cantidad}
+                                  {safeItem.cantidad}
                                 </span>
                               </span>
                               <span className="text-sm text-slate-400 font-semibold">
@@ -567,7 +549,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                             <span className="text-2xl font-black text-slate-800 block">
                               $
                               <span translate="no">
-                                {Number(item.monto_total || 0).toFixed(2)}
+                                {Number(safeItem.monto_total || 0).toFixed(2)}
                               </span>
                             </span>
                             {!isEditable && (
@@ -598,7 +580,7 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
                                     onChange={(e) => {
                                       const val = e.target.value;
                                       if (!val) return;
-                                      const ex = availableExtras.find(
+                                      const ex = safeAvailableExtras.find(
                                         (x) =>
                                           String(x.id_extras ?? x.id) ===
                                           String(val),
@@ -799,9 +781,9 @@ export default function OrderEditModal({ pedido, displayNum, onClose }) {
         <ProcesarPagoModal
           montoSobreescrito={diff}
           cliente={{
-            nombre: pedido.nombre_cliente,
-            cedula: pedido.cedula_cliente,
-            telefono: pedido.telefono_cliente,
+            nombre: safePedido.nombre_cliente,
+            cedula: safePedido.cedula_cliente,
+            telefono: safePedido.telefono_cliente,
           }}
           pizzaItems={paymentItems}
           onClose={() => setShowPaymentModal(false)}

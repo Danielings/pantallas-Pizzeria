@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { LockKeyhole, RefreshCw, UnlockKeyhole } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
 
 const API_BASE = "http://localhost:3001/api";
 
 export default function TasaScreen() {
-  const { updateExchangeRate } = useApp();
+  const { updateExchangeRate } = useExchangeRate();
   const [rate, setRate] = useState(null);
   const [manualRate, setManualRate] = useState("");
   const [loading, setLoading] = useState(true);

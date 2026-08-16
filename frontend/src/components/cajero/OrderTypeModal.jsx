@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios"; // <-- Importación de axios agregada
 import { useApp } from "../../context/AppContext";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
 import {
   UtensilsCrossed,
   ShoppingBag,
@@ -89,7 +90,8 @@ const PAYMENT_STATUS_OPTIONS = [
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function OrderTypeModal({ onConfirm, onClose }) {
-  const { setOrderType, addCustomer, exchangeRate } = useApp();
+  const { setOrderType, addCustomer } = useApp();
+  const { exchangeRate } = useExchangeRate();
 
   // ── Pasos: 1 = Tipo y Estado Pago, 2 = Cliente ──
   const [step, setStep] = useState(1);

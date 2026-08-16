@@ -1,8 +1,8 @@
-import { useApp } from "../../context/AppContext";
+import { useKitchenOrders } from "../../hooks/useKitchenOrders";
 import { ChefHat, Flame, CheckCircle, Truck, Clock } from "lucide-react";
 
 export default function JobQueue() {
-  const { orders, updateOrderStatus } = useApp();
+  const { orders, updateOrderStatus } = useKitchenOrders();
 
   // Filtrar solo las órdenes activas (no archivadas ni completadas)
   const activeOrders = orders.filter(

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "../../context/AppContext";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
 import {
   X,
   Smartphone,
@@ -45,7 +45,7 @@ export default function ProcesarPagoModal({
   onClose,
   onSuccess,
 }) {
-  const { exchangeRate } = useApp();
+  const { exchangeRate } = useExchangeRate();
   const [step, setStep] = useState(1);
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [amountInput, setAmountInput] = useState("");
