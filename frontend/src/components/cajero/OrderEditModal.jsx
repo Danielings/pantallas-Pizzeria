@@ -438,9 +438,7 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
                     const safeItem = item ?? {};
                     const isPizza = safeItem.tipo_producto === "Pizza";
                     const isEditable =
-                      isPizza &&
-                      safeItem.estado_detalle !== "Horno" &&
-                      safeItem.estado_detalle !== "Completado";
+                      isPizza && safeItem.estado_detalle == "Pendiente";
 
                     // 3. AÑADIDO: Filtramos los extras justo aquí para este item en específico
                     // NOTA: Asegúrate de que el campo "size" viene en tu detalle de la BD.

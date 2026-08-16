@@ -481,7 +481,11 @@ export const obtenerEntregas = async (req, res) => {
             det.estado_detalle !== "Cerrado",
         );
 
-        if (!tienePendientes && detalles.length > 0) return null;
+        const estaCerrada =
+          detalles.length > 0 &&
+          detalles.every((det) => det.estado_detalle === "Cerrado");
+
+        if (estaCerrada) return null;
 
         return {
           id: venta.id_venta,
@@ -499,7 +503,9 @@ export const obtenerEntregas = async (req, res) => {
           items: items,
           total: venta.monto_total_usd,
           orderedAt: venta.fecha_hora,
-          status: "ready", // Como filtramos los completados, todos los que quedan están "pendientes"
+
+          status:
+            !tienePendientes && detalles.length > 0 ? "delivered" : "ready",
         };
       }),
     );
