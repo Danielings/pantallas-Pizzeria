@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useApp } from "../../context/AppContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { useBranches, useStaff } from "../../hooks/useBranches";
 import {
   Plus,
   Trash2,
@@ -241,13 +242,14 @@ function AddStaffModal({ branchId, onClose, onAdd }) {
 }
 
 function BranchCard({ branch }) {
-  const { staff, deleteStaff, deleteBranch, addStaff } = useApp();
+  const { data: staff } = useStaff();
+  const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(true);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState(null); // Para manejar el estado de carga individual
 
-  const branchStaff = staff.filter((s) => s.branchId === branch.id);
+  const branchStaff = (staff || []).filter((s) => s.branchId === branch.id);
 
   const handleDeleteStaff = (staffId) => {
     window.confirmDelete(async () => {
@@ -259,7 +261,7 @@ function BranchCard({ branch }) {
         );
 
         if (response.data.success) {
-          deleteStaff(staffId);
+          queryClient.invalidateQueries({ queryKey: ["staff"] });
 
           if (window.Toast) {
             window.Toast.fire({
@@ -306,7 +308,12 @@ function BranchCard({ branch }) {
             {confirmDelete ? (
               <div className="flex gap-1">
                 <button
-                  onClick={() => deleteBranch(branch.id)}
+                  onClick={() => {
+                    queryClient.setQueryData(["branches"], (old = []) =>
+                      (old || []).filter((b) => b.id !== branch.id),
+                    );
+                    setConfirmDelete(false);
+                  }}
                   className="px-2 py-1.5 bg-pizza-red text-white rounded-lg text-xs font-bold"
                 >
                   Sí
@@ -410,7 +417,7 @@ function BranchCard({ branch }) {
       {showAddStaff && (
         <AddStaffModal
           branchId={branch.id}
-          onAdd={addStaff}
+          onAdd={() => queryClient.invalidateQueries({ queryKey: ["staff"] })}
           onClose={() => setShowAddStaff(false)}
         />
       )}
@@ -419,7 +426,9 @@ function BranchCard({ branch }) {
 }
 
 export default function StaffManagement() {
-  const { branches, addBranch, staff } = useApp();
+  const { data: branches } = useBranches();
+  const { data: staff } = useStaff();
+  const queryClient = useQueryClient();
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: "", address: "" });
   const [branchError, setBranchError] = useState("");
@@ -444,12 +453,7 @@ export default function StaffManagement() {
       );
 
       if (response.data.success) {
-        const nuevaSucursal = response.data.sucursal;
-        addBranch({
-          id: nuevaSucursal.id_sucursal,
-          name: nuevaSucursal.sucursal,
-          address: nuevaSucursal.direccion,
-        });
+        queryClient.invalidateQueries({ queryKey: ["branches"] });
 
         setNewBranch({ name: "", address: "" });
         setShowAddBranch(false);
@@ -486,7 +490,8 @@ export default function StaffManagement() {
             Personal y Sucursales
           </h2>
           <p className="text-slate-500 text-sm">
-            {branches.length} sucursales · {staff.length} empleados activos
+            {(branches || []).length} sucursales · {(staff || []).length}{" "}
+            empleados activos
           </p>
         </div>
         <button
@@ -568,10 +573,10 @@ export default function StaffManagement() {
 
       {/* Branches */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-        {branches.map((branch) => (
+        {(branches || []).map((branch) => (
           <BranchCard key={branch.id} branch={branch} />
         ))}
-        {branches.length === 0 && (
+        {(branches || []).length === 0 && (
           <div className="xl:col-span-2 flex flex-col items-center justify-center py-20 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 gap-2">
             <Building2 className="w-12 h-12 opacity-20" />
             <p className="font-semibold">No hay sucursales registradas</p>
