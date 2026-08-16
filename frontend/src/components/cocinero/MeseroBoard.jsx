@@ -1,5 +1,5 @@
 // src/components/mesero/MeseroBoard.jsx
-import { useApp } from "../../context/AppContext";
+import { useKitchenOrders } from "../../hooks/useKitchenOrders";
 import { OrderCard } from "../cocinero/OrderCard";
 
 const isLocalOrder = (order) => {
@@ -27,8 +27,8 @@ const isLocalOrder = (order) => {
 };
 
 export default function MeseroBoard() {
-  // Extraemos updateOrderStatus desde AppContext
-  const { orders, updateOrderStatus } = useApp();
+  // Extraemos updateOrderStatus desde el hook de pedidos de cocina
+  const { orders, updateOrderStatus } = useKitchenOrders();
 
   const waiterPendingOrders = orders
     .filter((o) => o.status === "waiter_pending" && isLocalOrder(o))

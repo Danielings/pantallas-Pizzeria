@@ -2,88 +2,24 @@ import { useApp } from "../../context/AppContext";
 import { Plus, Loader2 } from "lucide-react";
 import CrudModal from "./CrudModal";
 import OrderTypeModal from "./OrderTypeModal";
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState } from "react";
+import { useProducts } from "../../hooks/useProducts";
 
 export default function MenuGrid({ category }) {
   // Ya no extraemos 'products' del contexto, ya que los traeremos de la API directamente aquí
   const { addToCart, currentOrder } = useApp();
 
-  // Estados locales para los productos y la carga
-  const [products, setProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Productos del catálogo vía TanStack Query (caché compartida, 1min staleTime)
+  const { data: catalog, isLoading } = useProducts();
+  const products = [
+    ...(catalog?.pizzas || []),
+    ...(catalog?.drinks || []),
+    ...(catalog?.icecream || []),
+  ];
 
   const [showCrud, setShowCrud] = useState(false);
   const [showOrderTypeModal, setShowOrderTypeModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null); // { product, size }
-
-  // ─── FETCH DE APIS INDEPENDIENTES ─────────────────────────────────────
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      try {
-        // Consultamos las 3 APIs de manera simultánea
-        const [pizzasRes, bebidasRes, heladosRes] = await Promise.all([
-          axios
-            .get("http://localhost:3001/api/pizzas")
-            .catch(() => ({ data: { data: [] } })),
-          axios
-            .get("http://localhost:3001/api/bebidas")
-            .catch(() => ({ data: { data: [] } })),
-          axios
-            .get("http://localhost:3001/api/heladeria")
-            .catch(() => ({ data: { data: [] } })),
-        ]);
-
-        // Mapeamos los datos respetando las propiedades que ya trae tu API
-        const pizzas = (pizzasRes.data.data || []).map((pizza) => ({
-          id: pizza.id || pizza.id_pizza,
-          name: pizza.name || pizza.nombre,
-          price: Number(pizza.price || pizza.precio),
-          description: pizza.description || pizza.descripcion,
-          category: "pizzas",
-          size: pizza.size || pizza.categoria_nombre || "Normal",
-          pizzaCategory:
-            pizza.pizzaCategory || pizza.categoria_nombre || "Normal", // <-- Aquí estaba el error
-          url: pizza.url || null,
-          estado: pizza.estado || "Activo",
-          emoji: "🍕",
-        }));
-
-        const bebidas = (bebidasRes.data.data || []).map((bebida) => ({
-          id: bebida.id || bebida.id_bebida,
-          name: bebida.name || bebida.nombre,
-          price: Number(bebida.price || bebida.precio),
-          description: bebida.description || bebida.descripcion,
-          category: "drinks",
-          url: bebida.url || null,
-          estado: bebida.estado || "Activo",
-          emoji: "🥤",
-        }));
-
-        const helados = (heladosRes.data.data || []).map((helado) => ({
-          id: helado.id || helado.id_helado,
-          name: helado.name || helado.nombre,
-          price: Number(helado.price || helado.precio),
-          description: helado.description || helado.descripcion,
-          category: "icecream",
-          url: helado.url || null,
-          estado: helado.estado || "Activo",
-          emoji: "🍦",
-        }));
-
-        const allProducts = [...pizzas, ...bebidas, ...helados];
-
-        setProducts(allProducts);
-      } catch (error) {
-        console.error("Error al cargar los productos:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
 
   const handleAddToCart = (product, size) => {
     // Si el carrito está vacío y aún no se eligió tipo de pedido, interceptar

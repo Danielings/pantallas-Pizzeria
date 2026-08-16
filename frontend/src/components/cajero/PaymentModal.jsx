@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
 import {
   X,
   Smartphone,
@@ -52,16 +54,9 @@ function PaymentBadge({ method, amount, currency, exchangeRate }) {
 }
 
 export default function PaymentModal({ onClose }) {
-  const {
-    total,
-    currentOrder,
-    addPayment,
-    confirmSale,
-    amountPaid,
-    exchangeRate,
-    fetchPedidosActivos,
-    fetchVentasHoy,
-  } = useApp();
+  const { total, currentOrder, addPayment, confirmSale, amountPaid } = useApp();
+  const { exchangeRate } = useExchangeRate();
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1); // 1 = select method, 2 = enter amount, 3 = done
   const [selectedMethod, setSelectedMethod] = useState(null);
@@ -158,8 +153,8 @@ export default function PaymentModal({ onClose }) {
     });
     onClose();
     // Refrescar cola y métricas sin recargar página
-    fetchPedidosActivos();
-    fetchVentasHoy();
+    queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
+    queryClient.invalidateQueries({ queryKey: ["ventasHoy"] });
   };
 
   // totalPaidSoFar already computed above

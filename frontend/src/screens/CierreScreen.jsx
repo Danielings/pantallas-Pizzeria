@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../context/AppContext";
 import {
   DollarSign,
@@ -19,14 +20,8 @@ import {
 const API = "http://localhost:3001/api";
 
 export default function CierreScreen() {
-  const {
-    clearCart,
-    fetchPedidosActivos,
-    fetchPedidosCocina,
-    fetchPedidosHorno,
-    fetchPendientes,
-    fetchMesero,
-  } = useApp();
+  const { clearCart } = useApp();
+  const queryClient = useQueryClient();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -180,11 +175,8 @@ export default function CierreScreen() {
       setClaveCierre("");
       setShowDetailModal(false);
       clearCart();
-      fetchPedidosActivos();
-      fetchPedidosCocina();
-      fetchPedidosHorno();
-      fetchPendientes();
-      fetchMesero();
+      queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
       await fetchResumenDia();
 
       window.Toast.fire({

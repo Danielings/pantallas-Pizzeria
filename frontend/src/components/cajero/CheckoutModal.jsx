@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
 import {
   X,
   Smartphone,
@@ -38,15 +40,9 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutModal({ onClose }) {
-  const {
-    total,
-    currentOrder,
-    confirmSale,
-    exchangeRate,
-    clearCart,
-    fetchPedidosActivos,
-    fetchVentasHoy,
-  } = useApp();
+  const { total, currentOrder, confirmSale, clearCart } = useApp();
+  const { exchangeRate } = useExchangeRate();
+  const queryClient = useQueryClient();
 
   // Leer tipo de pedido y abono del contexto (seleccionados en OrderTypeModal)
   const ctxOrderType = currentOrder.orderType;
@@ -356,8 +352,8 @@ export default function CheckoutModal({ onClose }) {
       clearCart();
       onClose();
       // Refrescar cola y métricas sin recargar página
-      fetchPedidosActivos();
-      fetchVentasHoy();
+      queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
+      queryClient.invalidateQueries({ queryKey: ["ventasHoy"] });
       
       window.Toast.fire({
         icon: "success",

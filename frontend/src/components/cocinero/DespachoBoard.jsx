@@ -1,4 +1,4 @@
-import { useApp } from "../../context/AppContext";
+import { useKitchenOrders } from "../../hooks/useKitchenOrders";
 import { OrderCard } from "./OrderCard";
 import { useState } from "react";
 
@@ -50,7 +50,8 @@ function Column({ title, icon, countClass, orders, renderCard }) {
 }
 
 export default function DespachoBoard() {
-  const { orders, updateOrderStatus, archiveOrder, updateOrder } = useApp();
+  const { orders, updateOrderStatus, archiveOrder, updateOrder } =
+    useKitchenOrders();
 
   const [orderToSwap, setOrderToSwap] = useState(null);
 

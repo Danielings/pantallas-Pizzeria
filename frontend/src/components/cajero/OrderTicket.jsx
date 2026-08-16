@@ -1,4 +1,5 @@
 import { useApp } from '../../context/AppContext';
+import { useExchangeRate } from '../../hooks/useExchangeRate';
 import OrderItem from './OrderItem';
 import { ShoppingCart } from 'lucide-react';
 
@@ -16,7 +17,8 @@ const PAYMENT_STATUS_LABELS = {
 };
 
 export default function OrderTicket({ onCheckout }) {
-  const { currentOrder, subtotal, total, exchangeRate } = useApp();
+  const { currentOrder, subtotal, total } = useApp();
+  const { exchangeRate } = useExchangeRate();
   const { items, paymentStatus, advanceAmount } = currentOrder;
 
   const paymentLabel = paymentStatus ? PAYMENT_STATUS_LABELS[paymentStatus] : null;

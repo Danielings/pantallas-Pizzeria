@@ -1,7 +1,7 @@
 // src/screens/MeseroScreen.jsx
-import { useApp } from "../context/AppContext";
 import Header from "../components/layout/Header";
 import MeseroBoard from "../components/cocinero/MeseroBoard";
+import { useKitchenOrders } from "../hooks/useKitchenOrders";
 
 const isLocalOrder = (order) => {
   if (!order) return false;
@@ -12,7 +12,7 @@ const isLocalOrder = (order) => {
 };
 
 export default function MeseroScreen() {
-  const { orders } = useApp();
+  const { orders } = useKitchenOrders();
 
   // Cambiado: Ahora cuenta los pedidos pendientes de entrega del mesero
   const pendingCount = orders.filter(

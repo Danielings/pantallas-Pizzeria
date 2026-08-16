@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { X, Plus, Trash2, CheckCircle2 } from "lucide-react";
-import { useApp } from "../../context/AppContext";
+import { useProducts, useExtras } from "../../hooks/useProducts";
+import { useExchangeRate } from "../../hooks/useExchangeRate";
+import { useKitchenOrders } from "../../hooks/useKitchenOrders";
 import PaymentEntryModal from "./PaymentEntryModal";
 
 const SIZE_OPTIONS = ["Normal", "Familiar", "Gigante"];
@@ -18,7 +20,10 @@ export default function OrderPaymentAdjustmentModal({
   editedItems,
   onClose,
 }) {
-  const { products, extras, updateOrder, exchangeRate } = useApp();
+  const { data: products } = useProducts();
+  const { data: extras } = useExtras();
+  const { exchangeRate } = useExchangeRate();
+  const { updateOrder } = useKitchenOrders();
   const pizzaProducts = products?.pizzas || [];
 
   const findProductByName = (name) => {

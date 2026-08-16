@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { useApp } from "../../context/AppContext";
+import { useQueryClient } from "@tanstack/react-query";
 import { X, Plus, Pencil, Trash2, Save, XCircle } from "lucide-react";
 import axios from "axios";
+import { useProducts } from "../../hooks/useProducts";
+
+const API_BASE = "http://localhost:3001/api";
 
 const CATEGORIES_MAP = {
   pizzas: { label: "Pizzas", icon: "🍕" },
@@ -194,7 +197,8 @@ function ProductForm({ initial, category, onSave, onCancel }) {
 }
 
 export default function CrudModal({ onClose }) {
-  const { products, addProduct, updateProduct, deleteProduct } = useApp();
+  const { data: products } = useProducts();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("pizzas");
   const [editingId, setEditingId] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -203,26 +207,24 @@ export default function CrudModal({ onClose }) {
   // Estado para manejar el loading mientras se guarda en la DB
   const [isSaving, setIsSaving] = useState(false);
 
-  const currentProducts = products[activeTab];
+  const currentProducts = products?.[activeTab] || [];
+
+  const getEndpoint = () => {
+    if (activeTab === "pizzas") return `${API_BASE}/pizzas`;
+    if (activeTab === "drinks") return `${API_BASE}/bebidas`;
+    return `${API_BASE}/heladeria`;
+  };
 
   // Modificado: Integración con las APIs separadas
   const handleSaveNew = async (product) => {
     setIsSaving(true);
     try {
-      let endpoint = "";
-
-      if (activeTab === "pizzas") endpoint = "http://localhost:3001/api/pizzas";
-      if (activeTab === "drinks")
-        endpoint = "http://localhost:3001/api/bebidas";
-      if (activeTab === "icecream")
-        endpoint = "http://localhost:3001/api/heladeria";
-
-      const response = await axios.post(endpoint, product);
+      const response = await axios.post(getEndpoint(), product);
 
       const data = response.data;
 
       if (data.success) {
-        addProduct(activeTab, { ...product, id: data.id });
+        queryClient.invalidateQueries({ queryKey: ["products"] });
         setCreating(false);
       } else {
         alert("Error al guardar: " + data.message);
@@ -235,6 +237,43 @@ export default function CrudModal({ onClose }) {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveEdit = async (product) => {
+    if (!editingId) return;
+    setIsSaving(true);
+    try {
+      const response = await axios.put(
+        `${getEndpoint()}/${editingId}`,
+        product,
+      );
+
+      if (response.data?.success) {
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        setEditingId(null);
+      } else {
+        alert(
+          "Error al actualizar: " +
+            (response.data?.message || "Error desconocido"),
+        );
+      }
+    } catch (error) {
+      console.error("Error al actualizar el producto:", error);
+      const errorMessage =
+        error.response?.data?.message || "Error de conexión con el servidor";
+      alert(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = (id) => {
+    // No hay endpoint de borrado en el backend; se elimina del caché
+    queryClient.setQueryData(["products"], (old = {}) => ({
+      ...old,
+      [activeTab]: (old[activeTab] || []).filter((p) => p.id !== id),
+    }));
+    setDeleteConfirm(null);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useApp } from "../../context/AppContext";
+import { useKitchenOrders } from "../../hooks/useKitchenOrders";
 import { OrderCard } from "./OrderCard";
 
 /**
@@ -11,7 +11,7 @@ import { OrderCard } from "./OrderCard";
 const KITCHEN_CATEGORIES = ["pizzas", "combos"];
 
 export default function KanbanBoard() {
-  const { orders, updateOrderStatus } = useApp();
+  const { orders, updateOrderStatus } = useKitchenOrders();
 
   const allPendingOrders = orders
     .filter((o) => o.status === "pending")

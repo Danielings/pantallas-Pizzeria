@@ -2,9 +2,11 @@ import { useApp } from "../context/AppContext";
 import { LogOut } from "lucide-react";
 import KanbanBoard from "../components/cocinero/KanbanBoard";
 import Header from "../components/layout/Header";
+import { useKitchenOrders } from "../hooks/useKitchenOrders";
 
 export default function CocineroScreen() {
-  const { orders, logout } = useApp();
+  const { logout } = useApp();
+  const { orders } = useKitchenOrders();
 
   const pending   = orders.filter((o) => o.status === "pending").length;
   const preparing = orders.filter((o) => o.status === "preparing").length;

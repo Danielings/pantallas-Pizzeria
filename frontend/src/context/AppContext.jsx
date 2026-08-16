@@ -1,38 +1,13 @@
-import {
-  createContext,
-  useContext,
-  useReducer,
-  useCallback,
-  useState,
-  useEffect,
-} from "react";
-import {
-  PRODUCTS,
-  BRANCHES,
-  STAFF,
-  MOCK_SALES,
-  INITIAL_ORDERS,
-  EXTRAS,
-} from "../data/mockData";
-import axios from "axios";
-
-const API_BASE = "http://localhost:3001/api";
+import { createContext, useContext, useReducer, useCallback } from "react";
+import { MOCK_SALES } from "../data/mockData";
 
 const AppContext = createContext(null);
 
 export const KITCHEN_CATEGORIES = ["pizzas", "combos"];
 
-const orderNeedsKitchen = (items) =>
-  Array.isArray(items) &&
-  items.some((i) => i.category && KITCHEN_CATEGORIES.includes(i.category));
-
 const initialState = {
   // Authentication
   currentUser: null,
-
-  // Products (editable via CRUD)
-  products: PRODUCTS,
-  extras: EXTRAS,
 
   // Current cashier order (cart)
   currentOrder: {
@@ -45,9 +20,6 @@ const initialState = {
     phoneLastDigits: "", // últimos 4 dígitos del teléfono (delivery)
     deliveryId: null,
   },
-
-  // Kitchen orders
-  orders: INITIAL_ORDERS,
 
   // Customers
   customers: [
@@ -82,16 +54,6 @@ const initialState = {
 
   // Historical sales (se sobreescribirán con datos reales)
   sales: MOCK_SALES,
-
-  // Métricas del día desde BD
-  metricsHoy: null, // { totalRevenue, totalPizzas, avgTicket, totalTransactions }
-
-  // Pedidos activos desde BD
-  pedidosActivos: [],
-
-  // Staff & Branches
-  branches: BRANCHES,
-  staff: STAFF,
 };
 
 const TAX_RATE = 0.16;
@@ -295,181 +257,17 @@ function reducer(state, action) {
         orderType: orderType || "unknown",
         status: "completed",
       };
-
-      const needsKitchen = orderNeedsKitchen(items);
-
-      const newOrder = {
-        id: `ORD-${String(state.orders.length + 1).padStart(3, "0")}`,
-        status: needsKitchen ? "pending" : "delivered",
-        createdAt: new Date().toISOString(),
-        items: items.map((i) => ({
-          name: i.name,
-          size: i.size,
-          qty: i.qty,
-          extras: i.extras || [],
-          category: i.category,
-        })),
-        total,
-        table:
-          orderType === "dine_in"
-            ? "Mesa"
-            : orderType === "takeaway"
-              ? "Llevar"
-              : orderType === "delivery_call" || orderType === "delivery_ws"
-                ? "Delivery"
-                : "POS",
-        orderType: orderType || "unknown",
-        skippedKitchen: !needsKitchen,
-        customerName: state.currentOrder.customer?.name || null,
-        phoneLastDigits: state.currentOrder.phoneLastDigits || null,
-      };
       return {
         ...state,
         sales: [newSale, ...state.sales],
-        orders: [newOrder, ...state.orders],
         currentOrder: { items: [], payments: [] },
       };
-    }
-
-    // ── KITCHEN ───────────────────────────────────────────────
-    case "UPDATE_ORDER_STATUS": {
-      const orders = state.orders.map((o) =>
-        o.id === action.payload.id
-          ? { ...o, status: action.payload.status }
-          : o,
-      );
-      return { ...state, orders };
-    }
-
-    case "ARCHIVE_ORDER": {
-      const orders = state.orders.filter((o) => o.id !== action.payload.id);
-      return { ...state, orders };
-    }
-
-    case "SET_KITCHEN_ORDERS": {
-      // Mantiene los pedidos que NO son de cocina y actualiza los de cocina
-      const otrasOrdenes = state.orders.filter((o) => o.status !== "pending");
-      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
-    }
-
-    case "SET_HORNO_ORDERS": {
-      const otrasOrdenes = state.orders.filter((o) => o.status !== "preparing");
-      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
-    }
-
-    case "SET_DESPACHO_ORDERS": {
-      const otrasOrdenes = state.orders.filter((o) => o.status !== "delivered");
-      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
-    }
-
-    case "SET_PENDIENTE_ORDERS": {
-      const otrasOrdenes = state.orders.filter((o) => o.status !== "ready");
-      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
-    }
-
-    case "SET_MESERO_ORDERS": {
-      const otrasOrdenes = state.orders.filter(
-        (o) => o.status !== "waiter_pending",
-      );
-      return { ...state, orders: [...otrasOrdenes, ...action.payload] };
-    }
-    case "UPDATE_ORDER": {
-      const { order } = action.payload;
-      const orders = state.orders.map((o) =>
-        o.id === order.id ? { ...o, ...order } : o,
-      );
-      return { ...state, orders };
     }
 
     case "ADD_CUSTOMER": {
       const customer = { ...action.payload, id: Date.now() };
       return { ...state, customers: [customer, ...state.customers] };
     }
-
-    // ── PRODUCTS CRUD ─────────────────────────────────────────
-    case "ADD_PRODUCT": {
-      const { category, product } = action.payload;
-      return {
-        ...state,
-        products: {
-          ...state.products,
-          [category]: [
-            ...state.products[category],
-            { ...product, id: `new-${Date.now()}`, available: true },
-          ],
-        },
-      };
-    }
-
-    case "UPDATE_PRODUCT": {
-      const { category, product } = action.payload;
-      return {
-        ...state,
-        products: {
-          ...state.products,
-          [category]: state.products[category].map((p) =>
-            p.id === product.id ? { ...p, ...product } : p,
-          ),
-        },
-      };
-    }
-
-    case "DELETE_PRODUCT": {
-      const { category, id } = action.payload;
-      return {
-        ...state,
-        products: {
-          ...state.products,
-          [category]: state.products[category].filter((p) => p.id !== id),
-        },
-      };
-    }
-
-    // ── STAFF & BRANCHES ──────────────────────────────────────
-    case "ADD_BRANCH": {
-      return {
-        ...state,
-        branches: [...state.branches, action.payload],
-      };
-    }
-    case "SET_BRANCHES":
-      return { ...state, branches: action.payload };
-
-    case "DELETE_BRANCH": {
-      return {
-        ...state,
-        branches: state.branches.filter((b) => b.id !== action.payload.id),
-        staff: state.staff.filter((s) => s.branchId !== action.payload.id),
-      };
-    }
-    case "ADD_STAFF": {
-      return {
-        ...state,
-        staff: [...state.staff, { ...action.payload, id: `s-${Date.now()}` }],
-      };
-    }
-
-    case "SET_STAFF":
-      return {
-        ...state,
-        staff: action.payload.map((user) => ({
-          ...user,
-          role: normalizeRole(user.role),
-        })),
-      };
-    case "DELETE_STAFF": {
-      return {
-        ...state,
-        staff: state.staff.filter((s) => s.id !== action.payload.id),
-      };
-    }
-
-    // ── BD DATA ────────────────────────────────────────────────────────────
-    case "SET_METRICS_HOY":
-      return { ...state, metricsHoy: action.payload };
-
-    case "SET_PEDIDOS_ACTIVOS":
-      return { ...state, pedidosActivos: action.payload };
 
     // ── AUTHENTICATION ─────────────────────────────────────────────────────
     case "LOGIN":
@@ -495,31 +293,6 @@ export function AppProvider({ children }) {
     currentUser: savedUser,
   });
 
-  useEffect(() => {
-    const fetchBranchesAndStaff = async () => {
-      try {
-        const [branchesRes, staffRes] = await Promise.all([
-          axios.get(`${API_BASE}/sucursales`),
-          axios.get(`${API_BASE}/usuarios`),
-        ]);
-
-        if (branchesRes.data.success) {
-          dispatch({ type: "SET_BRANCHES", payload: branchesRes.data.data });
-        }
-
-        if (staffRes.data.success) {
-          dispatch({ type: "SET_STAFF", payload: staffRes.data.data });
-        }
-      } catch (error) {
-        console.error(
-          "Error cargando sucursales y personal desde la API:",
-          error,
-        );
-      }
-    };
-
-    fetchBranchesAndStaff();
-  }, []);
   // Cart totals — sin IVA
   const subtotal = state.currentOrder.items.reduce(
     (sum, i) => sum + i.price * i.qty,
@@ -590,345 +363,14 @@ export function AppProvider({ children }) {
     (payload) => dispatch({ type: "CONFIRM_SALE", payload }),
     [],
   );
-
-  const updateOrderStatus = useCallback(
-    async (id, status) => {
-      const order = state.orders.find((o) => o.id === id);
-
-      if (order && order.db_id) {
-        try {
-          // Apuntamos a la nueva ruta unificada para estados
-          const endpoint = `${API_BASE}/actualizar-estado-pedido/${order.db_id}`;
-
-          const res = await fetch(endpoint, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            // Enviamos el estado que el botón haya disparado ("preparing", "ready", etc.)
-            body: JSON.stringify({ status: status }),
-          });
-
-          const json = await res.json();
-
-          if (json.success) {
-            // Si la base de datos se actualizó correctamente, actualizamos la UI
-            dispatch({
-              type: "UPDATE_ORDER_STATUS",
-              payload: { id, status },
-            });
-          } else {
-            console.error(
-              "Error al actualizar la base de datos:",
-              json.message,
-            );
-            return; // Abortamos el cambio visual si el backend falla
-          }
-        } catch (error) {
-          console.error("Error de conexión con la API:", error);
-        }
-      } else {
-        // Fallback por si la orden no tiene db_id o es un movimiento puramente local
-        dispatch({ type: "UPDATE_ORDER_STATUS", payload: { id, status } });
-      }
-    },
-    [state.orders],
-  );
-
-  const archiveOrder = useCallback(
-    (id) => dispatch({ type: "ARCHIVE_ORDER", payload: { id } }),
-    [],
-  );
-  const updateOrder = useCallback(
-    (order) => dispatch({ type: "UPDATE_ORDER", payload: { order } }),
-    [],
-  );
-
   const addCustomer = useCallback(
     (customer) => dispatch({ type: "ADD_CUSTOMER", payload: customer }),
     [],
   );
 
-  const addProduct = useCallback(
-    (category, product) =>
-      dispatch({ type: "ADD_PRODUCT", payload: { category, product } }),
-    [],
-  );
-  const updateProduct = useCallback(
-    (category, product) =>
-      dispatch({ type: "UPDATE_PRODUCT", payload: { category, product } }),
-    [],
-  );
-  const deleteProduct = useCallback(
-    (category, id) =>
-      dispatch({ type: "DELETE_PRODUCT", payload: { category, id } }),
-    [],
-  );
-
-  const addBranch = useCallback(
-    (branch) => dispatch({ type: "ADD_BRANCH", payload: branch }),
-    [],
-  );
-  const deleteBranch = useCallback(
-    (id) => dispatch({ type: "DELETE_BRANCH", payload: { id } }),
-    [],
-  );
-  const addStaff = useCallback(
-    (member) => dispatch({ type: "ADD_STAFF", payload: member }),
-    [],
-  );
-  const deleteStaff = useCallback(
-    (id) => dispatch({ type: "DELETE_STAFF", payload: { id } }),
-    [],
-  );
-
-  const [exchangeRate, setExchangeRate] = useState(0);
-
-  // Load the operational exchange rate maintained by the backend.
-  useEffect(() => {
-    const fetchRate = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/tasa`);
-        const json = await res.json();
-        if (json.success && json.data?.tasa_sistema) {
-          setExchangeRate(Number(json.data.tasa_sistema));
-        }
-      } catch (error) {
-        console.error("Error fetching exchange rate", error);
-      }
-    };
-    fetchRate();
-  }, []);
-
-  // ── Datos reales de BD ────────────────────────────────────────────────────
-  const fetchVentasHoy = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/obtener-ventas-hoy`);
-      const json = await res.json();
-      if (json.success) {
-        dispatch({ type: "SET_METRICS_HOY", payload: json.data });
-      }
-    } catch (err) {
-      console.error("Error al cargar ventas del día:", err);
-    }
-  }, []);
-
-  const fetchPedidosActivos = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/obtener-pedidos-activos`);
-      const json = await res.json();
-      if (json.success) {
-        dispatch({ type: "SET_PEDIDOS_ACTIVOS", payload: json.data });
-      }
-    } catch (err) {
-      console.error("Error al cargar pedidos activos:", err);
-    }
-  }, []);
-
-  const fetchPedidosCocina = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/obtener-pedidos-cocina`);
-      const json = await res.json();
-
-      if (json.success) {
-        // Mapeamos los datos de la BD al formato que espera tu KanbanBoard
-        const ordersAdaptadas = json.data.map((venta) => ({
-          id: venta.codigo_orden, // Ej: ORD-001
-          db_id: venta.id_venta, // Guardamos el ID real para el PUT
-          status: "pending", // El KanbanBoard suele usar 'pending'
-          createdAt: venta.fecha_hora,
-          orderType: venta.despacho,
-          table: venta.despacho, // Local, Delivery, etc.
-          customerName: venta.nombre_cliente,
-          phoneLastDigits: venta.digitos_delivery || "",
-          items: venta.detalles.map((detalle) => ({
-            id_detalle: detalle.id_detalle,
-            name: detalle.nombre_producto,
-            qty: detalle.cantidad,
-            note: detalle.nota,
-            size: detalle.categoria_pizza,
-            category: "pizzas",
-            extras: detalle.extras || [],
-          })),
-        }));
-
-        dispatch({ type: "SET_KITCHEN_ORDERS", payload: ordersAdaptadas });
-      }
-    } catch (err) {
-      console.error("Error al cargar pedidos de cocina:", err);
-    }
-  }, []);
-
-  //fetch para mostrar los pedidos del horno
-  const fetchPendientesDespacho = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/obtener-pedidos-despacho`);
-      const json = await res.json();
-
-      if (json.success) {
-        const ordersAdaptadas = json.data.map((venta) => ({
-          id: venta.codigo_orden,
-          db_id: venta.id_venta,
-          status: "delivered",
-          createdAt: venta.fecha_hora,
-          orderType: venta.despacho,
-          table: venta.despacho,
-          customerName: venta.nombre_cliente,
-          phoneLastDigits: venta.digitos_delivery || "",
-          items: venta.detalles.map((detalle) => ({
-            id_detalle: detalle.id_detalle,
-            name: detalle.nombre_producto,
-            qty: detalle.cantidad,
-            note: detalle.nota,
-            size: detalle.categoria_pizza,
-            category: "pizzas",
-            extras: detalle.extras || [],
-          })),
-        }));
-
-        dispatch({ type: "SET_DESPACHO_ORDERS", payload: ordersAdaptadas });
-      }
-    } catch (err) {
-      console.error("Error al cargar pedidos de horno:", err);
-    }
-  }, []);
-
-  //fetch para mostrar los pedidos del horno
-  const fetchPedidosHorno = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/obtener-pedidos-horno`);
-      const json = await res.json();
-
-      if (json.success) {
-        const ordersAdaptadas = json.data.map((venta) => ({
-          id: venta.codigo_orden,
-          db_id: venta.id_venta,
-          status: "preparing",
-          createdAt: venta.fecha_hora,
-          orderType: venta.despacho,
-          table: venta.despacho,
-          customerName: venta.nombre_cliente,
-          phoneLastDigits: venta.digitos_delivery || "",
-          items: venta.detalles.map((detalle) => ({
-            id_detalle: detalle.id_detalle,
-            name: detalle.nombre_producto,
-            qty: detalle.cantidad,
-            note: detalle.nota,
-            size: detalle.categoria_pizza,
-            category: "pizzas",
-            extras: detalle.extras || [],
-          })),
-        }));
-
-        dispatch({ type: "SET_HORNO_ORDERS", payload: ordersAdaptadas });
-      }
-    } catch (err) {
-      console.error("Error al cargar pedidos de horno:", err);
-    }
-  }, []);
-
-  const fetchPendientes = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/obtener-pedidos-pendiente`);
-      const json = await res.json();
-
-      if (json.success) {
-        const ordersAdaptadas = json.data.map((venta) => ({
-          id: venta.codigo_orden,
-          db_id: venta.id_venta,
-          status: "ready",
-          createdAt: venta.fecha_hora,
-          orderType: venta.despacho,
-          table: venta.despacho,
-          customerName: venta.nombre_cliente,
-          phoneLastDigits: venta.digitos_delivery || "",
-          items: venta.detalles.map((detalle) => ({
-            id_detalle: detalle.id_detalle,
-            name: detalle.nombre_producto,
-            qty: detalle.cantidad,
-            note: detalle.nota,
-            size: detalle.categoria_pizza,
-            category: "pizzas",
-            extras: detalle.extras || [],
-          })),
-        }));
-
-        dispatch({ type: "SET_PENDIENTE_ORDERS", payload: ordersAdaptadas });
-      }
-    } catch (err) {
-      console.error("Error al cargar pedidos de horno:", err);
-    }
-  }, []);
-
-  const fetchMesero = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/obtener-pedidos-mesero`);
-      const json = await res.json();
-
-      if (json.success) {
-        const ordersAdaptadas = json.data.map((venta) => ({
-          id: venta.codigo_orden,
-          db_id: venta.id_venta,
-          status: "waiter_pending",
-          createdAt: venta.fecha_hora,
-          orderType: venta.despacho,
-          table: venta.despacho,
-          customerName: venta.nombre_cliente,
-          items: venta.detalles.map((detalle) => ({
-            id_detalle: detalle.id_detalle,
-            name: detalle.nombre_producto,
-            qty: detalle.cantidad,
-            note: detalle.nota,
-            size: detalle.categoria_pizza,
-            category: "pizzas",
-            extras: detalle.extras || [],
-          })),
-        }));
-
-        dispatch({ type: "SET_MESERO_ORDERS", payload: ordersAdaptadas });
-      }
-    } catch (err) {
-      console.error("Error al cargar pedidos del mesero:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Carga inicial
-    fetchVentasHoy();
-    fetchPedidosActivos();
-    fetchPedidosCocina();
-    fetchPedidosHorno();
-    fetchPendientesDespacho();
-    fetchPendientes();
-    fetchMesero();
-
-    // Polling cada 15 segundos para mantener la cola actualizada
-    const interval = setInterval(() => {
-      fetchVentasHoy();
-      fetchPedidosActivos();
-      fetchPedidosCocina();
-      fetchPedidosHorno();
-      fetchPendientesDespacho();
-      fetchPendientes();
-      fetchMesero();
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, [
-    fetchVentasHoy,
-    fetchPedidosActivos,
-    fetchPedidosCocina,
-    fetchPedidosHorno,
-    fetchPendientesDespacho,
-    fetchPendientes,
-    fetchMesero,
-  ]);
-
-  const updateExchangeRate = useCallback((rate) => {
-    setExchangeRate(parseFloat(rate));
-  }, []);
-
   const login = useCallback(async (email, password) => {
     try {
-      const res = await fetch(`${API_BASE}/login`, {
+      const res = await fetch("http://localhost:3001/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1001,28 +443,9 @@ export function AppProvider({ children }) {
         setOrderType,
         addPayment,
         confirmSale,
-        updateOrderStatus,
-        archiveOrder,
-        updateOrder,
         addCustomer,
-        addProduct,
-        updateProduct,
-        deleteProduct,
-        addBranch,
-        deleteBranch,
-        addStaff,
-        deleteStaff,
         login,
         logout,
-        exchangeRate,
-        updateExchangeRate,
-        fetchVentasHoy,
-        fetchPedidosActivos,
-        fetchPedidosCocina,
-        fetchPedidosHorno,
-        fetchPendientesDespacho,
-        fetchPendientes,
-        fetchMesero,
       }}
     >
       {children}

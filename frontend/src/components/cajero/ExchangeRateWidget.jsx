@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useExchangeRate } from '../../hooks/useExchangeRate';
 import { CurrencyIcon as CurrencyDollar, Edit2, Check, X } from 'lucide-react';
 
 export default function ExchangeRateWidget() {
-  const { exchangeRate, updateExchangeRate } = useApp();
+  const { exchangeRate, updateExchangeRate } = useExchangeRate();
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
