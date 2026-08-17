@@ -16,6 +16,7 @@ import {
   ShoppingBag,
   RefreshCw,
 } from "lucide-react";
+import { exportCierrePDF } from "../utils/pdfCierre";
 
 const API = "http://localhost:3001/api";
 
@@ -157,7 +158,7 @@ export default function CierreScreen() {
     );
 
     try {
-      await axios.post(
+      const res = await axios.post(
         `${API}/cierre-caja`,
         {
           id_usuario: currentUser?.id ?? 1,
@@ -172,6 +173,26 @@ export default function CierreScreen() {
         { withCredentials: true },
       );
 
+      const newCierreId = res.data?.id_cierre;
+
+      // Auto-descargar PDF Profesional del Cierre
+      try {
+        await exportCierrePDF({
+          id_cierre: newCierreId,
+          fecha_hora: new Date(),
+          usuario_nombre: currentUser?.nombre_completo || "Cajero Responsable",
+          monto_efectivo_usd: Number(desglose_pagos.efectivo_usd || 0),
+          monto_efectivo_bs: Number(desglose_pagos.efectivo_bs || 0),
+          monto_punto_bs: Number(desglose_pagos.punto_de_venta_bs || 0),
+          monto_pago_movil_bs: Number(desglose_pagos.transferencia_bs || 0),
+          total_usdt: Number(total_divisa || 0),
+          num_ordenes: Number(total_ordenes || 0),
+          tasa_cambio: Number(tasa || 1)
+        });
+      } catch (pdfError) {
+        console.error("Error al generar PDF del cierre:", pdfError);
+      }
+
       setClaveCierre("");
       setShowDetailModal(false);
       clearCart();
@@ -181,7 +202,7 @@ export default function CierreScreen() {
 
       window.Toast.fire({
         icon: "success",
-        title: "¡Cierre de caja realizado exitosamente!",
+        title: "¡Cierre de caja realizado y PDF descargado exitosamente!",
       });
     } catch (error) {
       if (error.response?.status === 401) {

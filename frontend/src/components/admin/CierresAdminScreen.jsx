@@ -14,8 +14,10 @@ import {
   ShoppingBag,
   Key,
   Lock,
-  Unlock
+  Unlock,
+  Download
 } from "lucide-react";
+import { exportCierrePDF } from "../../utils/pdfCierre";
 
 const API_BASE = "http://localhost:3001/api";
 
@@ -66,6 +68,7 @@ export default function CierresAdminScreen() {
   const [newPin, setNewPin] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [selectedCajeroId, setSelectedCajeroId] = useState("");
 
   useEffect(() => {
     const fetchCierres = async () => {
@@ -96,6 +99,9 @@ export default function CierresAdminScreen() {
           const response = await axios.get(`${API_BASE}/cierre/cajeros`);
           if (response.data.success) {
             setCajeros(response.data.cajeros);
+            if (response.data.cajeros.length > 0) {
+              setSelectedCajeroId(String(response.data.cajeros[0].id_usuario));
+            }
           }
         } catch (error) {
           console.error("Error al obtener cajeros:", error);
@@ -184,37 +190,20 @@ export default function CierresAdminScreen() {
             Visualiza y audita los cierres diarios realizados por los cajeros
           </p>
         </div>
-        
-        {/* Buscador de día y controles */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:flex-none">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold uppercase mr-1">
-              Día:
-            </span>
-            <input
-              type="date"
-              value={searchDate}
-              onChange={(e) => setSearchDate(e.target.value)}
-              className="bg-white border border-slate-200 text-slate-800 rounded-xl pl-12 pr-8 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all w-full shadow-sm"
-            />
-            {searchDate && (
-              <button
-                onClick={() => setSearchDate("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          
+
+        {/* Botones de acción en el header */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
-            onClick={toggleSortOrder}
-            className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 text-sm font-semibold rounded-xl hover:bg-slate-50 shadow-sm transition-all shrink-0"
-            title="Cambiar orden por fecha"
+            onClick={() => setOpenPinModal(true)}
+            className="flex items-center gap-1.5 bg-pizza-red hover:bg-red-600 text-white px-4 py-2.5 text-sm font-bold rounded-xl shadow-sm transition-all shrink-0 active:scale-[0.98]"
+            title="Administrar PINs de cierres para cajeros"
           >
-            <ArrowUpDown className="w-4 h-4 text-slate-500" />
-            <span>Fecha: {sortOrder === "asc" ? "ASC" : "DESC"}</span>
+            <Key className="w-4 h-4" />
+            <span>Claves Cajeros</span>
           </button>
+          <span className="text-sm font-bold text-slate-500 bg-slate-100 border border-slate-200 px-4 py-2.5 rounded-xl flex items-center gap-1 shrink-0">
+            Total: {filteredAndSortedCierres.length} registros
+          </span>
         </div>
       </div>
 
@@ -312,18 +301,35 @@ export default function CierresAdminScreen() {
               Lista completa de cajas cerradas en la pizzería
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Filtros de fecha y orden */}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold uppercase">
+                Día:
+              </span>
+              <input
+                type="date"
+                value={searchDate}
+                onChange={(e) => setSearchDate(e.target.value)}
+                className="bg-white border border-slate-200 text-slate-800 rounded-xl pl-12 pr-8 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
+              />
+              {searchDate && (
+                <button
+                  onClick={() => setSearchDate("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             <button
-              onClick={() => setOpenPinModal(true)}
-              className="flex items-center gap-1.5 bg-pizza-red hover:bg-red-600 text-white px-3 py-1.5 text-xs font-bold rounded-xl shadow-sm transition-all shrink-0"
-              title="Administrar PINs de cierres para cajeros"
+              onClick={toggleSortOrder}
+              className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 text-sm font-semibold rounded-xl hover:bg-slate-50 shadow-sm transition-all shrink-0"
+              title="Cambiar orden por fecha"
             >
-              <Key className="w-3.5 h-3.5" />
-              <span>Claves Cajeros</span>
+              <ArrowUpDown className="w-4 h-4 text-slate-500" />
+              <span>Fecha: {sortOrder === "asc" ? "ASC" : "DESC"}</span>
             </button>
-            <span className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1">
-              Total: {filteredAndSortedCierres.length} registros
-            </span>
           </div>
         </div>
 
@@ -385,13 +391,22 @@ export default function CierresAdminScreen() {
                       {formatMoney(cierre.total_usdt)}
                     </td>
                     <td className="px-5 py-3.5 text-center">
-                      <button
-                        onClick={() => setSelectedCierre(cierre)}
-                        className="p-1 text-slate-400 hover:text-pizza-red hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 duration-150"
-                        title="Ver desglose detallado"
-                      >
-                        <Eye className="w-4.5 h-4.5" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => setSelectedCierre(cierre)}
+                          className="p-1 text-slate-400 hover:text-pizza-red hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 duration-150"
+                          title="Ver desglose detallado"
+                        >
+                          <Eye className="w-4.5 h-4.5" />
+                        </button>
+                        <button
+                          onClick={() => exportCierrePDF(cierre)}
+                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 duration-150"
+                          title="Descargar PDF"
+                        >
+                          <Download className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -426,22 +441,23 @@ export default function CierresAdminScreen() {
 
       {/* Modal de Detalle */}
       {selectedCierre && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl animate-fade-in max-h-[90vh]">
             {/* Header Modal */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div>
-                <h3 className="font-extrabold text-slate-800">Detalle del Cierre #{selectedCierre.id_cierre}</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Realizado el {formatDate(selectedCierre.fecha_hora)} a las {formatTime(selectedCierre.fecha_hora)}
-                </p>
-              </div>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-white relative">
               <button
                 onClick={() => setSelectedCierre(null)}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-all"
+                className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-300 hover:text-white transition-all duration-300 hover:rotate-90"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
+              <div className="w-12 h-12 rounded-2xl bg-pizza-red/20 border border-pizza-red/30 flex items-center justify-center mb-3">
+                <FileText className="w-6 h-6 text-red-300" />
+              </div>
+              <h2 className="text-xl font-bold">Detalle del Cierre #{selectedCierre.id_cierre}</h2>
+              <p className="text-slate-400 text-sm mt-1">
+                Realizado el {formatDate(selectedCierre.fecha_hora)} a las {formatTime(selectedCierre.fecha_hora)}
+              </p>
             </div>
 
             {/* Contenido Modal */}
@@ -510,10 +526,17 @@ export default function CierresAdminScreen() {
             </div>
 
             {/* Footer Modal */}
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center gap-3">
+              <button
+                onClick={() => exportCierrePDF(selectedCierre)}
+                className="flex-1 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-2.5 px-4 rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <Download className="w-4 h-4" />
+                Descargar PDF
+              </button>
               <button
                 onClick={() => setSelectedCierre(null)}
-                className="bg-white border border-slate-200 text-slate-700 px-4 py-2 text-sm font-bold rounded-xl hover:bg-slate-100 transition-all shadow-sm"
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
                 Cerrar Detalle
               </button>
@@ -524,33 +547,29 @@ export default function CierresAdminScreen() {
 
       {/* Modal de Claves Cajeros */}
       {openPinModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-250">
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in max-h-[90vh]">
             {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-pizza-red/10 text-pizza-red flex items-center justify-center shadow-inner">
-                  <Key className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-black text-slate-800 text-lg">PINs de Cierre</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-0.5">Asigna claves de 4 números para cajeros</p>
-                </div>
-              </div>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-white relative">
               <button
                 onClick={() => {
                   setOpenPinModal(false);
                   setEditingCajero(null);
                   setNewPin("");
                 }}
-                className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-xl transition-all"
+                className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-300 hover:text-white transition-all duration-300 hover:rotate-90"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
+              <div className="w-12 h-12 rounded-2xl bg-pizza-red/20 border border-pizza-red/30 flex items-center justify-center mb-3">
+                <Key className="w-6 h-6 text-red-300" />
+              </div>
+              <h2 className="text-xl font-bold">PINs de Cierre</h2>
+              <p className="text-slate-400 text-sm mt-1">Asigna claves de 4 números para cajeros</p>
             </div>
 
             {/* Contenido */}
-            <div className="p-6 flex flex-col gap-4 overflow-y-auto max-h-[380px] bg-slate-50/30">
+            <div className="p-6 flex flex-col gap-4 overflow-y-auto bg-slate-50/30">
               {errorMsg && (
                 <div className="bg-red-50 text-red-600 border border-red-100 px-4 py-2.5 rounded-2xl text-xs font-bold shadow-sm animate-shake">
                   {errorMsg}
@@ -573,32 +592,71 @@ export default function CierresAdminScreen() {
                   <p className="text-sm font-bold">No hay cajeros registrados activos</p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
-                  {cajeros.map((cajero) => {
-                    const isEditing = editingCajero?.id_usuario === cajero.id_usuario;
+                <div className="flex flex-col gap-4">
+                  {/* Selector de Cajero */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                      Seleccionar Cajero
+                    </label>
+                    <select
+                      value={selectedCajeroId}
+                      onChange={(e) => {
+                        setSelectedCajeroId(e.target.value);
+                        setEditingCajero(null);
+                        setNewPin("");
+                        setErrorMsg("");
+                        setSuccessMsg("");
+                      }}
+                      className="bg-white border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all w-full shadow-sm font-semibold"
+                    >
+                      {cajeros.map((c) => (
+                        <option key={c.id_usuario} value={c.id_usuario}>
+                          {c.nombre_completo} ({c.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Detalle y Gestión del Cajero Seleccionado */}
+                  {(() => {
+                    const activeCajero = cajeros.find(c => String(c.id_usuario) === String(selectedCajeroId));
+                    if (!activeCajero) return null;
+                    const isEditing = editingCajero?.id_usuario === activeCajero.id_usuario;
+
                     return (
-                      <div
-                        key={cajero.id_usuario}
-                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-2xl transition-all duration-300 gap-4 shadow-sm bg-white ${
-                          isEditing
-                            ? "border-pizza-red ring-1 ring-pizza-red/20"
-                            : "border-slate-100 hover:border-slate-200"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-sm shrink-0 shadow-sm">
-                            {cajero.nombre_completo?.charAt(0) || "U"}
+                      <div className="border border-slate-100 rounded-2xl p-5 bg-white shadow-sm flex flex-col gap-4 transition-all duration-300">
+                        {/* Info del Cajero */}
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-base shrink-0 shadow-sm">
+                            {activeCajero.nombre_completo?.charAt(0) || "U"}
                           </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-800">{cajero.nombre_completo}</p>
-                            <p className="text-xs text-slate-400 font-medium">{cajero.email}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-base font-black text-slate-800 truncate">{activeCajero.nombre_completo}</p>
+                            <p className="text-xs text-slate-400 font-medium truncate">{activeCajero.email}</p>
+                          </div>
+                          <div className="shrink-0">
+                            {activeCajero.pin ? (
+                              <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full flex items-center gap-1.5">
+                                <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <span>PIN Activo</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-extrabold text-red-500 bg-red-50 border border-red-100 px-3 py-1 rounded-full flex items-center gap-1.5">
+                                <Unlock className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                                <span>Sin Clave</span>
+                              </span>
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                        {/* Configuración de PIN */}
+                        <div className="border-t border-slate-100 pt-4 flex flex-col gap-3">
                           {isEditing ? (
-                            <div className="flex items-center gap-2 animate-in slide-in-from-right-3 duration-250">
-                              <div className="relative">
+                            <div className="flex flex-col gap-3">
+                              <p className="text-xs font-semibold text-slate-500">
+                                Introduce el nuevo PIN de seguridad de 4 dígitos:
+                              </p>
+                              <div className="flex items-center gap-3">
                                 <input
                                   type="text"
                                   maxLength={4}
@@ -608,69 +666,64 @@ export default function CierresAdminScreen() {
                                     const val = e.target.value.replace(/\D/g, ""); // solo números
                                     setNewPin(val);
                                   }}
-                                  className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all w-24 text-center font-mono font-black tracking-[0.3em]"
+                                  className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all w-28 text-center font-mono font-black tracking-[0.3em] shadow-inner"
+                                  autoFocus
                                 />
+                                <div className="flex items-center gap-2 flex-1 justify-end">
+                                  <button
+                                    onClick={() => handleSavePin(activeCajero.id_usuario)}
+                                    className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-2.5 px-4 rounded-xl text-xs font-bold shadow-md transition-all flex-1 max-w-[100px] text-center active:scale-[0.98]"
+                                  >
+                                    Guardar
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingCajero(null);
+                                      setNewPin("");
+                                      setErrorMsg("");
+                                    }}
+                                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all flex-1 max-w-[100px] text-center"
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
                               </div>
-                              <button
-                                onClick={() => handleSavePin(cajero.id_usuario)}
-                                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm"
-                              >
-                                Guardar
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingCajero(null);
-                                  setNewPin("");
-                                  setErrorMsg("");
-                                }}
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold text-xs px-3.5 py-2 rounded-xl transition-all"
-                              >
-                                Cancelar
-                              </button>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-3">
-                              {cajero.pin ? (
-                                <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full flex items-center gap-1.5">
-                                  <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                  <span>Activo (****)</span>
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-extrabold text-red-500 bg-red-50 border border-red-100 px-3 py-1 rounded-full flex items-center gap-1.5">
-                                  <Unlock className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                                  <span>Sin Clave</span>
-                                </span>
-                              )}
+                            <div className="flex items-center justify-between gap-3 bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                              <span className="text-xs text-slate-500 font-medium">
+                                {activeCajero.pin ? "El usuario ya posee una clave activa para cierres." : "Este usuario no tiene clave asignada."}
+                              </span>
                               <button
                                 onClick={() => {
-                                  setEditingCajero(cajero);
-                                  setNewPin(cajero.pin || "");
+                                  setEditingCajero(activeCajero);
+                                  setNewPin(activeCajero.pin || "");
                                   setErrorMsg("");
                                   setSuccessMsg("");
                                 }}
-                                className="text-xs font-bold text-pizza-red bg-red-50 hover:bg-pizza-red hover:text-white border border-pizza-red/10 px-3.5 py-1.5 rounded-xl transition-all shadow-sm"
+                                className="text-xs font-bold text-pizza-red bg-red-50 hover:bg-pizza-red hover:text-white border border-pizza-red/10 px-4 py-2 rounded-xl transition-all shadow-sm shrink-0"
                               >
-                                {cajero.pin ? "Cambiar" : "Asignar"}
+                                {activeCajero.pin ? "Cambiar PIN" : "Asignar PIN"}
                               </button>
                             </div>
                           )}
                         </div>
                       </div>
                     );
-                  })}
+                  })()}
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-100 bg-gradient-to-r from-slate-50 to-white flex justify-end">
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button
                 onClick={() => {
                   setOpenPinModal(false);
                   setEditingCajero(null);
                   setNewPin("");
                 }}
-                className="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 text-sm font-bold rounded-xl hover:bg-slate-100 hover:border-slate-300 transition-all shadow-sm"
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all"
               >
                 Cerrar Ventana
               </button>
