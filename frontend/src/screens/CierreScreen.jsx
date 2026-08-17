@@ -335,84 +335,20 @@ export default function CierreScreen() {
       </header>
 
       {/* ── HERO BALANCE + DONUT + LEYENDA ── */}
-      <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         {/* Balance */}
-        <div className="lg:col-span-5 flex flex-col gap-6 border-r border-slate-100 pr-0 lg:pr-8">
+        <div className="lg:col-span-5 flex flex-col justify-center border-r border-slate-100 pr-0 lg:pr-8 h-full min-h-[140px]">
           <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Total en Divisa (USDT)
             </span>
-            <h2 className="text-5xl font-black text-slate-800 tracking-tight mt-1 flex items-baseline gap-1.5">
+            <h2 className="text-5xl sm:text-6xl font-black text-slate-800 tracking-tight mt-2 flex items-baseline gap-1.5">
               ${total_divisa.toFixed(2)}
-              <span className="text-sm font-bold text-slate-400">USD</span>
+              <span className="text-base font-bold text-slate-400">USD</span>
             </h2>
-            <p className="text-xs text-slate-400 font-semibold mt-1">
+            <p className="text-sm text-slate-500 font-medium mt-3 leading-relaxed">
               Suma de todos los canales convertidos a dólares (tasa activa)
             </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {/* Efectivo USD */}
-            <div className="bg-[#f8fafc] border border-slate-100 rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="w-9 h-9 bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center shrink-0 font-extrabold text-sm">
-                $
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider truncate">
-                  Efectivo USD
-                </p>
-                <p className="text-sm font-extrabold text-slate-700">
-                  ${desglose_pagos.efectivo_usd.toFixed(2)}
-                </p>
-              </div>
-            </div>
-
-            {/* Efectivo Bs */}
-            <div className="bg-[#f8fafc] border border-slate-100 rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="w-9 h-9 bg-blue-100 text-blue-500 rounded-xl flex items-center justify-center shrink-0 font-extrabold text-xs">
-                Bs
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider truncate">
-                  Efectivo Bs.
-                </p>
-                <p className="text-sm font-extrabold text-slate-700">
-                  {desglose_pagos.efectivo_bs.toLocaleString("es-VE", {
-                    maximumFractionDigits: 0,
-                  })}
-                </p>
-              </div>
-            </div>
-
-            {/* Punto */}
-            <div className="bg-[#f8fafc] border border-slate-100 rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="w-9 h-9 bg-cyan-100 text-cyan-500 rounded-xl flex items-center justify-center shrink-0">
-                <CreditCard className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider truncate">
-                  Punto / Tarjeta
-                </p>
-                <p className="text-sm font-extrabold text-slate-700">
-                  Bs. {fmtBs(desglose_pagos.punto_de_venta_bs)}
-                </p>
-              </div>
-            </div>
-
-            {/* Transferencia */}
-            <div className="bg-[#f8fafc] border border-slate-100 rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="w-9 h-9 bg-emerald-100 text-emerald-500 rounded-xl flex items-center justify-center shrink-0">
-                <Smartphone className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider truncate">
-                  Transf. / Pago Móvil
-                </p>
-                <p className="text-sm font-extrabold text-slate-700">
-                  Bs. {fmtBs(desglose_pagos.transferencia_bs)}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -469,10 +405,10 @@ export default function CierreScreen() {
               )}
             </svg>
             <div className="absolute inset-0 flex flex-col justify-center items-center">
-              <span className="text-2xl font-black text-slate-800">
+              <span className="text-3xl font-black text-slate-800">
                 {total_ordenes}
               </span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-sm font-medium text-slate-500">
                 Órdenes
               </span>
             </div>
@@ -491,18 +427,18 @@ export default function CierreScreen() {
             },
           ].map(({ color, label, pct }) => (
             <div key={label}>
-              <div className="flex justify-between items-center mb-1.5">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${color}`} />
-                  <span className="text-xs font-semibold text-slate-500">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-3 h-3 rounded-full ${color}`} />
+                  <span className="text-sm sm:text-base font-bold text-slate-600">
                     {label}
                   </span>
                 </div>
-                <span className="text-xs font-black text-slate-700">
+                <span className="text-sm sm:text-base font-black text-slate-800">
                   {pct}%
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${color} rounded-full transition-all duration-700`}
                   style={{ width: `${pct}%` }}
@@ -551,24 +487,24 @@ export default function CierreScreen() {
         ].map(({ gradient, icon, label, sub, value, textLight }) => (
           <div
             key={label}
-            className={`bg-gradient-to-b ${gradient} rounded-3xl p-5 shadow-sm text-white flex flex-col justify-between h-44 relative overflow-hidden`}
+            className={`bg-gradient-to-b ${gradient} rounded-3xl p-6 shadow-sm text-white flex flex-col justify-between h-52 relative overflow-hidden`}
           >
             <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
-              <DollarSign className="w-32 h-32" />
+              <DollarSign className="w-36 h-36" />
             </div>
             <div
-              className={`w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-bold text-sm`}
+              className={`w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center font-bold text-base`}
             >
               {icon}
             </div>
             <div>
               <p
-                className={`text-[10px] font-black uppercase tracking-widest ${textLight} mb-1`}
+                className={`text-xs font-semibold ${textLight} mb-1.5`}
               >
                 {label}
               </p>
-              <p className="text-2xl font-black truncate">{value}</p>
-              <p className={`text-[10px] ${textLight} mt-0.5`}>{sub}</p>
+              <p className="text-3xl font-black truncate leading-tight">{value}</p>
+              <p className={`text-xs ${textLight} mt-1`}>{sub}</p>
             </div>
           </div>
         ))}
@@ -646,7 +582,7 @@ export default function CierreScreen() {
             <form onSubmit={handleFinalSubmit} className="space-y-4">
               {/* Resumen cuadre */}
               <div className="bg-[#f8fafc] rounded-2xl p-4 border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                <p className="text-[10px] font-semibold text-slate-400 mb-3">
                   Cuadre del Día
                 </p>
                 <div className="space-y-2.5">
@@ -695,7 +631,7 @@ export default function CierreScreen() {
 
               {/* Clave */}
               <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
+                <label className="text-xs font-semibold text-slate-600 block mb-2">
                   Clave de Cierre
                 </label>
                 <input

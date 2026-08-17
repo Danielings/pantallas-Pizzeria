@@ -89,7 +89,7 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
                   #{order.id}
                 </span>
                 <span
-                  className={`text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full ${theme.badge} border border-current/10`}
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${theme.badge} border border-current/10`}
                 >
                   {theme.label}
                 </span>
@@ -195,7 +195,7 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
               #{order.id}
             </span>
             <span
-              className={`text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full ${theme.badge} border border-current/10`}
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${theme.badge} border border-current/10`}
             >
               {theme.label}
             </span>
@@ -401,7 +401,7 @@ export default function EntregaScreen() {
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
             <button
               onClick={() => setSelectedGroup("delivery_pickup")}
-              className={`px-4 py-2 rounded-lg text-xs font-extrabold tracking-wider uppercase transition-all ${
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                 selectedGroup === "delivery_pickup"
                   ? "bg-slate-950 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
@@ -411,7 +411,7 @@ export default function EntregaScreen() {
             </button>
             <button
               onClick={() => setSelectedGroup("local_llevar")}
-              className={`px-4 py-2 rounded-lg text-xs font-extrabold tracking-wider uppercase transition-all ${
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                 selectedGroup === "local_llevar"
                   ? "bg-slate-950 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
@@ -445,14 +445,14 @@ export default function EntregaScreen() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
             <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
-                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                <p className="text-slate-400 font-medium text-sm mb-2">
                   Delivery Hoy
                 </p>
                 <div className="flex items-end gap-2">
                   <h3 className="text-4xl font-black text-slate-800 leading-none">
                     {orders.filter((o) => o.type === "delivery").length}
                   </h3>
-                  <span className="text-slate-400 font-bold text-sm mb-1">
+                  <span className="text-slate-400 font-semibold text-base mb-1">
                     total
                   </span>
                 </div>
@@ -464,14 +464,14 @@ export default function EntregaScreen() {
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
-                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                <p className="text-slate-400 font-medium text-sm mb-2">
                   Delivery Activos
                 </p>
                 <div className="flex items-end gap-2">
                   <h3 className="text-4xl font-black text-red-600 leading-none">
                     {pendingDelivery.length}
                   </h3>
-                  <span className="text-red-400 font-bold text-sm mb-1">
+                  <span className="text-red-400 font-semibold text-base mb-1">
                     pendientes
                   </span>
                 </div>
@@ -483,14 +483,14 @@ export default function EntregaScreen() {
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
-                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                <p className="text-slate-400 font-medium text-sm mb-2">
                   Pick Up Hoy
                 </p>
                 <div className="flex items-end gap-2">
                   <h3 className="text-4xl font-black text-slate-800 leading-none">
                     {orders.filter((o) => o.type === "pickup").length}
                   </h3>
-                  <span className="text-slate-400 font-bold text-sm mb-1">
+                  <span className="text-slate-400 font-semibold text-base mb-1">
                     total
                   </span>
                 </div>
@@ -502,14 +502,14 @@ export default function EntregaScreen() {
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
-                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                <p className="text-slate-400 font-medium text-sm mb-2">
                   Pick Up Activos
                 </p>
                 <div className="flex items-end gap-2">
                   <h3 className="text-4xl font-black text-green-600 leading-none">
                     {pendingPickup.length}
                   </h3>
-                  <span className="text-green-400 font-bold text-sm mb-1">
+                  <span className="text-green-400 font-semibold text-base mb-1">
                     pendientes
                   </span>
                 </div>
@@ -523,14 +523,14 @@ export default function EntregaScreen() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
             <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
-                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                <p className="text-slate-400 font-medium text-sm mb-2">
                   Local Hoy
                 </p>
                 <div className="flex items-end gap-2">
                   <h3 className="text-4xl font-black text-slate-800 leading-none">
                     {orders.filter((o) => o.type === "local").length}
                   </h3>
-                  <span className="text-slate-400 font-bold text-sm mb-1">
+                  <span className="text-slate-400 font-semibold text-base mb-1">
                     total
                   </span>
                 </div>
@@ -542,14 +542,14 @@ export default function EntregaScreen() {
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
-                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                <p className="text-slate-400 font-medium text-sm mb-2">
                   Local Activos
                 </p>
                 <div className="flex items-end gap-2">
                   <h3 className="text-4xl font-black text-blue-600 leading-none">
                     {pendingLocal.length}
                   </h3>
-                  <span className="text-blue-400 font-bold text-sm mb-1">
+                  <span className="text-blue-400 font-semibold text-base mb-1">
                     pendientes
                   </span>
                 </div>
@@ -561,14 +561,14 @@ export default function EntregaScreen() {
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
-                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                <p className="text-slate-400 font-medium text-sm mb-2">
                   Llevar Hoy
                 </p>
                 <div className="flex items-end gap-2">
                   <h3 className="text-4xl font-black text-slate-800 leading-none">
                     {orders.filter((o) => o.type === "llevar").length}
                   </h3>
-                  <span className="text-slate-400 font-bold text-sm mb-1">
+                  <span className="text-slate-400 font-semibold text-base mb-1">
                     total
                   </span>
                 </div>
@@ -580,14 +580,14 @@ export default function EntregaScreen() {
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
-                <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+                <p className="text-slate-400 font-medium text-sm mb-2">
                   Llevar Activos
                 </p>
                 <div className="flex items-end gap-2">
                   <h3 className="text-4xl font-black text-purple-600 leading-none">
                     {pendingLlevar.length}
                   </h3>
-                  <span className="text-purple-400 font-bold text-sm mb-1">
+                  <span className="text-purple-400 font-semibold text-base mb-1">
                     pendientes
                   </span>
                 </div>
@@ -611,7 +611,7 @@ export default function EntregaScreen() {
                   </div>
                   Delivery
                 </h2>
-                <span className="bg-red-100 text-red-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-red-200/50 shadow-sm">
+                <span className="bg-red-100 text-red-700 text-sm font-semibold px-3.5 py-1.5 rounded-full border border-red-200/50 shadow-sm">
                   {pendingDelivery.length} Pendientes
                 </span>
               </div>
@@ -647,7 +647,7 @@ export default function EntregaScreen() {
                   </div>
                   Pick Up
                 </h2>
-                <span className="bg-green-100 text-green-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-green-200/50 shadow-sm">
+                <span className="bg-green-100 text-green-700 text-sm font-semibold px-3.5 py-1.5 rounded-full border border-green-200/50 shadow-sm">
                   {pendingPickup.length} Pendientes
                 </span>
               </div>
@@ -683,7 +683,7 @@ export default function EntregaScreen() {
                   </div>
                   Local
                 </h2>
-                <span className="bg-blue-100 text-blue-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-blue-200/50 shadow-sm">
+                <span className="bg-blue-100 text-blue-700 text-sm font-semibold px-3.5 py-1.5 rounded-full border border-blue-200/50 shadow-sm">
                   {pendingLocal.length} Pendientes
                 </span>
               </div>
@@ -719,7 +719,7 @@ export default function EntregaScreen() {
                   </div>
                   Llevar
                 </h2>
-                <span className="bg-purple-100 text-purple-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-purple-200/50 shadow-sm">
+                <span className="bg-purple-100 text-purple-700 text-sm font-semibold px-3.5 py-1.5 rounded-full border border-purple-200/50 shadow-sm">
                   {pendingLlevar.length} Pendientes
                 </span>
               </div>
@@ -756,7 +756,7 @@ export default function EntregaScreen() {
                 </div>
                 Historial de Entregados (Hoy)
               </h2>
-              <span className="bg-emerald-100 text-emerald-700 text-sm font-black px-3.5 py-1.5 rounded-full border border-emerald-200/50 shadow-sm shrink-0">
+              <span className="bg-emerald-100 text-emerald-700 text-sm font-semibold px-3.5 py-1.5 rounded-full border border-emerald-200/50 shadow-sm shrink-0">
                 {filteredDeliveredOrders.length} Entregados
               </span>
             </div>

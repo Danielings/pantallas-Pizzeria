@@ -96,7 +96,7 @@ function KpiCard({
   return (
     <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
       <div className="min-w-0">
-        <p className="text-slate-500 font-extrabold text-xs uppercase tracking-wider mb-2">
+        <p className="text-slate-400 font-medium text-sm mb-2">
           {label}
         </p>
         <div className="flex items-end gap-2">
@@ -108,7 +108,7 @@ function KpiCard({
             </h3>
           )}
           {sub && (
-            <span className="text-slate-400 font-bold text-sm mb-1 truncate">
+            <span className="text-slate-400 font-semibold text-base mb-1 truncate">
               {sub}
             </span>
           )}
@@ -285,7 +285,7 @@ export default function ColaTrabajoScreen() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  <tr className="bg-slate-50/70 border-b border-slate-100 text-xs sm:text-sm font-bold text-slate-500">
                     <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">
                       Pedido
                     </th>

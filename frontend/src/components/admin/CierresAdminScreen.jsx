@@ -45,6 +45,16 @@ const formatTime = (value) => {
   });
 };
 
+const getHeaderDate = () => {
+  const date = new Date();
+  const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const dateString = date.toLocaleDateString("es-ES", options);
+  return dateString
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 export default function CierresAdminScreen() {
   const [cierres, setCierres] = useState([]);
   const [metrics, setMetrics] = useState({
@@ -181,21 +191,24 @@ export default function CierresAdminScreen() {
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 hide-scrollbar flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-800">
-            Control de Cierres de Caja
-          </h2>
-          <p className="text-slate-500 text-sm">
-            Visualiza y audita los cierres diarios realizados por los cajeros
-          </p>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-pizza-red/10 rounded-2xl flex items-center justify-center shrink-0">
+            <Lock className="w-6 h-6 text-pizza-red" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+              Control de Cierres de Caja
+            </h1>
+            <p className="text-xs font-semibold text-slate-400 mt-1.5">
+              {getHeaderDate()}
+            </p>
+          </div>
         </div>
-
-        {/* Botones de acción en el header */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setOpenPinModal(true)}
-            className="flex items-center gap-1.5 bg-pizza-red hover:bg-red-600 text-white px-4 py-2.5 text-sm font-bold rounded-xl shadow-sm transition-all shrink-0 active:scale-[0.98]"
+            className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all shrink-0 active:scale-[0.98] cursor-pointer"
             title="Administrar PINs de cierres para cajeros"
           >
             <Key className="w-4 h-4" />
@@ -205,86 +218,86 @@ export default function CierresAdminScreen() {
             Total: {filteredAndSortedCierres.length} registros
           </span>
         </div>
-      </div>
+      </header>
 
       {/* Cards de Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 shrink-0">
         {/* Cantidad Cierres del Mes */}
-        <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.2)]">
-              <FileText className="w-5 h-5" />
+        <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.2)]">
+              <FileText className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-purple-500 uppercase tracking-wider">
+              <p className="text-xs font-medium text-purple-500">
                 Cierres en el Mes
               </p>
-              <p className="text-slate-800 text-lg font-black leading-none mt-1">
+              <p className="text-slate-800 text-2xl font-black leading-none mt-1">
                 {isLoading ? "—" : metrics.cantidad_cierres}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-2.5 py-0.5 rounded-full">
+          <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
             {metrics.mes || "Mes"}
           </span>
         </div>
 
         {/* Monto Total en $ del Mes */}
-        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(16,185,129,0.2)]">
-              <DollarSign className="w-5 h-5" />
+        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(16,185,129,0.2)]">
+              <DollarSign className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-emerald-500 uppercase tracking-wider">
+              <p className="text-xs font-medium text-emerald-500">
                 Total en $ del Mes
               </p>
-              <p className="text-slate-800 text-lg font-black leading-none mt-1">
+              <p className="text-slate-800 text-2xl font-black leading-none mt-1">
                 {isLoading ? "—" : formatMoney(metrics.total_usd)}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+          <span className="text-xs font-semibold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">
             {metrics.mes || "Mes"}
           </span>
         </div>
 
         {/* Última Hora de Cierre del Día Anterior */}
-        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
-              <Clock className="w-5 h-5" />
+        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
+              <Clock className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-blue-500 uppercase tracking-wider">
+              <p className="text-xs font-medium text-blue-500">
                 Cierre de ayer
               </p>
-              <p className="text-slate-800 text-sm font-black leading-none mt-1.5 truncate max-w-[140px]">
+              <p className="text-slate-800 text-xl font-black leading-none mt-1.5 truncate max-w-[140px]">
                 {isLoading ? "—" : metrics.ultima_hora_ayer}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2.5 py-0.5 rounded-full">
+          <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
             Hora
           </span>
         </div>
 
         {/* Promedio de $ por Cierre */}
-        <div className="bg-amber-50/70 border border-amber-100/80 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
-              <TrendingUp className="w-5 h-5" />
+        <div className="bg-amber-50/70 border border-amber-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
+              <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">
+              <p className="text-xs font-medium text-amber-500">
                 Monto Promedio Cierre
               </p>
-              <p className="text-slate-800 text-lg font-black leading-none mt-1">
+              <p className="text-slate-800 text-2xl font-black leading-none mt-1">
                 {isLoading ? "—" : formatMoney(metrics.promedio_usd)}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2.5 py-0.5 rounded-full">
+          <span className="text-xs font-semibold text-amber-600 bg-amber-100 px-3 py-1 rounded-full">
             Ticket Prom.
           </span>
         </div>
@@ -337,7 +350,7 @@ export default function CierresAdminScreen() {
           <table className="w-full text-sm min-w-[860px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-400 font-bold text-xs uppercase tracking-wider text-left sticky top-0 animate-fade-in">
-                <th className="px-5 py-3.5">ID</th>
+                <th className="px-5 py-3.5">N°</th>
                 <th className="px-5 py-3.5">Fecha</th>
                 <th className="px-5 py-3.5">Hora</th>
                 <th className="px-5 py-3.5">Cajero / Usuario</th>
@@ -365,7 +378,7 @@ export default function CierresAdminScreen() {
                 paginatedCierres.map((cierre) => (
                   <tr key={cierre.id_cierre} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-5 py-3.5 text-slate-400 text-xs font-bold">
-                      #{cierre.id_cierre}
+                      {cierre.id_cierre}
                     </td>
                     <td className="px-5 py-3.5 font-bold text-slate-800">
                       {formatDate(cierre.fecha_hora)}
@@ -485,7 +498,7 @@ export default function CierresAdminScreen() {
               {/* Desglose de Montos */}
               <div className="flex flex-col gap-2 mt-2">
                 <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-1">Desglose de Caja</h4>
-                
+
                 <div className="flex flex-col gap-1 border border-slate-100 rounded-xl overflow-hidden divide-y divide-slate-100">
                   {/* Efectivo USD */}
                   <div className="flex items-center justify-between p-3 text-sm bg-emerald-50/10">
