@@ -33,6 +33,16 @@ const formatDate = (value) => {
   });
 };
 
+const getHeaderDate = () => {
+  const date = new Date();
+  const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const dateString = date.toLocaleDateString("es-ES", options);
+  return dateString
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 export default function ClientesScreen() {
   const [customers, setCustomers] = useState(cachedCustomers || []);
   const [isLoading, setIsLoading] = useState(!cachedCustomers);
@@ -222,43 +232,24 @@ export default function ClientesScreen() {
   return (
     <div className="flex-1 flex flex-col p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto lg:overflow-hidden w-full h-full bg-slate-50">
       {/* Header */}
-      <header className="flex flex-wrap gap-4 justify-between items-center bg-white p-5 rounded-xl shadow-sm border border-slate-100 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
-            <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-pizza-red to-pizza-red-dark flex items-center justify-center shadow-[0_4px_12px_rgba(234,42,51,0.25)]">
-              <Users className="w-5 h-5 text-white" />
-            </span>
-            Clientes
-          </h1>
-          <p className="text-sm text-slate-500 mt-2">
-            {isLoading
-              ? "Cargando..."
-              : `${customers.length} clientes registrados`}
-          </p>
-        </div>
-        <div className="flex flex-col xl:flex-row items-center gap-3 w-full xl:w-auto">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, cédula o teléfono..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full xl:w-72 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all"
-            />
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-pizza-red/10 rounded-2xl flex items-center justify-center shrink-0">
+            <Users className="w-6 h-6 text-pizza-red" />
           </div>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all cursor-pointer w-full sm:w-auto"
-          >
-            <option value="name">Orden: Nombre</option>
-            <option value="gasto-desc">Más gasto (desc)</option>
-            <option value="gasto-asc">Menos gasto (asc)</option>
-          </select>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+              Clientes
+            </h1>
+            <p className="text-xs font-semibold text-slate-400 mt-1.5">
+              {getHeaderDate()}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
           <button
             onClick={openCreate}
-            className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2 active:scale-[0.98] w-full sm:w-auto justify-center"
+            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Nuevo Cliente
           </button>
@@ -350,14 +341,37 @@ export default function ClientesScreen() {
 
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 min-h-0 flex flex-col">
-        <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center shrink-0">
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
           <div>
             <h2 className="font-bold text-slate-800 text-base">
               Directorio de Clientes
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {filtered.length} resultado(s)
+              {isLoading
+                ? "Cargando..."
+                : `${customers.length} clientes registrados (${filtered.length} filtrados)`}
             </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre, cédula o teléfono..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
+              />
+            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all cursor-pointer w-full sm:w-auto shadow-sm font-semibold"
+            >
+              <option value="name">Orden: Nombre</option>
+              <option value="gasto-desc">Más gasto (desc)</option>
+              <option value="gasto-asc">Menos gasto (asc)</option>
+            </select>
           </div>
         </div>
 
@@ -366,7 +380,7 @@ export default function ClientesScreen() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  #
+                  N°
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Cliente
@@ -491,11 +505,10 @@ export default function ClientesScreen() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
-                      p === safePage
+                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${p === safePage
                         ? "bg-slate-800 text-white shadow-sm"
                         : "text-slate-500 hover:bg-slate-100 border border-transparent"
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>

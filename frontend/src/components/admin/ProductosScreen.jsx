@@ -4,6 +4,7 @@ import {
   Search,
   Plus,
   Package,
+  Package2,
   Pencil,
   Trash2,
   Pizza,
@@ -52,6 +53,16 @@ const CATEGORY_TYPES = [
     colorIcon: "text-emerald-500",
   },
 ];
+
+const getHeaderDate = () => {
+  const date = new Date();
+  const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const dateString = date.toLocaleDateString("es-ES", options);
+  return dateString
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 
 // ─── Componente Principal ────────────────────────────────────────────────
 export default function ProductosScreen() {
@@ -284,46 +295,138 @@ export default function ProductosScreen() {
 
   return (
     <div className="flex-1 flex flex-col p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto w-full h-full bg-slate-50">
-      <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-100 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-pizza-red/10 rounded-2xl flex items-center justify-center shrink-0">
             <Package className="w-6 h-6 text-pizza-red" />
-            Productos
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {isLoading
-              ? "Cargando..."
-              : `${products.length} productos registrados`}
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar producto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:w-72 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all"
-            />
           </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+              Productos
+            </h1>
+            <p className="text-xs font-semibold text-slate-400 mt-1.5">
+              {getHeaderDate()}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
           <button
             onClick={handleNewClick}
-            className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] w-full sm:w-auto"
+            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Nuevo Producto
           </button>
         </div>
       </header>
 
+      {/* Cards de métricas por tipo */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+        {/* Total Productos */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(51,65,85,0.2)]">
+              <Package2 className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">
+                Total Productos
+              </p>
+              <p className="text-slate-800 text-2xl font-black leading-none mt-1">
+                {isLoading ? "—" : products.length}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-slate-600 bg-slate-200 px-3 py-1 rounded-full">
+            Registrados
+          </span>
+        </div>
+
+        {/* Pizzas */}
+        <div className="bg-amber-50/70 border border-amber-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
+              <Pizza className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-amber-500">
+                Pizzas
+              </p>
+              <p className="text-slate-800 text-2xl font-black leading-none mt-1">
+                {isLoading ? "—" : products.filter(p => p.category === "pizzas").length}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-amber-600 bg-amber-100 px-3 py-1 rounded-full">
+            Masa trad.
+          </span>
+        </div>
+
+        {/* Bebidas */}
+        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
+              <Coffee className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-blue-500">
+                Bebidas
+              </p>
+              <p className="text-slate-800 text-2xl font-black leading-none mt-1">
+                {isLoading ? "—" : products.filter(p => p.category === "drinks").length}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+            Refrescos
+          </span>
+        </div>
+
+        {/* Helados + Extras */}
+        <div className="bg-pink-50/70 border border-pink-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-pink-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(236,72,153,0.2)]">
+              <IceCream className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-pink-500">
+                Helados y Extras
+              </p>
+              <p className="text-slate-800 text-2xl font-black leading-none mt-1">
+                {isLoading ? "—" : products.filter(p => p.category === "icecream" || p.category === "extras").length}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-pink-600 bg-pink-100 px-3 py-1 rounded-full">
+            Postres
+          </span>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col">
-        <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-          <h2 className="font-bold text-slate-800 text-base">
-            Directorio de Productos
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {filtered.length} resultado(s)
-          </p>
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+          <div>
+            <h2 className="font-bold text-slate-800 text-base">
+              Directorio de Productos
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isLoading
+                ? "Cargando..."
+                : `${products.length} productos registrados (${filtered.length} filtrados)`}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar producto..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
+              />
+            </div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[720px]">
