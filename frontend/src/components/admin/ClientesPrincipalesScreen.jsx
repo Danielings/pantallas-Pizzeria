@@ -235,15 +235,15 @@ export default function ClientesPrincipalesScreen() {
       </header>
 
       {/* Cards de estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 shrink-0">
         {/* Clientes VIP */}
-        <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.2)]">
-              <Sparkles className="w-6 h-6" />
+        <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.2)]">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-purple-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-purple-500 uppercase tracking-wider whitespace-nowrap">
                 Clientes VIP
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -251,19 +251,19 @@ export default function ClientesPrincipalesScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Top gasto
           </span>
         </div>
 
         {/* LTV Promedio */}
-        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(16,185,129,0.2)]">
-              <ShieldCheck className="w-6 h-6" />
+        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(16,185,129,0.2)]">
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-emerald-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-emerald-500 uppercase tracking-wider whitespace-nowrap">
                 LTV Promedio
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -271,19 +271,19 @@ export default function ClientesPrincipalesScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Por cliente
           </span>
         </div>
 
         {/* Compra Media */}
-        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
-              <ShoppingBag className="w-6 h-6" />
+        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-blue-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-blue-500 uppercase tracking-wider whitespace-nowrap">
                 Compra Media
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -291,19 +291,19 @@ export default function ClientesPrincipalesScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Por ticket
           </span>
         </div>
 
         {/* Total Clientes */}
-        <div className="bg-red-50/70 border border-red-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-pizza-red flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(234,42,51,0.2)]">
-              <Users className="w-6 h-6" />
+        <div className="bg-red-50/70 border border-red-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-pizza-red flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(234,42,51,0.2)]">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-pizza-red">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-pizza-red uppercase tracking-wider whitespace-nowrap">
                 Total Clientes
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -311,7 +311,7 @@ export default function ClientesPrincipalesScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-red-600 bg-red-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-red-600 bg-red-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Registrados
           </span>
         </div>

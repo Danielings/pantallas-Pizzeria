@@ -66,7 +66,7 @@ function ExtrasModal({ item, onClose, onSave }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop -translate-y-10" onClick={onClose}>
       <div
         className="modal-content p-6 w-96 max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}

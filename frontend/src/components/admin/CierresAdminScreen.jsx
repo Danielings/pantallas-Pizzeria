@@ -221,15 +221,15 @@ export default function CierresAdminScreen() {
       </header>
 
       {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 shrink-0">
         {/* Cantidad Cierres del Mes */}
-        <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.2)]">
-              <FileText className="w-6 h-6" />
+        <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-3 sm:p-4 flex w-full min-w-0 items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.2)]">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-purple-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-purple-500 uppercase tracking-wider whitespace-nowrap">
                 Cierres en el Mes
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -237,19 +237,19 @@ export default function CierresAdminScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 sm:px-2 py-0.5 rounded-full">
             {metrics.mes || "Mes"}
           </span>
         </div>
 
         {/* Monto Total en $ del Mes */}
-        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(16,185,129,0.2)]">
-              <DollarSign className="w-6 h-6" />
+        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(16,185,129,0.2)]">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-emerald-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-emerald-500 uppercase tracking-wider whitespace-nowrap">
                 Total en $ del Mes
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -257,19 +257,19 @@ export default function CierresAdminScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 sm:px-2 py-0.5 rounded-full">
             {metrics.mes || "Mes"}
           </span>
         </div>
 
         {/* Última Hora de Cierre del Día Anterior */}
-        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
-              <Clock className="w-6 h-6" />
+        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-blue-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-blue-500 uppercase tracking-wider whitespace-nowrap">
                 Cierre de ayer
               </p>
               <p className="text-slate-800 text-xl font-black leading-none mt-1.5 truncate max-w-[140px]">
@@ -277,27 +277,27 @@ export default function CierresAdminScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full">
             Hora
           </span>
         </div>
 
         {/* Promedio de $ por Cierre */}
-        <div className="bg-amber-50/70 border border-amber-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
-              <TrendingUp className="w-6 h-6" />
+        <div className="bg-amber-50/70 border border-amber-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-amber-500">
-                Monto Promedio Cierre
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-amber-500 uppercase tracking-wider whitespace-nowrap">
+                Monto Promedio
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
                 {isLoading ? "—" : formatMoney(metrics.promedio_usd)}
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-amber-600 bg-amber-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 sm:px-2 py-0.5 rounded-full">
             Ticket Prom.
           </span>
         </div>

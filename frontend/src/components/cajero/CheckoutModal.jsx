@@ -635,14 +635,24 @@ export default function CheckoutModal({ onClose }) {
                   {error}
                 </div>
               )}
+              <div className="flex w-full gap-3 mt-4">
               <button
                 onClick={handleConfirmAndPrint}
                 disabled={isSubmitting}
-                className={`w-full py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 text-slate-200 cursor-not-allowed" : "bg-slate-800 hover:bg-slate-900 text-white"}`}
+                className={` flex-1 py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 text-slate-200 cursor-not-allowed" : "bg-slate-800 hover:bg-slate-900 text-white"}`}
               >
                 <Printer className="w-5 h-5" />
-                {isSubmitting ? "Procesando..." : "Imprimir y Cerrar"}
+                {isSubmitting ? "Procesando..." : "Imprimir"}
               </button>
+              <button
+                onClick={handleProcesarVenta}
+                disabled={isSubmitting}
+                className={`flex-1 py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 text-slate-200 cursor-not-allowed" : "bg-pizza-red hover:opacity-90 text-white"}`}
+              >
+                
+                {isSubmitting ? "Procesando..." : "Cerrar"}
+              </button>
+              </div>
             </div>
           )}
         </div>

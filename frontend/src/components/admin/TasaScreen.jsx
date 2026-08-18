@@ -81,7 +81,7 @@ export default function TasaScreen() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 hide-scrollbar flex flex-col gap-4 sm:gap-6">
+    <div className="flex-1 min-h-0 h-full overflow-y-auto bg-slate-50 p-4 pb-24 sm:p-6 sm:pb-6 hide-scrollbar flex flex-col gap-4 sm:gap-6">
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 shrink-0">
         <div className="flex items-center gap-4">
@@ -115,7 +115,7 @@ export default function TasaScreen() {
       ) : rate ? (
         <>
           {/* Panel de valores */}
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0">
             <div className="px-5 py-4 border-b border-slate-100">
               <h3 className="font-extrabold text-slate-800 text-base">Valores Actuales</h3>
               <p className="text-xs text-slate-400 mt-0.5">Tasas registradas en el sistema</p>
@@ -159,7 +159,7 @@ export default function TasaScreen() {
           </div>
 
           {/* Control operativo */}
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0">
             <div className="px-5 py-4 border-b border-slate-100">
               <h3 className="font-extrabold text-slate-800 text-base">Control Operativo</h3>
               <p className="text-xs text-slate-400 mt-0.5">

@@ -321,15 +321,15 @@ export default function ProductosScreen() {
       </header>
 
       {/* Cards de métricas por tipo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 shrink-0">
         {/* Total Productos */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(51,65,85,0.2)]">
-              <Package2 className="w-6 h-6" />
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-700 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(51,65,85,0.2)]">
+              <Package2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                 Total Productos
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -337,19 +337,19 @@ export default function ProductosScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-slate-600 bg-slate-200 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-slate-600 bg-slate-200 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Registrados
           </span>
         </div>
 
         {/* Pizzas */}
-        <div className="bg-amber-50/70 border border-amber-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
-              <Pizza className="w-6 h-6" />
+        <div className="bg-amber-50/70 border border-amber-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
+              <Pizza className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-amber-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-amber-500 uppercase tracking-wider whitespace-nowrap">
                 Pizzas
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -357,19 +357,19 @@ export default function ProductosScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-amber-600 bg-amber-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Masa trad.
           </span>
         </div>
 
         {/* Bebidas */}
-        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
-              <Coffee className="w-6 h-6" />
+        <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
+              <Coffee className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-blue-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-blue-500 uppercase tracking-wider whitespace-nowrap">
                 Bebidas
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -377,19 +377,19 @@ export default function ProductosScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Refrescos
           </span>
         </div>
 
         {/* Helados + Extras */}
-        <div className="bg-pink-50/70 border border-pink-100/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-pink-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(236,72,153,0.2)]">
-              <IceCream className="w-6 h-6" />
+        <div className="bg-pink-50/70 border border-pink-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-pink-500 flex items-center justify-center text-white shrink-0 shadow-[0_4px_12px_rgba(236,72,153,0.2)]">
+              <IceCream className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-xs font-medium text-pink-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-pink-500 uppercase tracking-wider whitespace-nowrap">
                 Helados y Extras
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -397,7 +397,7 @@ export default function ProductosScreen() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-pink-600 bg-pink-100 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-pink-600 bg-pink-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
             Postres
           </span>
         </div>

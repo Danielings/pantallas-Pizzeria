@@ -265,7 +265,7 @@ export default function ClientesScreen() {
               <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] sm:text-[10px] font-extrabold text-pizza-red uppercase tracking-wider truncate">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-pizza-red uppercase tracking-wider truncate">
                 Total Clientes
               </p>
               <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1">
@@ -285,7 +285,7 @@ export default function ClientesScreen() {
               <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-extrabold text-emerald-500 uppercase tracking-wider truncate">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-emerald-500 uppercase tracking-wider truncate">
                 Con Compras
               </p>
               <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5">
@@ -305,15 +305,15 @@ export default function ClientesScreen() {
               <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] sm:text-[10px] font-extrabold text-blue-500 uppercase tracking-wider truncate">
+              <p className="text-[8px] sm:text-[9px] font-extrabold text-blue-500 uppercase tracking-wider whitespace-nowrap">
                 Ventas Totales
               </p>
-              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 break-words">
+              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 whitespace-nowrap">
                 {formatTotal(stats.ventasTotales)}
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
+          <span className="hidden sm:inline-block text-[8px] sm:text-[9px] font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
             USD acumulado
           </span>
         </div>
@@ -325,7 +325,7 @@ export default function ClientesScreen() {
               <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-extrabold text-purple-500 uppercase tracking-wider truncate">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-purple-500 uppercase tracking-wider whitespace-nowrap">
                 Ticket Promedio
               </p>
               <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 break-words">

@@ -503,7 +503,7 @@ export default function CierreScreen() {
               >
                 {label}
               </p>
-              <p className="text-3xl font-black truncate leading-tight">{value}</p>
+              <p className="text-2xl font-black truncate leading-tight">{value}</p>
               <p className={`text-xs ${textLight} mt-1`}>{sub}</p>
             </div>
           </div>
