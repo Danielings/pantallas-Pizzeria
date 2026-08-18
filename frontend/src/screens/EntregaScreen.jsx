@@ -88,11 +88,6 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
                 <span className="font-black text-slate-800 text-lg">
                   #{order.id}
                 </span>
-                <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${theme.badge} border border-current/10`}
-                >
-                  {theme.label}
-                </span>
               </div>
               <p
                 className="text-sm font-bold text-slate-600 truncate max-w-[120px]"
@@ -103,7 +98,7 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
             </div>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-xl font-black text-slate-800 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+            <p className="text-base font-black text-slate-800 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
               ${Number(order.total || 0).toFixed(2)}
             </p>
           </div>

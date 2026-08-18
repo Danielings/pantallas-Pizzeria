@@ -228,7 +228,7 @@ export default function ColaTrabajoScreen() {
           label="Ingresos del Día"
           value={`$${totalRevenue.toFixed(2)}`}
           sub={`${totalTx} ventas`}
-          iconBg="bg-red-50"
+          iconBg="bg-red-40"
           iconColor="text-pizza-red"
           loading={loading}
         />
@@ -236,8 +236,8 @@ export default function ColaTrabajoScreen() {
           icon={Pizza}
           label="Pizzas Vendidas"
           value={totalPizzas}
-          sub="Unidades vendidas"
-          iconBg="bg-orange-50"
+          sub="Unidades"
+          iconBg="bg-orange-40"
           iconColor="text-orange-500"
           loading={loading}
         />
@@ -245,8 +245,8 @@ export default function ColaTrabajoScreen() {
           icon={ShoppingBag}
           label="Pedidos Activos"
           value={activos}
-          sub={`${totalTx} ventas hoy`}
-          iconBg="bg-blue-50"
+          sub={`${totalTx} ventas`}
+          iconBg="bg-blue-40"
           iconColor="text-blue-500"
           loading={loading}
         />
@@ -255,7 +255,7 @@ export default function ColaTrabajoScreen() {
           label="Ticket Promedio"
           value={`$${avgTicket.toFixed(2)}`}
           sub="Por pedido"
-          iconBg="bg-emerald-50"
+          iconBg="bg-emerald-40"
           iconColor="text-emerald-500"
           loading={loading}
         />
