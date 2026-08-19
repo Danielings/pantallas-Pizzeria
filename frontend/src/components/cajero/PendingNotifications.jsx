@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, ChevronRight, Loader2, X } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
@@ -13,33 +14,56 @@ const CATEGORY_TO_SIZE = {
 };
 
 export default function PendingNotifications() {
+  const queryClient = useQueryClient();
   const { loadPendingOrder, currentOrder } = useApp();
   const { exchangeRate } = useExchangeRate();
-  const [notifications, setNotifications] = useState([]);
+
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
   const [error, setError] = useState("");
 
-  const fetchNotifications = async () => {
-    setLoading(true);
-    try {
+  // Carga inicial respaldada por la memoria caché. Sin polling (refetchInterval).
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ["notificaciones-pendientes"],
+    queryFn: async () => {
       const { data } = await axios.get(`${API_URL}/notificaciones-pendientes`);
-      setNotifications(data.success ? data.data || [] : []);
-      setError("");
-    } catch (requestError) {
-      console.error("Error obteniendo notificaciones:", requestError);
-      setError("No se pudieron cargar las notificaciones.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data.success ? data.data || [] : [];
+    },
+    staleTime: Infinity, // Los datos se mantienen frescos; el evento SSE gestiona las actualizaciones
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    const eventSource = new EventSource(`${API_URL}/notificaciones-sse`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        console.log(
+          "Evento SSE recibido:",
+          payload.action,
+          payload.data.length,
+        );
+        if (payload.action === "SET_NOTIFICATIONS") {
+          Data(["notificaciones-pendientes"], payload.data);
+        } else if (payload.action === "REFETCH") {
+          queryClient.invalidateQueries({
+            queryKey: ["notificaciones-pendientes"],
+          });
+        }
+      } catch (err) {
+        console.error("Error al procesar el evento SSE:", err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("Conexión SSE interrumpida. Reintentando...", err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [queryClient]);
 
   const loadNotification = async (notification) => {
     if (currentOrder.items.length > 0) {
@@ -130,9 +154,16 @@ export default function PendingNotifications() {
         pendingOriginalTotal: originalTotal,
         pendingRemaining: pendingRemaining,
       });
-      setNotifications((previous) =>
-        previous.filter((item) => item.id_venta !== notification.id_venta),
+
+      // Actualización optimista de la caché local
+      queryClient.setQueryData(
+        ["notificaciones-pendientes"],
+        (oldNotifications = []) =>
+          oldNotifications.filter(
+            (item) => item.id_venta !== notification.id_venta,
+          ),
       );
+
       setOpen(false);
       setError("");
     } catch (requestError) {
@@ -143,14 +174,14 @@ export default function PendingNotifications() {
     }
   };
 
+  if (notifications.length === 0) return null;
+
   return (
     <div className="relative">
+      {/* Clic puramente local sin ejecuciones de refetch() */}
       <button
         type="button"
-        onClick={() => {
-          setOpen((value) => !value);
-          if (!open) fetchNotifications();
-        }}
+        onClick={() => setOpen((value) => !value)}
         className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
         title="Notificaciones de pagos pendientes"
       >
@@ -179,7 +210,8 @@ export default function PendingNotifications() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          {loading ? (
+
+          {isLoading ? (
             <div className="flex items-center justify-center gap-2 p-6 text-sm text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
             </div>
@@ -228,6 +260,7 @@ export default function PendingNotifications() {
               ))}
             </div>
           )}
+
           {error && (
             <p className="border-t border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700">
               {error}

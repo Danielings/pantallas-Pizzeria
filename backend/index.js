@@ -12,6 +12,7 @@ import { getTransporter } from "./config/mailer.js";
 import autenticacion from "./routes/autenticacion.route.js";
 import cierre from "./routes/cierre.route.js";
 import clientes from "./routes/clientes.route.js";
+import notificaciones from "./routes/notificaciones.route.js";
 
 const app = express();
 app.use(
@@ -34,6 +35,7 @@ app.use("/api", pedidos);
 app.use("/api", autenticacion);
 app.use("/api", cierre);
 app.use("/api", clientes);
+app.use("/api", notificaciones);
 
 cron.schedule("*/30 * * * *", async () => {
   try {

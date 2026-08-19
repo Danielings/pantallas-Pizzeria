@@ -1,11 +1,10 @@
 import pool from "../config/bd.js";
 import axios from "axios";
+import { emitirCambioNotificaciones } from "./notificaciones.controller.js";
 
 const TASA_API_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
 
-//----------------------------Ventas
-
-// ----Procesar venta
+// ---- Procesar venta
 export const procesarVenta = async (req, res) => {
   const {
     id_cliente,
@@ -26,7 +25,7 @@ export const procesarVenta = async (req, res) => {
 
     const [resultVenta] = await connection.query(
       `INSERT INTO ventas 
-      (id_cliente, id_usuario,id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs) 
+      (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs) 
       VALUES (?, ?, ?, ?, 'Completado', NOW(), ?, ?, ?)`,
       [
         id_cliente,
@@ -41,7 +40,6 @@ export const procesarVenta = async (req, res) => {
 
     const id_venta = resultVenta.insertId;
 
-    // Insertar los metoditos de pago
     for (const pago of pagos) {
       await connection.query(
         `INSERT INTO ventas_pagos 
@@ -57,9 +55,8 @@ export const procesarVenta = async (req, res) => {
       );
     }
 
-    //  Ahora los detalles de la venta
     for (const item of detalles) {
-      let estadoInicial = "Pendiente"; // Para la pizza
+      let estadoInicial = "Pendiente";
 
       if (item.tipo_producto === "Bebida" || item.tipo_producto === "Helado") {
         estadoInicial = "Completado";
@@ -82,7 +79,6 @@ export const procesarVenta = async (req, res) => {
 
       const id_detalle = resultDetalle.insertId;
 
-      // Los extras de la pizza y no extras de peliculas, ojo
       if (item.extras && item.extras.length > 0) {
         for (const id_extra of item.extras) {
           await connection.query(
@@ -93,7 +89,6 @@ export const procesarVenta = async (req, res) => {
       }
     }
 
-    // Si salio bien, lo guardamos en la bd.
     await connection.commit();
 
     res.status(201).json({
@@ -102,7 +97,6 @@ export const procesarVenta = async (req, res) => {
       id_venta: id_venta,
     });
   } catch (error) {
-    // Si existe un problema, deshacemos todo lo que se hizo en la transacción, lol
     await connection.rollback();
     console.error("Error al procesar la venta:", error);
     res.status(500).json({
@@ -111,12 +105,11 @@ export const procesarVenta = async (req, res) => {
       error: error.message,
     });
   } finally {
-    // Liberamos la conexion para que no se sature el servidor
     connection.release();
   }
 };
 
-//-------Registra Delivery/Pick Up que todavía no debe pasar por cobro.
+// ---- Registra Delivery/Pick Up pendiente de cobro
 export const registrarPedidoPendiente = async (req, res) => {
   const {
     id_cliente,
@@ -216,11 +209,12 @@ export const registrarPedidoPendiente = async (req, res) => {
         }
       }
     }
+
     const estadoNotificaciones = "Pendiente";
     await connection.query(
       `INSERT INTO notificaciones
        (id_venta, id_cliente, id_usuario, monto_restante, fecha_hora, estado)
-       VALUES (?, ?, ?, ?, NOW(),?)`,
+       VALUES (?, ?, ?, ?, NOW(), ?)`,
       [
         id_venta,
         id_cliente,
@@ -231,6 +225,9 @@ export const registrarPedidoPendiente = async (req, res) => {
     );
 
     await connection.commit();
+
+    await emitirCambioNotificaciones();
+
     return res.status(201).json({
       success: true,
       message: "Pedido pendiente registrado exitosamente",
@@ -249,101 +246,7 @@ export const registrarPedidoPendiente = async (req, res) => {
   }
 };
 
-export const obtenerNotificacionesPendientes = async (_req, res) => {
-  try {
-    const [rows] = await pool.query(
-      `SELECT n.id_notificacion, n.id_venta, n.id_cliente,
-              n.monto_restante, n.fecha_hora,
-              c.nombre AS nombre_cliente, c.cedula AS cedula_cliente,
-              c.telefono AS telefono_cliente,
-              v.despacho, d.nombre AS nombre_delivery, d.digitos AS digitos_delivery,
-              COALESCE(SUM(vd.cantidad), 0) AS cantidad_items,
-              GROUP_CONCAT(
-                CONCAT(vd.cantidad, 'x ', COALESCE(p.nombre, b.nombre, h.nombre, vd.tipo_producto))
-                ORDER BY vd.id_detalle SEPARATOR ', '
-              ) AS resumen_items
-       FROM notificaciones n
-       INNER JOIN ventas v ON v.id_venta = n.id_venta
-       LEFT JOIN clientes c ON c.id_cliente = n.id_cliente
-       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-       LEFT JOIN venta_detalle vd ON vd.id_venta = v.id_venta
-       LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
-       LEFT JOIN bebidas b ON b.id_bebida = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
-       LEFT JOIN heladeria h ON h.id_heladeria = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
-       WHERE v.estado = 'Pendiente' AND n.estado = 'Pendiente'
-       GROUP BY n.id_notificacion, n.id_venta, n.id_cliente,
-                n.monto_restante, n.fecha_hora, c.nombre, c.cedula,
-                c.telefono, v.despacho, d.nombre, d.digitos
-       ORDER BY n.fecha_hora DESC`,
-    );
-
-    return res.json({ success: true, data: rows });
-  } catch (error) {
-    console.error("Error obteniendo notificaciones pendientes:", error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const obtenerNotificacionPendiente = async (req, res) => {
-  try {
-    const [ventas] = await pool.query(
-      `SELECT n.id_notificacion, n.id_venta, n.id_cliente, n.monto_restante,
-              v.monto_total_usd, v.monto_total_bs, v.tasa_cambio, v.despacho,
-              v.id_delivery, c.id_cliente AS cliente_id, c.nombre AS nombre_cliente,
-              c.cedula AS cedula_cliente, c.telefono AS telefono_cliente
-       FROM notificaciones n
-       INNER JOIN ventas v ON v.id_venta = n.id_venta AND v.estado = 'Pendiente'
-       LEFT JOIN clientes c ON c.id_cliente = n.id_cliente
-       WHERE n.id_venta = ? AND n.estado = 'Pendiente'`,
-      [req.params.id_venta],
-    );
-    if (!ventas.length) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Notificación no encontrada." });
-    }
-
-    const [detalles] = await pool.query(
-      `SELECT vd.id_detalle, vd.tipo_producto, vd.id_producto_origen,
-              vd.cantidad, vd.monto_total, vd.nota,
-              COALESCE(p.nombre, b.nombre, h.nombre, vd.tipo_producto) AS nombre_producto,
-              p.id_categoria_pizza
-       FROM venta_detalle vd
-       LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
-       LEFT JOIN bebidas b ON b.id_bebida = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
-       LEFT JOIN heladeria h ON h.id_heladeria = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
-       WHERE vd.id_venta = ?`,
-      [req.params.id_venta],
-    );
-    const [pagos] = await pool.query(
-      `SELECT metodo_pago AS metodo, monto_usd, monto_bs, referencia
-       FROM ventas_pagos WHERE id_venta = ? ORDER BY id_pago`,
-      [req.params.id_venta],
-    );
-
-    const detallesConExtras = await Promise.all(
-      detalles.map(async (detalle) => {
-        const [extras] = await pool.query(
-          `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
-           FROM detalle_venta_extras dve
-           INNER JOIN extras e ON e.id_extras = dve.id_extra
-           WHERE dve.id_detalle = ?`,
-          [detalle.id_detalle],
-        );
-        return { ...detalle, extras };
-      }),
-    );
-
-    return res.json({
-      success: true,
-      data: { venta: ventas[0], detalles: detallesConExtras, pagos },
-    });
-  } catch (error) {
-    console.error("Error obteniendo la notificación pendiente:", error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
-
+// ---- Completar venta pendiente
 export const completarVentaPendiente = async (req, res) => {
   const { id_venta } = req.params;
   const {
@@ -362,6 +265,7 @@ export const completarVentaPendiente = async (req, res) => {
       `SELECT id_venta FROM ventas WHERE id_venta = ? AND estado = 'Pendiente' FOR UPDATE`,
       [id_venta],
     );
+
     if (!ventas.length) {
       await connection.rollback();
       return res
@@ -404,6 +308,7 @@ export const completarVentaPendiente = async (req, res) => {
         detalle.tipo_producto === "Bebida" || detalle.tipo_producto === "Helado"
           ? "Completado"
           : "Pendiente";
+
       const [resultDetalle] = await connection.query(
         `INSERT INTO venta_detalle
          (id_venta, tipo_producto, id_producto_origen, cantidad, monto_total, nota, estado)
@@ -426,6 +331,7 @@ export const completarVentaPendiente = async (req, res) => {
         );
       }
     }
+
     const estadoNotificacionesListo = "Listo";
     await connection.query(
       `UPDATE ventas
@@ -433,12 +339,17 @@ export const completarVentaPendiente = async (req, res) => {
        WHERE id_venta = ?`,
       [id_usuario || 1, monto_total_usd || 0, monto_total_bs || 0, id_venta],
     );
+
     await connection.query(
       "UPDATE notificaciones SET estado = ? WHERE id_venta = ?",
       [estadoNotificacionesListo, id_venta],
     );
 
     await connection.commit();
+
+    // EMITIR EVENTO SSE AL COMPLETAR EL PEDIDO
+    await emitirCambioNotificaciones();
+
     return res.json({ success: true, message: "Venta pendiente completada." });
   } catch (error) {
     await connection.rollback();
@@ -449,7 +360,7 @@ export const completarVentaPendiente = async (req, res) => {
   }
 };
 
-// ----Editar venta
+// ---- Editar venta
 export const editarVenta = async (req, res) => {
   const {
     id_venta,
@@ -579,6 +490,9 @@ export const editarVenta = async (req, res) => {
 
     await connection.commit();
 
+    // EMITIR EVENTO SSE AL EDITAR EL PEDIDO
+    await emitirCambioNotificaciones();
+
     res.status(200).json({
       success: true,
       message: "Pedido actualizado correctamente",
@@ -596,7 +510,7 @@ export const editarVenta = async (req, res) => {
   }
 };
 
-// ---Metodo de pago
+// ---- Obtener métodos de pago
 export const obtenerMetodosPago = async (req, res) => {
   try {
     const clientes = (req.query.clientes || "")
@@ -632,10 +546,9 @@ export const obtenerMetodosPago = async (req, res) => {
   }
 };
 
-//---Obterner ventas del día
-export const obtenerVentasHoy = async (req, res) => {
+// ---- Obtener ventas del día
+export const obtenerVentasHoy = async (_req, res) => {
   try {
-    // Ventas completadas del día actual
     const [ventas] = await pool.query(
       `SELECT 
         v.id_venta,
@@ -683,10 +596,9 @@ export const obtenerVentasHoy = async (req, res) => {
   }
 };
 
-// ---Obtener pedidos activos
-export const obtenerPedidosActivos = async (req, res) => {
+// ---- Obtener pedidos activos
+export const obtenerPedidosActivos = async (_req, res) => {
   try {
-    // Ventas que tienen al menos un detalle pendiente/en proceso
     const [ventas] = await pool.query(
       `SELECT DISTINCT
         v.id_venta,
@@ -711,7 +623,6 @@ export const obtenerPedidosActivos = async (req, res) => {
       ORDER BY v.fecha_hora DESC`,
     );
 
-    // Para cada venta traemos sus detalles
     const pedidos = await Promise.all(
       ventas.map(async (venta) => {
         const [detalles] = await pool.query(
@@ -733,7 +644,6 @@ export const obtenerPedidosActivos = async (req, res) => {
           [venta.id_venta],
         );
 
-        // Extras de cada detalle
         const detallesConExtras = await Promise.all(
           detalles.map(async (det) => {
             const [extras] = await pool.query(
@@ -758,9 +668,9 @@ export const obtenerPedidosActivos = async (req, res) => {
   }
 };
 
-//----------------------------Tasa
+//-----------Tasa
 
-//----Obtener tasa de cambio desde API externa
+// ---- Obtener tasa de cambio desde API externa
 export const obtenerTasaExterna = async () => {
   const { data } = await axios.get(TASA_API_URL, { timeout: 10000 });
   const tasa = Number(data?.promedio);
@@ -772,43 +682,52 @@ export const obtenerTasaExterna = async () => {
   return tasa;
 };
 
-// ----Actualizar tasa de cambio
+// ---- Actualizar tasa de cambio (con fallback si la API falla)
 export const actualizarTasaDesdeApi = async () => {
-  const tasaApi = await obtenerTasaExterna();
-  const [rows] = await pool.query(
-    "SELECT anclado, tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
-  );
-
-  if (!rows.length) {
-    await pool.query(
-      "INSERT INTO configuracion_tasa (id_config, tasa_api, tasa_sistema, anclado) VALUES (1, ?, ?, 0)",
-      [tasaApi, tasaApi],
+  try {
+    const tasaApi = await obtenerTasaExterna();
+    const [rows] = await pool.query(
+      "SELECT anclado, tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
     );
-  } else if (rows[0].anclado) {
-    const tasaSistemaActual = Number(rows[0].tasa_sistema);
 
-    if (tasaApi > tasaSistemaActual) {
+    if (!rows.length) {
+      await pool.query(
+        "INSERT INTO configuracion_tasa (id_config, tasa_api, tasa_sistema, anclado) VALUES (1, ?, ?, 0)",
+        [tasaApi, tasaApi],
+      );
+    } else if (rows[0].anclado) {
+      const tasaSistemaActual = Number(rows[0].tasa_sistema);
+
+      if (tasaApi > tasaSistemaActual) {
+        await pool.query(
+          "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
+          [tasaApi, tasaApi],
+        );
+      } else {
+        await pool.query(
+          "UPDATE configuracion_tasa SET tasa_api = ? WHERE id_config = 1",
+          [tasaApi],
+        );
+      }
+    } else {
       await pool.query(
         "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
         [tasaApi, tasaApi],
       );
-    } else {
-      await pool.query(
-        "UPDATE configuracion_tasa SET tasa_api = ? WHERE id_config = 1",
-        [tasaApi],
-      );
     }
-  } else {
-    await pool.query(
-      "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
-      [tasaApi, tasaApi],
-    );
-  }
 
-  return tasaApi;
+    return tasaApi;
+  } catch (error) {
+    console.warn(
+      "No se pudo conectar a la API externa de tasas. Se usará el último valor registrado:",
+      error.message,
+    );
+    const registro = await obtenerRegistro();
+    return registro?.tasa_sistema || 0;
+  }
 };
 
-// ----Obtener registro de la tasa
+// ---- Obtener registro de la tasa desde la base de datos
 export const obtenerRegistro = async () => {
   const [rows] = await pool.query(
     "SELECT id_config, tasa_api, tasa_sistema, anclado, fecha_actualizacion FROM configuracion_tasa WHERE id_config = 1",
@@ -816,7 +735,7 @@ export const obtenerRegistro = async () => {
   return rows[0];
 };
 
-//---Obtener la tasa desde la bd
+// ---- Obtener la tasa para las peticiones de las rutas
 export const obtenerTasaDesdeBD = async (_req, res) => {
   try {
     await actualizarTasaDesdeApi();
@@ -834,7 +753,7 @@ export const obtenerTasaDesdeBD = async (_req, res) => {
   }
 };
 
-//----Editar tasa y anclarla
+// ---- Editar tasa y anclarla
 export const editarYAnclarTasa = async (req, res) => {
   const tasaManual = Number(req.body?.tasa_manual);
   if (!Number.isFinite(tasaManual) || tasaManual <= 0) {
@@ -856,7 +775,7 @@ export const editarYAnclarTasa = async (req, res) => {
   }
 };
 
-//----Desanclar tasa
+// ---- Desanclar tasa
 export const desanclarTasa = async (_req, res) => {
   try {
     await pool.query(
