@@ -105,6 +105,10 @@ export default function App() {
                 element={<AdminScreen activeView="reportes" />}
               />
               <Route
+                path="/sucursales"
+                element={<AdminScreen activeView="sucursales" />}
+              />
+              <Route
                 path="/personal"
                 element={<AdminScreen activeView="personal" />}
               />

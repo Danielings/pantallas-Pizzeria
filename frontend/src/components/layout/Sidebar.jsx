@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Archive,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -54,6 +55,11 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       id: "reportes",
       name: "Ventas y Reportes",
       icon: <FileText className="w-5 h-5" />,
+    },
+    {
+      id: "sucursales",
+      name: "Sucursales",
+      icon: <Building2 className="w-5 h-5" />,
     },
     { id: "personal", name: "Personal", icon: <Users className="w-5 h-5" /> },
     {
