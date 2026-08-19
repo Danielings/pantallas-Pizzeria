@@ -18,6 +18,9 @@ const initialState = {
     advanceAmount: 0, // monto abonado si paymentStatus === 'partial'
     advancePaymentMethod: null, // método usado para el abono
     advanceCurrency: "USD", // moneda original del abono
+    pendingSaleId: null,
+    pendingOriginalTotal: null,
+    pendingRemaining: null,
     customer: null, // { id?, name, cedula, phone? }
     phoneLastDigits: "", // últimos 4 dígitos del teléfono (delivery)
     deliveryId: null,
@@ -97,7 +100,8 @@ function reducer(state, action) {
         (i) =>
           i.productId === product.id &&
           i.size === (size || null) &&
-          (!i.extras || i.extras.length === 0),
+          (!i.extras || i.extras.length === 0) &&
+          (!state.currentOrder.pendingSaleId || !i.isPendingExisting),
       );
       if (existingIdx >= 0) {
         const items = [...state.currentOrder.items];
@@ -118,6 +122,7 @@ function reducer(state, action) {
         extras: [],
         category: product.category,
         emoji: product.emoji,
+        isPendingExisting: false,
       };
       return {
         ...state,
@@ -213,6 +218,9 @@ function reducer(state, action) {
           advanceAmount: 0,
           advancePaymentMethod: null,
           advanceCurrency: "USD",
+          pendingSaleId: null,
+          pendingOriginalTotal: null,
+          pendingRemaining: null,
           customer: null,
           phoneLastDigits: "",
           deliveryId: null,
@@ -242,6 +250,17 @@ function reducer(state, action) {
           customer: customer || null,
           phoneLastDigits: phoneLastDigits || "",
           deliveryId: deliveryId || null,
+        },
+      };
+    }
+
+    case "LOAD_PENDING_ORDER": {
+      return {
+        ...state,
+        currentOrder: {
+          ...state.currentOrder,
+          ...action.payload,
+          payments: action.payload.payments || [],
         },
       };
     }
@@ -371,6 +390,10 @@ export function AppProvider({ children }) {
     (payment) => dispatch({ type: "ADD_PAYMENT", payload: payment }),
     [],
   );
+  const loadPendingOrder = useCallback(
+    (order) => dispatch({ type: "LOAD_PENDING_ORDER", payload: order }),
+    [],
+  );
   const confirmSale = useCallback(
     (payload) => dispatch({ type: "CONFIRM_SALE", payload }),
     [],
@@ -454,6 +477,7 @@ export function AppProvider({ children }) {
         clearCart,
         setOrderType,
         addPayment,
+        loadPendingOrder,
         confirmSale,
         addCustomer,
         login,

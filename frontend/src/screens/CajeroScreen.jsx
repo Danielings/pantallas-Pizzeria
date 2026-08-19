@@ -6,6 +6,7 @@ import JobQueue from "../components/cajero/JobQueue";
 import CategoryFilter from "../components/cajero/CategoryFilter";
 import CheckoutModal from "../components/cajero/CheckoutModal";
 import ExchangeRateWidget from "../components/cajero/ExchangeRateWidget";
+import PendingNotifications from "../components/cajero/PendingNotifications";
 
 export default function CajeroScreen() {
   const [showCheckout, setShowCheckout] = useState(false);
@@ -32,12 +33,16 @@ export default function CajeroScreen() {
               })}
             </p>
           </div>
+
           <ExchangeRateWidget />
         </div>
-        <CategoryFilter
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
+        <div className="flex items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end">
+          <CategoryFilter
+            selected={selectedCategory}
+            onSelect={setSelectedCategory}
+          />
+          <PendingNotifications />
+        </div>
       </header>
 
       <div className="flex flex-1 gap-4 md:gap-6 min-h-0 flex-col xl:flex-row">

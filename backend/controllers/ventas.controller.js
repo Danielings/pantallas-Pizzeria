@@ -126,6 +126,7 @@ export const registrarPedidoPendiente = async (req, res) => {
     tasa_cambio,
     monto_total_usd,
     monto_total_bs,
+    monto_pendiente,
     pagos = [],
     detalles = [],
   } = req.body;
@@ -215,6 +216,19 @@ export const registrarPedidoPendiente = async (req, res) => {
         }
       }
     }
+    const estadoNotificaciones = "Pendiente";
+    await connection.query(
+      `INSERT INTO notificaciones
+       (id_venta, id_cliente, id_usuario, monto_restante, fecha_hora, estado)
+       VALUES (?, ?, ?, ?, NOW(),?)`,
+      [
+        id_venta,
+        id_cliente,
+        id_usuario,
+        monto_pendiente || 0,
+        estadoNotificaciones,
+      ],
+    );
 
     await connection.commit();
     return res.status(201).json({
@@ -230,6 +244,206 @@ export const registrarPedidoPendiente = async (req, res) => {
       message: "Error registrando el pedido pendiente",
       error: error.message,
     });
+  } finally {
+    connection.release();
+  }
+};
+
+export const obtenerNotificacionesPendientes = async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT n.id_notificacion, n.id_venta, n.id_cliente,
+              n.monto_restante, n.fecha_hora,
+              c.nombre AS nombre_cliente, c.cedula AS cedula_cliente,
+              c.telefono AS telefono_cliente,
+              v.despacho, d.nombre AS nombre_delivery, d.digitos AS digitos_delivery,
+              COALESCE(SUM(vd.cantidad), 0) AS cantidad_items,
+              GROUP_CONCAT(
+                CONCAT(vd.cantidad, 'x ', COALESCE(p.nombre, b.nombre, h.nombre, vd.tipo_producto))
+                ORDER BY vd.id_detalle SEPARATOR ', '
+              ) AS resumen_items
+       FROM notificaciones n
+       INNER JOIN ventas v ON v.id_venta = n.id_venta
+       LEFT JOIN clientes c ON c.id_cliente = n.id_cliente
+       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
+       LEFT JOIN venta_detalle vd ON vd.id_venta = v.id_venta
+       LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
+       LEFT JOIN bebidas b ON b.id_bebida = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
+       LEFT JOIN heladeria h ON h.id_heladeria = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
+       WHERE v.estado = 'Pendiente' AND n.estado = 'Pendiente'
+       GROUP BY n.id_notificacion, n.id_venta, n.id_cliente,
+                n.monto_restante, n.fecha_hora, c.nombre, c.cedula,
+                c.telefono, v.despacho, d.nombre, d.digitos
+       ORDER BY n.fecha_hora DESC`,
+    );
+
+    return res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error("Error obteniendo notificaciones pendientes:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const obtenerNotificacionPendiente = async (req, res) => {
+  try {
+    const [ventas] = await pool.query(
+      `SELECT n.id_notificacion, n.id_venta, n.id_cliente, n.monto_restante,
+              v.monto_total_usd, v.monto_total_bs, v.tasa_cambio, v.despacho,
+              v.id_delivery, c.id_cliente AS cliente_id, c.nombre AS nombre_cliente,
+              c.cedula AS cedula_cliente, c.telefono AS telefono_cliente
+       FROM notificaciones n
+       INNER JOIN ventas v ON v.id_venta = n.id_venta AND v.estado = 'Pendiente'
+       LEFT JOIN clientes c ON c.id_cliente = n.id_cliente
+       WHERE n.id_venta = ? AND n.estado = 'Pendiente'`,
+      [req.params.id_venta],
+    );
+    if (!ventas.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Notificación no encontrada." });
+    }
+
+    const [detalles] = await pool.query(
+      `SELECT vd.id_detalle, vd.tipo_producto, vd.id_producto_origen,
+              vd.cantidad, vd.monto_total, vd.nota,
+              COALESCE(p.nombre, b.nombre, h.nombre, vd.tipo_producto) AS nombre_producto,
+              p.id_categoria_pizza
+       FROM venta_detalle vd
+       LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
+       LEFT JOIN bebidas b ON b.id_bebida = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
+       LEFT JOIN heladeria h ON h.id_heladeria = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
+       WHERE vd.id_venta = ?`,
+      [req.params.id_venta],
+    );
+    const [pagos] = await pool.query(
+      `SELECT metodo_pago AS metodo, monto_usd, monto_bs, referencia
+       FROM ventas_pagos WHERE id_venta = ? ORDER BY id_pago`,
+      [req.params.id_venta],
+    );
+
+    const detallesConExtras = await Promise.all(
+      detalles.map(async (detalle) => {
+        const [extras] = await pool.query(
+          `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
+           FROM detalle_venta_extras dve
+           INNER JOIN extras e ON e.id_extras = dve.id_extra
+           WHERE dve.id_detalle = ?`,
+          [detalle.id_detalle],
+        );
+        return { ...detalle, extras };
+      }),
+    );
+
+    return res.json({
+      success: true,
+      data: { venta: ventas[0], detalles: detallesConExtras, pagos },
+    });
+  } catch (error) {
+    console.error("Error obteniendo la notificación pendiente:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const completarVentaPendiente = async (req, res) => {
+  const { id_venta } = req.params;
+  const {
+    id_usuario,
+    pagos = [],
+    detalles = [],
+    monto_total_usd,
+    monto_total_bs,
+  } = req.body;
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [ventas] = await connection.query(
+      `SELECT id_venta FROM ventas WHERE id_venta = ? AND estado = 'Pendiente' FOR UPDATE`,
+      [id_venta],
+    );
+    if (!ventas.length) {
+      await connection.rollback();
+      return res
+        .status(404)
+        .json({ success: false, message: "Venta pendiente no encontrada." });
+    }
+
+    for (const pago of pagos) {
+      await connection.query(
+        `INSERT INTO ventas_pagos (id_venta, metodo_pago, monto_usd, monto_bs, referencia)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          id_venta,
+          pago.metodo,
+          pago.monto_usd || 0,
+          pago.monto_bs || 0,
+          pago.referencia || null,
+        ],
+      );
+    }
+
+    for (const detalle of detalles) {
+      if (detalle.id_detalle) {
+        await connection.query(
+          `UPDATE venta_detalle
+           SET cantidad = ?, monto_total = ?, nota = ?
+           WHERE id_detalle = ? AND id_venta = ?`,
+          [
+            detalle.cantidad,
+            detalle.monto_total,
+            detalle.nota || "",
+            detalle.id_detalle,
+            id_venta,
+          ],
+        );
+        continue;
+      }
+
+      const estadoDetalle =
+        detalle.tipo_producto === "Bebida" || detalle.tipo_producto === "Helado"
+          ? "Completado"
+          : "Pendiente";
+      const [resultDetalle] = await connection.query(
+        `INSERT INTO venta_detalle
+         (id_venta, tipo_producto, id_producto_origen, cantidad, monto_total, nota, estado)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id_venta,
+          detalle.tipo_producto,
+          detalle.id_producto_origen,
+          detalle.cantidad,
+          detalle.monto_total,
+          detalle.nota || "",
+          estadoDetalle,
+        ],
+      );
+
+      for (const idExtra of detalle.extras || []) {
+        await connection.query(
+          `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+          [resultDetalle.insertId, idExtra],
+        );
+      }
+    }
+    const estadoNotificacionesListo = "Listo";
+    await connection.query(
+      `UPDATE ventas
+       SET id_usuario = ?, estado = 'Completado', monto_total_usd = ?, monto_total_bs = ?
+       WHERE id_venta = ?`,
+      [id_usuario || 1, monto_total_usd || 0, monto_total_bs || 0, id_venta],
+    );
+    await connection.query(
+      "UPDATE notificaciones SET estado = ? WHERE id_venta = ?",
+      [estadoNotificacionesListo, id_venta],
+    );
+
+    await connection.commit();
+    return res.json({ success: true, message: "Venta pendiente completada." });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error completando venta pendiente:", error);
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     connection.release();
   }
