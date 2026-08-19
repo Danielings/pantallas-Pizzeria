@@ -1,6 +1,7 @@
 import express from "express";
 import pool from "./config/bd.js";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import productos from "./routes/productos.route.js";
 import ventas from "./routes/ventas.route.js";
 import pedidos from "./routes/pedidos.route.js";
@@ -23,6 +24,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(cookieParser());
 
 // Rutitas
 app.use("/api", productos);
