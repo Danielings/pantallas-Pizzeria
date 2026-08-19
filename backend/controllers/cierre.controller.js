@@ -189,7 +189,6 @@ export const obtenerResumenDia = async (req, res) => {
 export const cerrarCaja = async (req, res) => {
   const {
     pin,
-    id_usuario,
     monto_efectivo_usd,
     monto_efectivo_bs,
     monto_punto_bs,
@@ -210,15 +209,18 @@ export const cerrarCaja = async (req, res) => {
   try {
     connection = await pool.getConnection();
 
+    const usuarioEjecutor = Number(req.user?.id);
+
     const [adminRows] = await connection.execute(
       `SELECT u.id_usuario 
       FROM usuarios u
       INNER JOIN pin p ON u.id_usuario = p.id_usuario
-      WHERE (u.rol = 'admin' OR u.rol = 'cashier') 
+      WHERE u.id_usuario = ?
+        AND (u.rol = 'admin' OR u.rol = 'cashier') 
         AND u.estado = 'Activo' 
         AND p.pin = ? 
       LIMIT 1`,
-      [String(pin).trim()],
+      [usuarioEjecutor, String(pin).trim()],
     );
 
     if (!adminRows || adminRows.length === 0) {
@@ -244,8 +246,6 @@ export const cerrarCaja = async (req, res) => {
         cierres_restantes: 0,
       });
     }
-
-    const usuarioEjecutor = Number(id_usuario || adminRows[0].id_usuario || 0);
 
     await connection.beginTransaction();
 

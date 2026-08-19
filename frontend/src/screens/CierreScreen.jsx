@@ -161,7 +161,6 @@ export default function CierreScreen() {
       const res = await axios.post(
         `${API}/cierre-caja`,
         {
-          id_usuario: currentUser?.id ?? 1,
           pin: claveCierre.trim(),
           monto_efectivo_usd: Number(desglose_pagos.efectivo_usd || 0),
           monto_efectivo_bs: Number(desglose_pagos.efectivo_bs || 0),
