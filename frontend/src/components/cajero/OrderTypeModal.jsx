@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import axios from "axios"; // <-- Importación de axios agregada
 import { useApp } from "../../context/AppContext";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
+import PaymentEntryModal from "./PaymentEntryModal";
 import {
   UtensilsCrossed,
   ShoppingBag,
@@ -19,6 +20,8 @@ import {
   Phone,
   User,
   IdCard,
+  Smartphone,
+  Banknote,
 } from "lucide-react";
 
 // ─── Configuración estática ───────────────────────────────────────────────────
@@ -88,6 +91,30 @@ const PAYMENT_STATUS_OPTIONS = [
   },
 ];
 
+const PAYMENT_METHODS = [
+  {
+    id: "mobile",
+    label: "Pago Móvil",
+    icon: Smartphone,
+    color: "text-blue-500",
+    bg: "bg-blue-50 border-blue-200 hover:border-blue-400",
+  },
+  {
+    id: "cash",
+    label: "Efectivo",
+    icon: Banknote,
+    color: "text-emerald-500",
+    bg: "bg-emerald-50 border-emerald-200 hover:border-emerald-400",
+  },
+  {
+    id: "pos",
+    label: "Punto de Venta",
+    icon: CreditCard,
+    color: "text-purple-500",
+    bg: "bg-purple-50 border-purple-200 hover:border-purple-400",
+  },
+];
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function OrderTypeModal({ onConfirm, onClose }) {
   const { setOrderType, addCustomer } = useApp();
@@ -101,6 +128,8 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [advanceCurrency, setAdvanceCurrency] = useState("USD");
   const [advanceAmount, setAdvanceAmount] = useState("");
+  const [advancePaymentMethod, setAdvancePaymentMethod] = useState(null);
+  const [showAdvancePaymentEntry, setShowAdvancePaymentEntry] = useState(false);
 
   // Estados para el flujo de búsqueda de Delivery
   const [foundDelivery, setFoundDelivery] = useState(null);
@@ -136,6 +165,8 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
     setSelectedType(typeId);
     setPaymentStatus(null);
     setAdvanceAmount("");
+    setAdvancePaymentMethod(null);
+    setShowAdvancePaymentEntry(false);
     setFoundDelivery(null);
     setDeliveryNotFound(false);
     setNewDeliveryName("");
@@ -264,6 +295,8 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
             id: finalDelivery.id ?? finalDelivery.id_delivery,
           }
         : null,
+      paymentStatus === "partial" ? advancePaymentMethod?.id : null,
+      paymentStatus === "partial" ? advanceCurrency : "USD",
     );
     onConfirm?.();
   };
@@ -293,7 +326,8 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
     if (needsPaymentInfo) {
       const isPaymentStatusSelected = paymentStatus !== null;
       const isAbonoValid =
-        paymentStatus !== "partial" || parseFloat(advanceAmount) > 0;
+        paymentStatus !== "partial" ||
+        (advancePaymentMethod !== null && parseFloat(advanceAmount) > 0);
 
       const isDeliveryValid =
         selectedType !== "delivery" ||
@@ -530,7 +564,11 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                             key={opt.id}
                             onClick={() => {
                               setPaymentStatus(opt.id);
-                              if (opt.id !== "partial") setAdvanceAmount("");
+                              if (opt.id !== "partial") {
+                                setAdvanceAmount("");
+                                setAdvancePaymentMethod(null);
+                                setShowAdvancePaymentEntry(false);
+                              }
                             }}
                             className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
                               isSelected
@@ -553,55 +591,63 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
                         );
                       })}
 
-                      {/* Campo de abono con selector de moneda */}
+                      {/* Método y monto del abono */}
                       {paymentStatus === "partial" && (
                         <div className="mt-1 p-4 bg-blue-50 rounded-xl border border-blue-200 flex flex-col gap-3 animate-fade-in">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold text-blue-700 uppercase tracking-wider">
-                              Monto abonado
-                            </label>
-                            <div className="flex gap-1 bg-white rounded-lg p-0.5 border border-blue-200">
-                              {["USD", "Bs"].map((cur) => (
+                          <label className="text-xs font-bold text-blue-700 uppercase tracking-wider">
+                            Método de pago del abono
+                          </label>
+                          <div className="flex gap-1 self-end bg-white rounded-lg p-0.5 border border-blue-200">
+                            {["USD", "Bs"].map((currency) => (
+                              <button
+                                key={currency}
+                                type="button"
+                                onClick={() => {
+                                  setAdvanceCurrency(currency);
+                                  setAdvanceAmount("");
+                                }}
+                                className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${
+                                  advanceCurrency === currency
+                                    ? "bg-blue-500 text-white shadow-sm"
+                                    : "text-blue-600 hover:bg-blue-100"
+                                }`}
+                              >
+                                {currency}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {PAYMENT_METHODS.map((method) => {
+                              const Icon = method.icon;
+                              const isSelected =
+                                advancePaymentMethod?.id === method.id;
+                              return (
                                 <button
-                                  key={cur}
+                                  key={method.id}
                                   type="button"
                                   onClick={() => {
-                                    setAdvanceCurrency(cur);
-                                    setAdvanceAmount("");
+                                    setAdvancePaymentMethod(method);
+                                    setShowAdvancePaymentEntry(true);
                                   }}
-                                  className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${
-                                    advanceCurrency === cur
-                                      ? "bg-blue-500 text-white shadow-sm"
-                                      : "text-blue-600 hover:bg-blue-100"
-                                  }`}
+                                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${method.bg} ${isSelected ? "ring-2 ring-blue-400" : ""}`}
                                 >
-                                  {cur}
+                                  <Icon className={`w-4 h-4 ${method.color}`} />
+                                  <span className="text-sm font-semibold text-slate-700 flex-1 text-left">
+                                    {method.label}
+                                  </span>
+                                  {isSelected && (
+                                    <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                                  )}
                                 </button>
-                              ))}
-                            </div>
+                              );
+                            })}
                           </div>
-
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-bold text-sm">
-                              {advanceCurrency === "Bs" ? "Bs." : "$"}
-                            </span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={advanceAmount}
-                              onChange={(e) => setAdvanceAmount(e.target.value)}
-                              placeholder="0.00"
-                              className="w-full pl-10 pr-3 py-3 bg-white border border-blue-300 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                              autoFocus
-                            />
-                          </div>
-
-                          {advanceRaw > 0 && exchangeRate > 0 && (
-                            <p className="text-xs font-semibold text-blue-600">
-                              {advanceCurrency === "Bs"
-                                ? `≈ $${advanceUSD.toFixed(2)}`
-                                : `≈ Bs. ${(advanceRaw * exchangeRate).toFixed(2)}`}
+                          {advancePaymentMethod && (
+                            <p className="text-xs font-semibold text-blue-700">
+                              Abono:{" "}
+                              {advanceRaw > 0
+                                ? `${advanceCurrency === "Bs" ? "Bs." : "$"} ${advanceRaw.toFixed(2)}`
+                                : "pendiente de monto"}
                             </p>
                           )}
                         </div>
@@ -720,6 +766,24 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
               </div>
             )}
           </div>
+
+          {showAdvancePaymentEntry && advancePaymentMethod && (
+            <PaymentEntryModal
+              method={advancePaymentMethod}
+              currency={advanceCurrency}
+              exchangeRate={exchangeRate}
+              remainingUSD={null}
+              onAdd={(amountUSD) => {
+                const amountInSelectedCurrency =
+                  advanceCurrency === "Bs"
+                    ? amountUSD * (exchangeRate || 0)
+                    : amountUSD;
+                setAdvanceAmount(String(amountInSelectedCurrency));
+                setShowAdvancePaymentEntry(false);
+              }}
+              onClose={() => setShowAdvancePaymentEntry(false)}
+            />
+          )}
 
           {/* Footer de Navegación */}
           <div className="px-4 pb-4 sm:px-6 sm:pb-6 pt-2 flex gap-2 sm:gap-3">
