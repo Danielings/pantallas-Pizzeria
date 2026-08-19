@@ -375,10 +375,10 @@ export default function CierresAdminScreen() {
                   </td>
                 </tr>
               ) : (
-                paginatedCierres.map((cierre) => (
+                paginatedCierres.map((cierre, index) => (
                   <tr key={cierre.id_cierre} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-5 py-3.5 text-slate-400 text-xs font-bold">
-                      {cierre.id_cierre}
+                      {(currentPage - 1) * 10 + index + 1}
                     </td>
                     <td className="px-5 py-3.5 font-bold text-slate-800">
                       {formatDate(cierre.fecha_hora)}

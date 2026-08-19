@@ -523,8 +523,8 @@ export default function ClientesPrincipalesScreen() {
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border ${vip
-                                ? "bg-amber-50 border-amber-200 text-amber-600"
-                                : "bg-slate-100 border-slate-200 text-slate-600"
+                              ? "bg-amber-50 border-amber-200 text-amber-600"
+                              : "bg-slate-100 border-slate-200 text-slate-600"
                               }`}
                           >
                             {customer.name.charAt(0)}
@@ -555,8 +555,8 @@ export default function ClientesPrincipalesScreen() {
                       <td className="px-5 py-3 text-center">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-bold ${vip
-                              ? "bg-amber-50 border border-amber-100 text-amber-600"
-                              : "bg-blue-50 border border-blue-100 text-blue-600"
+                            ? "bg-amber-50 border border-amber-100 text-amber-600"
+                            : "bg-blue-50 border border-blue-100 text-blue-600"
                             }`}
                         >
                           {vip ? "VIP" : "Regular"}
