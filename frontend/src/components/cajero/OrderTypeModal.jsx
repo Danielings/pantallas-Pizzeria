@@ -116,8 +116,9 @@ const PAYMENT_METHODS = [
 ];
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export default function OrderTypeModal({ onConfirm, onClose }) {
-  const { setOrderType, addCustomer } = useApp();
+export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
+  const { setOrderType, addCustomer, currentOrder, clearCart, currentUser } =
+    useApp();
   const { exchangeRate } = useExchangeRate();
 
   // ── Pasos: 1 = Tipo y Estado Pago, 2 = Cliente ──
@@ -130,6 +131,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
   const [advanceAmount, setAdvanceAmount] = useState("");
   const [advancePaymentMethod, setAdvancePaymentMethod] = useState(null);
   const [showAdvancePaymentEntry, setShowAdvancePaymentEntry] = useState(false);
+  const [isRegisteringPending, setIsRegisteringPending] = useState(false);
 
   // Estados para el flujo de búsqueda de Delivery
   const [foundDelivery, setFoundDelivery] = useState(null);
@@ -221,8 +223,125 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
     }
   };
 
+  const mapOrderTypeToApiValue = (type) =>
+    type === "delivery" ? "Delivery" : type === "pickup" ? "Pick Up" : type;
+
+  const mapPaymentMethodToApi = (method) => {
+    switch (method) {
+      case "pos":
+        return "Punto";
+      case "cash":
+        return "Efectivo";
+      case "mobile":
+        return "Pago_Movil";
+      default:
+        return method;
+    }
+  };
+
+  const getProductTypeForApi = (category) => {
+    switch (category) {
+      case "drinks":
+        return "Bebida";
+      case "icecream":
+        return "Helado";
+      default:
+        return "Pizza";
+    }
+  };
+
+  const getPendingDetails = () => {
+    const items = currentOrder.items.length
+      ? currentOrder.items
+      : pendingProduct
+        ? [
+            {
+              ...pendingProduct.product,
+              qty: 1,
+              size: pendingProduct.size || null,
+              extras: [],
+              note: "",
+            },
+          ]
+        : [];
+
+    return items.map((item) => {
+      const sizeMultiplier =
+        item.size === "Mediana" ? 1.3 : item.size === "Familiar" ? 1.6 : 1;
+      const unitPrice = currentOrder.items.length
+        ? Number(item.price || 0)
+        : Number(item.price || 0) * sizeMultiplier;
+      return {
+        tipo_producto: getProductTypeForApi(item.category),
+        id_producto_origen: Number(item.productId ?? item.id),
+        cantidad: Number(item.qty || 1),
+        monto_total: Number((unitPrice * (item.qty || 1)).toFixed(2)),
+        nota: item.note || "",
+        extras: (item.extras || []).map((extra) => Number(extra.id)),
+      };
+    });
+  };
+
+  const registerPendingOrder = async (finalCustomer, finalDelivery) => {
+    const despacho = mapOrderTypeToApiValue(selectedType);
+    const total = getPendingDetails().reduce(
+      (sum, detail) => sum + detail.monto_total,
+      0,
+    );
+    const isPartial = paymentStatus === "partial";
+    const paymentMethod = mapPaymentMethodToApi(advancePaymentMethod?.id);
+    const paymentAmountBs = advanceUSD * (exchangeRate || 0);
+
+    const response = await axios.post(
+      "http://localhost:3001/api/registrar-pedido-pendiente",
+      {
+        id_cliente: finalCustomer?.id ?? finalCustomer?.id_cliente ?? 1,
+        id_usuario: currentUser?.id || 1,
+        id_delivery:
+          selectedType === "delivery"
+            ? (finalDelivery?.id ?? finalDelivery?.id_delivery)
+            : null,
+        despacho,
+        tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
+        monto_total_usd: isPartial ? Number(total.toFixed(2)) : 0,
+        monto_total_bs: isPartial
+          ? Number((total * (exchangeRate || 0)).toFixed(2))
+          : 0,
+        pagos:
+          isPartial && paymentMethod
+            ? [
+                {
+                  metodo: paymentMethod,
+                  monto_usd:
+                    paymentMethod === "Efectivo" && advanceCurrency === "Bs"
+                      ? 0
+                      : Number(advanceUSD.toFixed(2)),
+                  monto_bs:
+                    paymentMethod === "Efectivo" && advanceCurrency === "USD"
+                      ? 0
+                      : Number(paymentAmountBs.toFixed(2)),
+                  referencia: advanceCurrency,
+                },
+              ]
+            : [],
+        detalles: getPendingDetails(),
+      },
+    );
+
+    if (!response.data?.success) {
+      throw new Error(
+        response.data?.message || "No se pudo registrar el pedido.",
+      );
+    }
+  };
+
   // ── Confirmar y Guardar ──
   const handleConfirm = async () => {
+    const shouldRegisterPending =
+      needsPaymentInfo && ["partial", "pending"].includes(paymentStatus);
+
+    if (shouldRegisterPending) setIsRegisteringPending(true);
+
     // 1. Determinar y registrar el Delivery si es nuevo
     let finalDelivery = foundDelivery
       ? foundDelivery
@@ -245,6 +364,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
         }
       } catch (error) {
         console.error("Error registrando al nuevo delivery:", error);
+        setIsRegisteringPending(false);
         return; // Detenemos si falla el registro
       }
     }
@@ -272,8 +392,23 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
         }
       } catch (error) {
         console.error("Error registrando al nuevo cliente:", error);
+        setIsRegisteringPending(false);
         return; // Detenemos si falla el registro
       }
+    }
+
+    if (shouldRegisterPending) {
+      try {
+        await registerPendingOrder(finalCustomer, finalDelivery);
+        clearCart();
+        onConfirm?.({ pendingRegistered: true });
+      } catch (error) {
+        console.error("Error registrando el pedido pendiente:", error);
+        return;
+      } finally {
+        setIsRegisteringPending(false);
+      }
+      return;
     }
 
     // 3. Setear el tipo de pedido en el estado global
@@ -298,7 +433,7 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
       paymentStatus === "partial" ? advancePaymentMethod?.id : null,
       paymentStatus === "partial" ? advanceCurrency : "USD",
     );
-    onConfirm?.();
+    onConfirm?.({ pendingRegistered: false });
   };
 
   const clearSearch = () => {
@@ -799,14 +934,20 @@ export default function OrderTypeModal({ onConfirm, onClose }) {
 
             <button
               onClick={step === 1 ? goNext : handleConfirm}
-              disabled={step === 1 ? !step1Valid : !step2Valid}
+              disabled={
+                step === 1 ? !step1Valid : !step2Valid || isRegisteringPending
+              }
               className={`flex-1 py-3.5 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all duration-200 ${
                 (step === 1 ? step1Valid : step2Valid)
                   ? "bg-slate-800 hover:bg-slate-900 text-white shadow-md hover:shadow-lg active:scale-[0.98]"
                   : "bg-slate-200 text-slate-400 cursor-not-allowed"
               }`}
             >
-              {step === 1 ? "Siguiente" : "Confirmar y Continuar"}
+              {isRegisteringPending
+                ? "Registrando..."
+                : step === 1
+                  ? "Siguiente"
+                  : "Confirmar y Continuar"}
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>

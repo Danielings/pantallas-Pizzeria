@@ -31,12 +31,12 @@ export default function MenuGrid({ category }) {
     }
   };
 
-  const handleOrderTypeConfirmed = () => {
+  const handleOrderTypeConfirmed = ({ pendingRegistered = false } = {}) => {
     setShowOrderTypeModal(false);
-    if (pendingProduct) {
+    if (pendingProduct && !pendingRegistered) {
       addToCart(pendingProduct.product, pendingProduct.size);
-      setPendingProduct(null);
     }
+    setPendingProduct(null);
   };
 
   const handleOrderTypeClose = () => {
@@ -147,6 +147,7 @@ export default function MenuGrid({ category }) {
         <OrderTypeModal
           onConfirm={handleOrderTypeConfirmed}
           onClose={handleOrderTypeClose}
+          pendingProduct={pendingProduct}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   procesarVenta,
+  registrarPedidoPendiente,
   editarVenta,
   obtenerMetodosPago,
   obtenerVentasHoy,
@@ -18,6 +19,7 @@ import esAdmin from "../middleware/esAdmin.js";
 const router = Router();
 
 router.post("/procesar-venta", procesarVenta);
+router.post("/registrar-pedido-pendiente", registrarPedidoPendiente);
 router.put("/editar-venta", editarVenta);
 router.get("/metodos-pagos", obtenerMetodosPago);
 

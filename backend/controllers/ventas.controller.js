@@ -116,6 +116,125 @@ export const procesarVenta = async (req, res) => {
   }
 };
 
+//-------Registra Delivery/Pick Up que todavía no debe pasar por cobro.
+export const registrarPedidoPendiente = async (req, res) => {
+  const {
+    id_cliente,
+    id_usuario,
+    id_delivery,
+    despacho,
+    tasa_cambio,
+    monto_total_usd,
+    monto_total_bs,
+    pagos = [],
+    detalles = [],
+  } = req.body;
+
+  if (
+    !id_cliente ||
+    !id_usuario ||
+    !["Delivery", "Pick Up"].includes(despacho)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Cliente, usuario y despacho Delivery/Pick Up son obligatorios.",
+    });
+  }
+
+  if (!Array.isArray(detalles) || detalles.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "El pedido debe contener al menos un detalle.",
+    });
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [resultVenta] = await connection.query(
+      `INSERT INTO ventas
+       (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs)
+       VALUES (?, ?, ?, ?, 'Pendiente', NOW(), ?, ?, ?)`,
+      [
+        id_cliente,
+        id_usuario,
+        id_delivery || null,
+        despacho,
+        tasa_cambio || 0,
+        monto_total_usd || 0,
+        monto_total_bs || 0,
+      ],
+    );
+
+    const id_venta = resultVenta.insertId;
+
+    for (const pago of pagos) {
+      await connection.query(
+        `INSERT INTO ventas_pagos
+         (id_venta, metodo_pago, monto_usd, monto_bs, referencia)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          id_venta,
+          pago.metodo,
+          pago.monto_usd || 0,
+          pago.monto_bs || 0,
+          pago.referencia || null,
+        ],
+      );
+    }
+
+    for (const item of detalles) {
+      const estadoInicial =
+        item.tipo_producto === "Bebida" || item.tipo_producto === "Helado"
+          ? "Completado"
+          : "Pendiente";
+
+      const [resultDetalle] = await connection.query(
+        `INSERT INTO venta_detalle
+         (id_venta, tipo_producto, id_producto_origen, cantidad, monto_total, nota, estado)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id_venta,
+          item.tipo_producto,
+          item.id_producto_origen,
+          item.cantidad,
+          item.monto_total,
+          item.nota || "",
+          estadoInicial,
+        ],
+      );
+
+      if (Array.isArray(item.extras)) {
+        for (const id_extra of item.extras) {
+          await connection.query(
+            `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+            [resultDetalle.insertId, id_extra],
+          );
+        }
+      }
+    }
+
+    await connection.commit();
+    return res.status(201).json({
+      success: true,
+      message: "Pedido pendiente registrado exitosamente",
+      id_venta,
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error al registrar el pedido pendiente:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error registrando el pedido pendiente",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+};
+
 // ----Editar venta
 export const editarVenta = async (req, res) => {
   const {
