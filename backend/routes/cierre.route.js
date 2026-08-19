@@ -8,6 +8,8 @@ import {
   actualizarPinCajero,
 } from "../controllers/cierre.controller.js";
 import verificarToken from "../middleware/verificarToken.js";
+import esAdmin from "../middleware/esAdmin.js";
+import esCajero from "../middleware/esCajero.js";
 
 const router = Router();
 
@@ -15,7 +17,7 @@ router.get("/cierre/resumen-dia", obtenerResumenDia);
 router.get("/cierre/pedidos-pendientes", verificarPedidosPendientes);
 router.get("/cierre/historial", obtenerHistorialCierres);
 router.get("/cierre/cajeros", obtenerCajeros);
-router.put("/cierre/cajero-pin", verificarToken, actualizarPinCajero);
-router.post("/cierre-caja", verificarToken, cerrarCaja);
+router.put("/cierre/cajero-pin", verificarToken, esAdmin, actualizarPinCajero);
+router.post("/cierre-caja", verificarToken, esCajero, cerrarCaja);
 
 export default router;

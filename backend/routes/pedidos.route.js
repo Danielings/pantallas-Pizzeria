@@ -10,6 +10,8 @@ import {
   obtenerEntregas,
   actualizarEntrega,
 } from "../controllers/pedidos.controller.js";
+import verificarToken from "../middleware/verificarToken.js";
+import esCajero from "../middleware/esCajero.js";
 
 const router = Router();
 
@@ -21,6 +23,11 @@ router.get("/obtener-pedidos-pendiente", obtenerPedidosPendiente);
 router.get("/obtener-contador-cajero", obtenerContadorCajero);
 router.put("/actualizar-estado-pedido/:id_venta", actualizarEstadoPedido);
 router.get("/entregas", obtenerEntregas);
-router.put("/entregas/:id_venta/completar", actualizarEntrega);
+router.put(
+  "/entregas/:id_venta/completar",
+  verificarToken,
+  esCajero,
+  actualizarEntrega,
+);
 
 export default router;
