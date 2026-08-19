@@ -16,6 +16,8 @@ const initialState = {
     orderType: null, // 'local' | 'takeaway' | 'delivery' | 'pickup'
     paymentStatus: null, // 'paid' | 'partial' | 'pending'  (only for delivery/pickup)
     advanceAmount: 0, // monto abonado si paymentStatus === 'partial'
+    advancePaymentMethod: null, // método usado para el abono
+    advanceCurrency: "USD", // moneda original del abono
     customer: null, // { id?, name, cedula, phone? }
     phoneLastDigits: "", // últimos 4 dígitos del teléfono (delivery)
     deliveryId: null,
@@ -209,6 +211,8 @@ function reducer(state, action) {
           orderType: null,
           paymentStatus: null,
           advanceAmount: 0,
+          advancePaymentMethod: null,
+          advanceCurrency: "USD",
           customer: null,
           phoneLastDigits: "",
           deliveryId: null,
@@ -220,6 +224,8 @@ function reducer(state, action) {
         orderType,
         paymentStatus,
         advanceAmount,
+        advancePaymentMethod,
+        advanceCurrency,
         customer,
         phoneLastDigits,
         deliveryId,
@@ -231,6 +237,8 @@ function reducer(state, action) {
           orderType,
           paymentStatus: paymentStatus || null,
           advanceAmount: advanceAmount || 0,
+          advancePaymentMethod: advancePaymentMethod || null,
+          advanceCurrency: advanceCurrency || "USD",
           customer: customer || null,
           phoneLastDigits: phoneLastDigits || "",
           deliveryId: deliveryId || null,
@@ -341,6 +349,8 @@ export function AppProvider({ children }) {
       customer,
       phoneLastDigits,
       deliveryId,
+      advancePaymentMethod,
+      advanceCurrency,
     ) =>
       dispatch({
         type: "SET_ORDER_TYPE",
@@ -351,6 +361,8 @@ export function AppProvider({ children }) {
           customer,
           phoneLastDigits,
           deliveryId,
+          advancePaymentMethod,
+          advanceCurrency,
         },
       }),
     [],

@@ -48,6 +48,8 @@ export default function CheckoutModal({ onClose }) {
   const ctxOrderType = currentOrder.orderType;
   const ctxPaymentStatus = currentOrder.paymentStatus;
   const ctxAdvanceAmount = currentOrder.advanceAmount || 0;
+  const ctxAdvancePaymentMethod = currentOrder.advancePaymentMethod;
+  const ctxAdvanceCurrency = currentOrder.advanceCurrency || "USD";
 
   const ORDER_TYPE_LABELS = {
     local: "Local",
@@ -63,7 +65,21 @@ export default function CheckoutModal({ onClose }) {
   // Si ya hay un abono previo, precargarlo como pago inicial
   const initialPayments =
     ctxPaymentStatus === "partial" && ctxAdvanceAmount > 0
-      ? [{ method: "advance", label: "Abono previo", amount: ctxAdvanceAmount }]
+      ? [
+          {
+            method: ctxAdvancePaymentMethod || "advance",
+            label:
+              ctxAdvancePaymentMethod === "mobile"
+                ? "Pago Móvil (abono)"
+                : ctxAdvancePaymentMethod === "cash"
+                  ? "Efectivo (abono)"
+                  : ctxAdvancePaymentMethod === "pos"
+                    ? "Punto de Venta (abono)"
+                    : "Abono previo",
+            amount: ctxAdvanceAmount,
+            currency: ctxAdvanceCurrency,
+          },
+        ]
       : [];
 
   // internal payments array to allow splits
@@ -289,8 +305,16 @@ export default function CheckoutModal({ onClose }) {
 
         return {
           metodo: mapPaymentMethodToApi(payment.method),
-          monto_usd: isCash ? (isUSD ? Number(payment.amount.toFixed(2)) : 0) : Number(payment.amount.toFixed(2)),
-          monto_bs: isCash ? (isBs ? Number((payment.amount * (exchangeRate || 0)).toFixed(2)) : 0) : Number((payment.amount * (exchangeRate || 0)).toFixed(2)),
+          monto_usd: isCash
+            ? isUSD
+              ? Number(payment.amount.toFixed(2))
+              : 0
+            : Number(payment.amount.toFixed(2)),
+          monto_bs: isCash
+            ? isBs
+              ? Number((payment.amount * (exchangeRate || 0)).toFixed(2))
+              : 0
+            : Number((payment.amount * (exchangeRate || 0)).toFixed(2)),
           referencia: payment.currency || "Bs",
         };
       }),
@@ -354,7 +378,7 @@ export default function CheckoutModal({ onClose }) {
       // Refrescar cola y métricas sin recargar página
       queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
       queryClient.invalidateQueries({ queryKey: ["ventasHoy"] });
-      
+
       window.Toast.fire({
         icon: "success",
         title: "¡Venta procesada exitosamente!",
@@ -636,22 +660,21 @@ export default function CheckoutModal({ onClose }) {
                 </div>
               )}
               <div className="flex w-full gap-3 mt-4">
-              <button
-                onClick={handleConfirmAndPrint}
-                disabled={isSubmitting}
-                className={` flex-1 py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 text-slate-200 cursor-not-allowed" : "bg-slate-800 hover:bg-slate-900 text-white"}`}
-              >
-                <Printer className="w-5 h-5" />
-                {isSubmitting ? "Procesando..." : "Imprimir"}
-              </button>
-              <button
-                onClick={handleProcesarVenta}
-                disabled={isSubmitting}
-                className={`flex-1 py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 text-slate-200 cursor-not-allowed" : "bg-pizza-red hover:opacity-90 text-white"}`}
-              >
-                
-                {isSubmitting ? "Procesando..." : "Cerrar"}
-              </button>
+                <button
+                  onClick={handleConfirmAndPrint}
+                  disabled={isSubmitting}
+                  className={` flex-1 py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 text-slate-200 cursor-not-allowed" : "bg-slate-800 hover:bg-slate-900 text-white"}`}
+                >
+                  <Printer className="w-5 h-5" />
+                  {isSubmitting ? "Procesando..." : "Imprimir"}
+                </button>
+                <button
+                  onClick={handleProcesarVenta}
+                  disabled={isSubmitting}
+                  className={`flex-1 py-3.5 rounded-xl font-bold text-base shadow-md transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 text-slate-200 cursor-not-allowed" : "bg-pizza-red hover:opacity-90 text-white"}`}
+                >
+                  {isSubmitting ? "Procesando..." : "Cerrar"}
+                </button>
               </div>
             </div>
           )}
