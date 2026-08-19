@@ -2,8 +2,6 @@ import { Router } from "express";
 import {
   procesarVenta,
   registrarPedidoPendiente,
-  obtenerNotificacionesPendientes,
-  obtenerNotificacionPendiente,
   completarVentaPendiente,
   editarVenta,
   obtenerMetodosPago,
@@ -23,11 +21,7 @@ const router = Router();
 
 router.post("/procesar-venta", procesarVenta);
 router.post("/registrar-pedido-pendiente", registrarPedidoPendiente);
-router.get("/notificaciones-pendientes", obtenerNotificacionesPendientes);
-router.get(
-  "/notificaciones-pendientes/:id_venta",
-  obtenerNotificacionPendiente,
-);
+
 router.post("/completar-venta-pendiente/:id_venta", completarVentaPendiente);
 router.put("/editar-venta", editarVenta);
 router.get("/metodos-pagos", obtenerMetodosPago);
