@@ -40,7 +40,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutModal({ onClose }) {
-  const { total, currentOrder, confirmSale, clearCart } = useApp();
+  const { total, currentOrder, confirmSale, clearCart, currentUser } = useApp();
   const { exchangeRate } = useExchangeRate();
   const queryClient = useQueryClient();
 
@@ -50,6 +50,14 @@ export default function CheckoutModal({ onClose }) {
   const ctxAdvanceAmount = currentOrder.advanceAmount || 0;
   const ctxAdvancePaymentMethod = currentOrder.advancePaymentMethod;
   const ctxAdvanceCurrency = currentOrder.advanceCurrency || "USD";
+  const isPendingSale = Boolean(currentOrder.pendingSaleId);
+  const pendingOriginalTotal = currentOrder.pendingOriginalTotal ?? total;
+  const pendingAddedTotal = currentOrder.items
+    .filter((item) => !item.isPendingExisting)
+    .reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
+      0,
+    );
 
   const ORDER_TYPE_LABELS = {
     local: "Local",
@@ -107,7 +115,11 @@ export default function CheckoutModal({ onClose }) {
       overrideUSD = parsedOverride;
     }
   }
-  const totalToUse = overrideUSD && overrideUSD > 0 ? overrideUSD : total;
+  const totalToUse = isPendingSale
+    ? pendingOriginalTotal + pendingAddedTotal
+    : overrideUSD && overrideUSD > 0
+      ? overrideUSD
+      : total;
   const paidSoFar = paymentsInternal.reduce((s, p) => s + p.amount, 0);
   const remainingLocalUSD = Math.max(0, totalToUse - paidSoFar);
 
@@ -326,6 +338,7 @@ export default function CheckoutModal({ onClose }) {
             : Number(item.productId);
 
         return {
+          id_detalle: item.id_detalle || null,
           tipo_producto: getProductTypeForApi(item.category),
           id_producto_origen: idOrigen,
           cantidad: item.qty,
@@ -344,12 +357,31 @@ export default function CheckoutModal({ onClose }) {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:3001/api/procesar-venta", {
+      const endpoint = isPendingSale
+        ? `http://localhost:3001/api/completar-venta-pendiente/${currentOrder.pendingSaleId}`
+        : "http://localhost:3001/api/procesar-venta";
+      const requestPayload = isPendingSale
+        ? {
+            id_usuario: currentUser?.id || 1,
+            monto_total_usd: Number(
+              (pendingOriginalTotal + pendingAddedTotal).toFixed(2),
+            ),
+            monto_total_bs: Number(
+              (
+                (pendingOriginalTotal + pendingAddedTotal) *
+                (exchangeRate || 0)
+              ).toFixed(2),
+            ),
+            detalles: payload.detalles,
+            pagos: payload.pagos.slice(currentOrder.payments.length),
+          }
+        : payload;
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestPayload),
       });
 
       // 1. Validar el tipo de contenido antes de intentar parsear a JSON

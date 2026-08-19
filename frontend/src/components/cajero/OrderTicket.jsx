@@ -13,7 +13,15 @@ import { useExchangeRate } from "../../hooks/useExchangeRate";
 export default function OrderTicket({ onCheckout }) {
   const { currentOrder, total } = useApp();
   const { exchangeRate } = useExchangeRate();
-  const { items } = currentOrder;
+  const { items, pendingRemaining } = currentOrder;
+  const addedTotal = items
+    .filter((item) => !item.isPendingExisting)
+    .reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
+      0,
+    );
+  const displayTotal =
+    pendingRemaining != null ? pendingRemaining + addedTotal : total;
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-slate-50">
@@ -42,11 +50,11 @@ export default function OrderTicket({ onCheckout }) {
               <span className="text-slate-800 font-bold">Total</span>
               <div className="text-right">
                 <div className="text-slate-800 font-extrabold text-lg sm:text-xl">
-                  ${total.toFixed(2)}
+                  ${displayTotal.toFixed(2)}
                 </div>
                 {exchangeRate > 0 && (
                   <div className="text-slate-500 text-sm font-semibold mt-0.5">
-                    Bs. {(total * exchangeRate).toFixed(2)}
+                    Bs. {(displayTotal * exchangeRate).toFixed(2)}
                   </div>
                 )}
               </div>
@@ -57,7 +65,7 @@ export default function OrderTicket({ onCheckout }) {
             onClick={onCheckout}
             className="w-full bg-slate-800 hover:bg-slate-900 text-white py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
           >
-            Cobrar ${total.toFixed(2)}
+            Cobrar ${displayTotal.toFixed(2)}
           </button>
         </div>
       )}

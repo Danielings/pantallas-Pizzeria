@@ -307,6 +307,9 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
         monto_total_bs: isPartial
           ? Number((total * (exchangeRate || 0)).toFixed(2))
           : 0,
+        monto_pendiente: Number(
+          Math.max(0, total - (isPartial ? advanceUSD : 0)).toFixed(2),
+        ),
         pagos:
           isPartial && paymentMethod
             ? [

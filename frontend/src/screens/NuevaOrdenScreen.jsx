@@ -4,6 +4,7 @@ import OrderTicket from "../components/cajero/OrderTicket";
 import CategoryFilter from "../components/cajero/CategoryFilter";
 import CheckoutModal from "../components/cajero/CheckoutModal";
 import ExchangeRateWidget from "../components/cajero/ExchangeRateWidget";
+import PendingNotifications from "../components/cajero/PendingNotifications";
 import { useApp } from "../context/AppContext";
 import {
   Receipt,
@@ -70,10 +71,13 @@ export default function NuevaOrdenScreen() {
             </p>
           </div>
         </div>
-        <CategoryFilter
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
+        <div className="flex items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end">
+          <CategoryFilter
+            selected={selectedCategory}
+            onSelect={setSelectedCategory}
+          />
+          <PendingNotifications />
+        </div>
       </header>
 
       {/* Cuerpo: Grilla de Productos (ahora ocupa todo el ancho) */}
