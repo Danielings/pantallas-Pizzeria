@@ -1,6 +1,7 @@
 import Dashboard from "../components/admin/Dashboard";
 import SalesReport from "../components/admin/Reportes";
 import StaffManagement from "../components/admin/Gestion_de_personal";
+import Sucursales from "../components/admin/Sucursales";
 import ActivityLog from "../components/admin/ActivityLog";
 import ClientesPrincipalesScreen from "../components/admin/ClientesPrincipalesScreen";
 import ProductosScreen from "../components/admin/ProductosScreen";
@@ -14,6 +15,7 @@ export default function AdminScreen({ activeView }) {
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {activeView === "dashboard" && <Dashboard />}
         {activeView === "reportes" && <SalesReport />}
+        {activeView === "sucursales" && <Sucursales />}
         {activeView === "personal" && <StaffManagement />}
         {activeView === "bitacora" && (
           <div className="p-4 sm:p-6 h-full overflow-hidden flex flex-col min-h-0">
