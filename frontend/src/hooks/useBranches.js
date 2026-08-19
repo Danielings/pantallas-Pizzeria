@@ -63,6 +63,7 @@ export function useStaff() {
         email: user.email,
         branchId: user.id_sucursal ?? user.branchId,
         role: normalizeRole(user.role ?? user.rol),
+        estado: user.estado ?? "Activo",
       }));
     },
   });

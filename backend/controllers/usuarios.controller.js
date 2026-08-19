@@ -156,9 +156,9 @@ export const obtenerUsuarios = async (req, res) => {
         nombre_completo AS name, 
         email, 
         rol AS role, 
-        id_sucursal AS branchId 
-      FROM usuarios 
-      WHERE estado = 'Activo'
+        id_sucursal AS branchId,
+        estado
+      FROM usuarios
     `);
 
     res.json({ success: true, data: rows });
@@ -193,6 +193,113 @@ export const eliminarUsuario = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Ocurrió un error al intentar eliminar el usuario",
+    });
+  }
+};
+
+export const activarUsuario = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await pool.query(
+      "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = ?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Usuario activado correctamente",
+    });
+  } catch (error) {
+    console.error("Error al activar usuario:", error);
+    res.status(500).json({
+      success: false,
+      message: "Ocurrió un error al intentar activar el usuario",
+    });
+  }
+};
+
+export const actualizarUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre_completo, email, rol, id_sucursal, password } = req.body;
+
+    const nameTrim = String(nombre_completo || "").trim();
+    const emailTrim = String(email || "").trim().toLowerCase();
+    
+    if (!nameTrim || !emailTrim || !rol || (!id_sucursal && id_sucursal !== 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "El nombre, email, rol y sucursal son obligatorios.",
+      });
+    }
+
+    // Validar unicidad del correo electrónico
+    const [existingUser] = await pool.query(
+      "SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario != ? LIMIT 1",
+      [emailTrim, id]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Ya existe otro usuario con ese correo.",
+      });
+    }
+
+    let queryParams = [nameTrim, emailTrim, rol, Number(id_sucursal)];
+    let queryStr = "UPDATE usuarios SET nombre_completo = ?, email = ?, rol = ?, id_sucursal = ?";
+
+    // Actualizar contraseña si se provee una nueva
+    if (password && password.trim() !== "") {
+      const passwordTrim = password.trim();
+      if (passwordTrim.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: "La contraseña debe tener al menos 6 caracteres.",
+        });
+      }
+      const passwordHash = await bcrypt.hash(passwordTrim, 10);
+      queryStr += ", password = ?";
+      queryParams.push(passwordHash);
+    }
+
+    queryStr += " WHERE id_usuario = ?";
+    queryParams.push(id);
+
+    const [result] = await pool.query(queryStr, queryParams);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado.",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Usuario actualizado exitosamente.",
+      usuario: {
+        id_usuario: Number(id),
+        nombre_completo: nameTrim,
+        email: emailTrim,
+        rol,
+        id_sucursal: Number(id_sucursal),
+      }
+    });
+
+  } catch (error) {
+    console.error("Error al actualizar usuario:", error);
+    res.status(500).json({
+      success: false,
+      message: "No se pudo actualizar el usuario.",
+      error: error.message,
     });
   }
 };
