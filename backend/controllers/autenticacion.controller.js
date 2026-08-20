@@ -185,6 +185,11 @@ export const login = async (req, res) => {
     if (!match) {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
+    if (usuario.estado !== "Activo") {
+      return res
+        .status(403)
+        .json({ message: "El usuario no se encuentra activo" });
+    }
 
     // 1 hora de expiración (3600 segundos)
     const token = jwt.sign(
