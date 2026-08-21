@@ -15,6 +15,22 @@ const isLocalOrder = (order) => {
   return false;
 };
 
+// Función para verificar si dos pedidos tienen los mismos nombre y categoría.
+const areOrdersCompatible = (order1, order2) => {
+  if (!order1 || !order2) return false;
+  if (!order1.items || !order2.items) return false;
+  if (order1.items.length !== order2.items.length) return false;
+
+  const getItemsString = (order) => {
+    return [...order.items]
+      .map((item) => `${item.category}-${item.name}-${item.size || ""}`)
+      .sort()
+      .join("|");
+  };
+
+  return getItemsString(order1) === getItemsString(order2);
+};
+
 /**
  * Column — columna genérica del board de despacho.
  */
@@ -107,28 +123,41 @@ export default function DespachoBoard() {
   return (
     <div className="flex flex-col lg:flex-row h-full lg:divide-x divide-pizza-gray-3 overflow-y-auto lg:overflow-hidden bg-pizza-gray-2 lg:bg-transparent">
       {/* ── Columna A: Horno (amarillo) — isFirst lógica ── */}
+      {/* ── Columna A: Horno (amarillo) — isFirst lógica ── */}
       <Column
         title="Horno"
         icon="🟡"
         countClass="bg-amber-100 text-amber-700"
         orders={hornoOrders}
-        renderCard={(order, idx) => (
-          <OrderCard
-            key={order.id}
-            order={order}
-            isFirst={isSwapping ? true : idx === 0}
-            variant={isSwapping ? "orange" : "yellow"}
-            compactText={true}
-            primaryBtnLabel={isSwapping ? "Seleccionar para Cambio" : "Listo"}
-            onPrimary={() => {
-              if (isSwapping) {
-                handleSwap(order);
-              } else {
-                updateOrderStatus(order.id, "delivered");
+        renderCard={(order, idx) => {
+          const isCompatible = isSwapping
+            ? areOrdersCompatible(orderToSwap, order)
+            : true;
+
+          return (
+            <OrderCard
+              key={order.id}
+              order={order}
+              isFirst={isSwapping ? isCompatible : idx === 0}
+              variant={isSwapping ? "orange" : "yellow"}
+              compactText={true}
+              primaryBtnLabel={
+                isSwapping
+                  ? isCompatible
+                    ? "Seleccionar para Cambio"
+                    : "No coincide"
+                  : "Listo"
               }
-            }}
-          />
-        )}
+              onPrimary={() => {
+                if (isSwapping) {
+                  if (isCompatible) handleSwap(order);
+                } else {
+                  updateOrderStatus(order.id, "delivered");
+                }
+              }}
+            />
+          );
+        }}
       />
 
       {/* ── Columna B: Pendiente (naranja) — todos activos ── */}
