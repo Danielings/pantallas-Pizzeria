@@ -1,6 +1,5 @@
 import pool from "../config/bd.js";
 import axios from "axios";
-import { emitirCambioNotificaciones } from "./notificaciones.controller.js";
 
 const TASA_API_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
 
@@ -226,8 +225,6 @@ export const registrarPedidoPendiente = async (req, res) => {
 
     await connection.commit();
 
-    await emitirCambioNotificaciones();
-
     return res.status(201).json({
       success: true,
       message: "Pedido pendiente registrado exitosamente",
@@ -346,9 +343,6 @@ export const completarVentaPendiente = async (req, res) => {
     );
 
     await connection.commit();
-
-    // EMITIR EVENTO SSE AL COMPLETAR EL PEDIDO
-    await emitirCambioNotificaciones();
 
     return res.json({ success: true, message: "Venta pendiente completada." });
   } catch (error) {
@@ -489,9 +483,6 @@ export const editarVenta = async (req, res) => {
     }
 
     await connection.commit();
-
-    // EMITIR EVENTO SSE AL EDITAR EL PEDIDO
-    await emitirCambioNotificaciones();
 
     res.status(200).json({
       success: true,
