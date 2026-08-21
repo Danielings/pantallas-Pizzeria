@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, ChevronRight, Loader2, X } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = "http://localhost:3001/api"; // Recuerda usar variables de entorno para Vercel
 
 const CATEGORY_TO_SIZE = {
   1: "Normal",
@@ -22,48 +22,17 @@ export default function PendingNotifications() {
   const [loadingId, setLoadingId] = useState(null);
   const [error, setError] = useState("");
 
-  // Carga inicial respaldada por la memoria caché. Sin polling (refetchInterval).
+  // Configuración optimizada de TanStack Query
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notificaciones-pendientes"],
     queryFn: async () => {
       const { data } = await axios.get(`${API_URL}/notificaciones-pendientes`);
       return data.success ? data.data || [] : [];
     },
-    staleTime: Infinity, // Los datos se mantienen frescos; el evento SSE gestiona las actualizaciones
-    refetchOnWindowFocus: false,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+    staleTime: 5000,
   });
-
-  useEffect(() => {
-    const eventSource = new EventSource(`${API_URL}/notificaciones-sse`);
-
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        console.log(
-          "Evento SSE recibido:",
-          payload.action,
-          payload.data.length,
-        );
-        if (payload.action === "SET_NOTIFICATIONS") {
-          Data(["notificaciones-pendientes"], payload.data);
-        } else if (payload.action === "REFETCH") {
-          queryClient.invalidateQueries({
-            queryKey: ["notificaciones-pendientes"],
-          });
-        }
-      } catch (err) {
-        console.error("Error al procesar el evento SSE:", err);
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      console.error("Conexión SSE interrumpida. Reintentando...", err);
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [queryClient]);
 
   const loadNotification = async (notification) => {
     if (currentOrder.items.length > 0) {
@@ -93,6 +62,7 @@ export default function PendingNotifications() {
         0,
         Number(venta.monto_restante || originalTotal - paidTotal),
       );
+
       const items = detalles.map((detail) => ({
         id: `pending-${detail.id_detalle}`,
         id_detalle: detail.id_detalle,
@@ -114,6 +84,7 @@ export default function PendingNotifications() {
         emoji: detail.tipo_producto === "Pizza" ? "🍕" : "",
         isPendingExisting: true,
       }));
+
       const internalPayments = pagos.map((payment, index) => ({
         method:
           payment.metodo === "Pago_Movil"
@@ -155,7 +126,7 @@ export default function PendingNotifications() {
         pendingRemaining: pendingRemaining,
       });
 
-      // Actualización optimista de la caché local
+      // Actualización optimista de la caché local para que la notificación desaparezca al instante
       queryClient.setQueryData(
         ["notificaciones-pendientes"],
         (oldNotifications = []) =>
@@ -178,7 +149,6 @@ export default function PendingNotifications() {
 
   return (
     <div className="relative">
-      {/* Clic puramente local sin ejecuciones de refetch() */}
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -211,7 +181,7 @@ export default function PendingNotifications() {
             </button>
           </div>
 
-          {isLoading ? (
+          {isLoading && notifications.length === 0 ? (
             <div className="flex items-center justify-center gap-2 p-6 text-sm text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
             </div>

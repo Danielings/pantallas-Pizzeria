@@ -1,7 +1,4 @@
 import pool from "../config/bd.js";
-import axios from "axios";
-
-let sseClients = [];
 
 const consultarNotificacionesPendientesBD = async () => {
   const [rows] = await pool.query(
@@ -32,50 +29,6 @@ const consultarNotificacionesPendientesBD = async () => {
   return rows;
 };
 
-export const conectarNotificacionesSSE = async (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
-
-  if (res.flushHeaders) res.flushHeaders();
-
-  const clientId = Date.now();
-  const newClient = { id: clientId, res };
-  sseClients.push(newClient);
-
-  try {
-    const data = await consultarNotificacionesPendientesBD();
-    res.write(
-      `data: ${JSON.stringify({ action: "SET_NOTIFICATIONS", data })}\n\n`,
-    );
-
-    if (res.flush) res.flush();
-  } catch (err) {
-    console.error("Error enviando estado inicial SSE:", err);
-  }
-
-  req.on("close", () => {
-    sseClients = sseClients.filter((client) => client.id !== clientId);
-  });
-};
-
-export const emitirCambioNotificaciones = async () => {
-  if (sseClients.length === 0) return;
-
-  try {
-    const data = await consultarNotificacionesPendientesBD();
-    const payload = `data: ${JSON.stringify({ action: "SET_NOTIFICATIONS", data })}\n\n`;
-
-    sseClients.forEach((client) => {
-      client.res.write(payload);
-      if (client.res.flush) client.res.flush();
-    });
-  } catch (error) {
-    console.error("Error al emitir actualización SSE:", error);
-  }
-};
-
-// ---- Endpoint HTTP Tradicional (Usa el helper del SSE ahora)
 export const obtenerNotificacionesPendientes = async (_req, res) => {
   try {
     const data = await consultarNotificacionesPendientesBD();
@@ -97,7 +50,7 @@ export const obtenerNotificacionPendiente = async (req, res) => {
        FROM notificaciones n
        INNER JOIN ventas v ON v.id_venta = n.id_venta AND v.estado = 'Pendiente'
        LEFT JOIN clientes c ON c.id_cliente = n.id_cliente
-       WHERE n.id_venta = ? AND n.estado = 'Pendiente AND DATE(n.fecha_hora) = CURDATE()'`,
+       WHERE n.id_venta = ? AND n.estado = 'Pendiente' AND DATE(n.fecha_hora) = CURDATE()`,
       [req.params.id_venta],
     );
 
