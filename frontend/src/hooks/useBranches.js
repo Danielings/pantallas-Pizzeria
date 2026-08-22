@@ -20,6 +20,7 @@ export function useBranches() {
         id: branch.id_sucursal ?? branch.id,
         name: branch.sucursal ?? branch.name,
         address: branch.direccion ?? branch.address,
+        userCount: Number(branch.userCount ?? 0),
       }));
     },
   });

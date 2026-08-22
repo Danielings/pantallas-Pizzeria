@@ -57,11 +57,14 @@ export const obtenerSucursal = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
-        id_sucursal AS id, 
-        sucursal AS name, 
-        direccion AS address 
-      FROM sucursal
-      WHERE estado = 'Activo'
+        s.id_sucursal AS id, 
+        s.sucursal AS name, 
+        s.direccion AS address,
+        COUNT(u.id_usuario) AS userCount
+      FROM sucursal s
+      LEFT JOIN usuarios u ON u.id_sucursal = s.id_sucursal AND u.estado = 'Activo'
+      WHERE s.estado = 'Activo'
+      GROUP BY s.id_sucursal
     `);
 
     res.json({ success: true, data: rows });
@@ -124,6 +127,49 @@ export const actualizarSucursal = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "No se pudo actualizar la sucursal.",
+      error: error.message,
+    });
+  }
+};
+
+export const eliminarSucursal = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar si hay usuarios registrados en esta sucursal
+    const [usuarios] = await pool.query(
+      "SELECT COUNT(*) AS total FROM usuarios WHERE id_sucursal = ? AND estado = 'Activo'",
+      [id]
+    );
+
+    if (usuarios[0].total > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `No se puede eliminar esta sucursal porque tiene ${usuarios[0].total} usuario(s) activo(s) asignado(s).`,
+      });
+    }
+
+    const [result] = await pool.query(
+      "DELETE FROM sucursal WHERE id_sucursal = ?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Sucursal no encontrada.",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Sucursal eliminada exitosamente.",
+    });
+  } catch (error) {
+    console.error("Error al eliminar la sucursal", error);
+    res.status(500).json({
+      success: false,
+      message: "No se pudo eliminar la sucursal.",
       error: error.message,
     });
   }
