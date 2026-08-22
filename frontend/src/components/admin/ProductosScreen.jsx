@@ -67,6 +67,7 @@ const getHeaderDate = () => {
 // ─── Componente Principal ────────────────────────────────────────────────
 export default function ProductosScreen() {
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [products, setProducts] = useState([]); // Iniciamos vacío, se llenará con la DB
   const [isLoading, setIsLoading] = useState(true);
 
@@ -135,12 +136,23 @@ export default function ProductosScreen() {
     fetchProducts();
   }, []);
 
-  const filtered = products.filter(
-    (p) =>
+  const filtered = products.filter((p) => {
+    const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.description &&
-        p.description.toLowerCase().includes(search.toLowerCase())),
-  );
+        p.description.toLowerCase().includes(search.toLowerCase()));
+    const matchesCategory =
+      categoryFilter === "all" || p.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const FILTER_TABS = [
+    { id: "all", label: "Todos", count: products.length },
+    { id: "pizzas", label: "Pizza", count: products.filter(p => p.category === "pizzas").length },
+    { id: "drinks", label: "Bebida", count: products.filter(p => p.category === "drinks").length },
+    { id: "icecream", label: "Helado", count: products.filter(p => p.category === "icecream").length },
+    { id: "extras", label: "Extras", count: products.filter(p => p.category === "extras").length },
+  ];
 
   // Funciones de apertura
   const handleNewClick = () => {
@@ -404,18 +416,19 @@ export default function ProductosScreen() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col">
-        <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
-          <div>
-            <h2 className="font-bold text-slate-800 text-base">
-              Directorio de Productos
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {isLoading
-                ? "Cargando..."
-                : `${products.length} productos registrados (${filtered.length} filtrados)`}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-col gap-3 shrink-0">
+          {/* Fila superior: título + buscador */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h2 className="font-bold text-slate-800 text-base">
+                Directorio de Productos
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isLoading
+                  ? "Cargando..."
+                  : `${filtered.length} de ${products.length} productos`}
+              </p>
+            </div>
             <div className="relative w-full sm:w-72">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -427,11 +440,37 @@ export default function ProductosScreen() {
               />
             </div>
           </div>
+          {/* Fila inferior: filtros por tipo */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setCategoryFilter(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${categoryFilter === tab.id
+                  ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                  : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700"
+                  }`}
+              >
+                {tab.label}
+                <span
+                  className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-extrabold ${categoryFilter === tab.id
+                    ? "bg-white/20 text-white"
+                    : "bg-slate-100 text-slate-500"
+                    }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="text-center px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider w-12">
+                  N°
+                </th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Producto
                 </th>
@@ -447,23 +486,28 @@ export default function ProductosScreen() {
             <tbody className="divide-y divide-slate-50">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-12 text-slate-400">
+                  <td colSpan={5} className="text-center py-12 text-slate-400">
                     <p className="font-medium">Cargando inventario...</p>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-12 text-slate-400">
+                  <td colSpan={5} className="text-center py-12 text-slate-400">
                     <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="font-medium">No se encontraron productos</p>
                   </td>
                 </tr>
               ) : (
-                filtered.map((product) => (
+                filtered.map((product, index) => (
                   <tr
-                    key={product.id}
+                    key={`${product.category}-${product.id}`}
                     className="hover:bg-slate-50/80 transition-colors group"
                   >
+                    <td className="px-4 py-4 text-center">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-bold">
+                        {index + 1}
+                      </span>
+                    </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xl shrink-0 overflow-hidden border border-slate-200">

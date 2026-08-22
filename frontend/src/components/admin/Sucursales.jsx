@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBranches } from "../../hooks/useBranches";
-import { Plus, Building2, MapPin, X, Pencil } from "lucide-react";
+import { Plus, Building2, MapPin, X, Pencil, Trash2 } from "lucide-react";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 export default function Sucursales() {
   const { data: branches, isLoading } = useBranches();
@@ -12,6 +13,7 @@ export default function Sucursales() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const handleSubmit = async () => {
     if (!newBranch.name.trim()) {
@@ -87,6 +89,59 @@ export default function Sucursales() {
     setError("");
   };
 
+  const handleDelete = async (e, branch) => {
+    e.stopPropagation();
+    if (deletingId === branch.id) return;
+
+    const result = await Swal.fire({
+      title: "¿Eliminar sucursal?",
+      text: `¿Estás seguro de que deseas eliminar "${branch.name}"? Esta acción no se puede deshacer.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#EA2A33",
+      cancelButtonColor: "#94A3B8",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      background: "#ffffff",
+      customClass: {
+        popup: "rounded-2xl font-sans shadow-xl border border-slate-100",
+        title: "text-base font-black text-slate-800",
+        confirmButton: "px-5 py-2.5 font-bold rounded-xl text-sm",
+        cancelButton: "px-5 py-2.5 font-bold rounded-xl text-sm",
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    setDeletingId(branch.id);
+    try {
+      const response = await axios.delete(
+        `http://localhost:3001/api/eliminar-sucursal/${branch.id}`,
+        { withCredentials: true }
+      );
+      if (response.data.success) {
+        queryClient.invalidateQueries({ queryKey: ["branches"] });
+        if (window.Toast) {
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Sucursal eliminada exitosamente!",
+          });
+        }
+      }
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        "Ocurrió un error al intentar eliminar la sucursal.";
+      if (window.Toast) {
+        window.Toast.fire({ icon: "error", title: msg });
+      } else {
+        alert(msg);
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 overflow-y-auto h-full bg-slate-50 hide-scrollbar">
       {/* Encabezado */}
@@ -130,11 +185,35 @@ export default function Sucursales() {
             <div
               key={branch.id}
               onClick={() => openEditModal(branch)}
-              className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col items-center text-center justify-center relative overflow-hidden group cursor-pointer border border-slate-100 min-h-[220px]"
+              className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col items-center text-center justify-center relative overflow-visible group cursor-pointer border border-slate-100 min-h-[220px]"
             >
               {/* Fondo decorativo al hacer hover */}
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0 rounded-3xl"></div>
               
+              {/* Botón de eliminar — pequeño y circular, arriba de la tarjeta */}
+              <button
+                onClick={(e) => handleDelete(e, branch)}
+                disabled={deletingId === branch.id || branch.userCount > 0}
+                title={
+                  branch.userCount > 0
+                    ? `No se puede eliminar: tiene ${branch.userCount} usuario(s) asignado(s)`
+                    : "Eliminar sucursal"
+                }
+                className={`absolute -top-3 -right-3 w-7 h-7 rounded-full flex items-center justify-center shadow-md border-2 border-white transition-all duration-200 z-20
+                  ${
+                    branch.userCount > 0
+                      ? "bg-slate-300 text-slate-400 cursor-not-allowed"
+                      : "bg-red-500 hover:bg-red-600 text-white cursor-pointer hover:scale-110"
+                  }
+                `}
+              >
+                {deletingId === branch.id ? (
+                  <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-3 h-3" />
+                )}
+              </button>
+
               {/* Elementos con z-10 para estar por encima del fondo decorativo */}
               <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-5 group-hover:bg-white/10 group-hover:border-white/20 transition-all duration-300 z-10 group-hover:scale-110">
                 <Building2 className="w-8 h-8 text-slate-800 group-hover:text-white transition-colors duration-300" />
@@ -150,6 +229,15 @@ export default function Sucursales() {
                   {branch.address || "Sin dirección"}
                 </span>
               </div>
+
+              {/* Indicador de usuarios */}
+              {branch.userCount > 0 && (
+                <div className="mt-3 z-10 flex items-center gap-1 bg-slate-100 group-hover:bg-white/10 px-2.5 py-1 rounded-full transition-colors duration-300">
+                  <span className="text-xs font-semibold text-slate-500 group-hover:text-white/70 transition-colors duration-300">
+                    {branch.userCount} usuario{branch.userCount !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
               
               {/* Botón flotante decorativo para editar */}
               <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-50 opacity-0 group-hover:opacity-20 flex items-center justify-center transition-all duration-300 z-10 scale-50 group-hover:scale-100">
