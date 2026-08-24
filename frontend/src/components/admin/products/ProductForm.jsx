@@ -47,6 +47,7 @@ export default function ProductForm({
   onSave,
   onCancel,
   isSaving,
+  branches = [],
 }) {
   // Obtenemos la configuración según la categoría actual (con un respaldo por si acaso)
   const currentConfig = CATEGORY_CONFIG[category] || {
@@ -62,9 +63,18 @@ export default function ProductForm({
     emoji: currentConfig.defaultEmoji,
     size: "",
     available: true,
+    id_sucursal: branches.length > 0 ? branches[0].id : "",
   };
 
-  const [form, setForm] = useState(initial || { ...EMPTY_PRODUCT });
+  const [form, setForm] = useState(() => {
+    if (initial) {
+      return {
+        ...initial,
+        id_sucursal: initial.id_sucursal || (branches.length > 0 ? branches[0].id : ""),
+      };
+    }
+    return { ...EMPTY_PRODUCT };
+  });
   const [errors, setErrors] = useState({});
 
   // Nuevos estados para manejar la imagen
@@ -111,6 +121,10 @@ export default function ProductForm({
     if (!form.price || isNaN(form.price) || parseFloat(form.price) <= 0)
       e.price = "Precio inválido";
 
+    if (!form.id_sucursal) {
+      e.id_sucursal = "La sucursal es requerida";
+    }
+
     // El tamaño es obligatorio tanto para pizzas como para extras (para determinar id_categoria_pizza)
     if ((category === "pizzas" || category === "extras") && !form.size) {
       e.size = "Debe seleccionar un tamaño";
@@ -144,6 +158,28 @@ export default function ProductForm({
           </span>
         </div>
       )}
+
+      {/* Sucursal */}
+      <div>
+        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
+          Sucursal
+        </label>
+        <select
+          value={form.id_sucursal}
+          onChange={(e) => handleChange("id_sucursal", e.target.value)}
+          className={`w-full bg-slate-50 border ${errors.id_sucursal ? "border-red-500" : "border-slate-200"} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-slate-400`}
+        >
+          <option value="">Selecciona una sucursal</option>
+          {branches.map((branch) => (
+            <option key={branch.id} value={branch.id}>
+              {branch.name}
+            </option>
+          ))}
+        </select>
+        {errors.id_sucursal && (
+          <p className="text-red-500 text-xs mt-1 font-medium">{errors.id_sucursal}</p>
+        )}
+      </div>
 
       {/* Nombre */}
       <div>
