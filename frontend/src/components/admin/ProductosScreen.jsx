@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import ProductForm from "./products/ProductForm";
+import { useBranches } from "../../hooks/useBranches";
 
 // ─── Configuración ────────────────────────────────────────────────
 const CATEGORY_TYPES = [
@@ -71,6 +72,8 @@ const getHeaderDate = () => {
 
 // ─── Componente Principal ────────────────────────────────────────────────
 export default function ProductosScreen() {
+  const { data: branches } = useBranches();
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [products, setProducts] = useState([]); // Iniciamos vacío, se llenará con la DB
@@ -148,30 +151,36 @@ export default function ProductosScreen() {
         p.description.toLowerCase().includes(search.toLowerCase()));
     const matchesCategory =
       categoryFilter === "all" || p.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesBranch =
+      selectedBranchFilter === "all" || String(p.id_sucursal) === String(selectedBranchFilter);
+    return matchesSearch && matchesCategory && matchesBranch;
   });
 
+  const branchFilteredProducts = products.filter((p) =>
+    selectedBranchFilter === "all" || String(p.id_sucursal) === String(selectedBranchFilter)
+  );
+
   const FILTER_TABS = [
-    { id: "all", label: "Todos", count: products.length },
+    { id: "all", label: "Todos", count: branchFilteredProducts.length },
     {
       id: "pizzas",
       label: "Pizza",
-      count: products.filter((p) => p.category === "pizzas").length,
+      count: branchFilteredProducts.filter((p) => p.category === "pizzas").length,
     },
     {
       id: "drinks",
       label: "Bebida",
-      count: products.filter((p) => p.category === "drinks").length,
+      count: branchFilteredProducts.filter((p) => p.category === "drinks").length,
     },
     {
       id: "icecream",
       label: "Helado",
-      count: products.filter((p) => p.category === "icecream").length,
+      count: branchFilteredProducts.filter((p) => p.category === "icecream").length,
     },
     {
       id: "extras",
       label: "Extras",
-      count: products.filter((p) => p.category === "extras").length,
+      count: branchFilteredProducts.filter((p) => p.category === "extras").length,
     },
   ];
 
@@ -217,6 +226,7 @@ export default function ProductosScreen() {
       formData.append("name", productData.name);
       formData.append("price", productData.price);
       formData.append("description", productData.description || "");
+      formData.append("id_sucursal", productData.id_sucursal || "");
 
       if (
         (selectedCategory === "pizzas" || selectedCategory === "extras") &&
@@ -459,15 +469,30 @@ export default function ProductosScreen() {
                   : `${filtered.length} de ${products.length} productos`}
               </p>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar producto..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
-              />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+              <select
+                value={selectedBranchFilter}
+                onChange={(e) => setSelectedBranchFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm font-semibold text-slate-700 cursor-pointer h-[38px]"
+              >
+                <option value="all">Todas las Sucursales</option>
+                {branches &&
+                  branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+              </select>
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar producto..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
+                />
+              </div>
             </div>
           </div>
           {/* Fila inferior: filtros por tipo */}
@@ -507,6 +532,9 @@ export default function ProductosScreen() {
                   Producto
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Sucursal
+                </th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Descripción
                 </th>
                 <th className="text-right px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -518,13 +546,13 @@ export default function ProductosScreen() {
             <tbody className="divide-y divide-slate-50">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-slate-400">
+                  <td colSpan={6} className="text-center py-12 text-slate-400">
                     <p className="font-medium">Cargando inventario...</p>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-slate-400">
+                  <td colSpan={6} className="text-center py-12 text-slate-400">
                     <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="font-medium">No se encontraron productos</p>
                   </td>
@@ -579,6 +607,13 @@ export default function ProductosScreen() {
                           </span>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-5 py-4 font-semibold text-slate-700 text-xs">
+                      {branches &&
+                        (branches.find(
+                          (b) => String(b.id) === String(product.id_sucursal),
+                        )?.name ||
+                          "Sin Sucursal")}
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {product.description}
@@ -741,6 +776,7 @@ export default function ProductosScreen() {
                     onCancel={() =>
                       editingProduct ? closeModal() : setModalStep(1)
                     }
+                    branches={branches || []}
                   />
                 </div>
               )}
