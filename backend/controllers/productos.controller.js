@@ -3,12 +3,23 @@ import { uploadImageToCloudinary } from "../utils/cloudinary.js";
 
 // ----pizzas
 export const obtenerPizzas = async (req, res) => {
+  const { id_sucursal, rol } = req.user;
   try {
-    const [rows] = await pool.execute(`
-      SELECT p.*, c.categoria AS categoria_nombre 
-      FROM pizza p 
+    let query = `
+      SELECT p.*, c.categoria AS categoria_nombre
+      FROM pizza p
       LEFT JOIN categoria_pizza c ON p.id_categoria_pizza = c.id_categoria_pizza
-    `);
+    `;
+    let params = [];
+
+    const esAdmin = rol?.toLowerCase() === "admin";
+
+    if (!esAdmin) {
+      query += ` WHERE p.id_sucursal = ?`;
+      params.push(id_sucursal);
+    }
+
+    const [rows] = await pool.execute(query, params);
 
     const pizzas = rows.map((pizza) => ({
       id: pizza.id_pizza,

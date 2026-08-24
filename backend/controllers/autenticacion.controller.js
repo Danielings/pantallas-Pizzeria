@@ -168,7 +168,7 @@ export const login = async (req, res) => {
 
   try {
     const query = `
-      SELECT u.*, s.sucursal
+      SELECT u.*, s.sucursal, s.id_sucursal
       FROM usuarios u
       LEFT JOIN sucursal s ON u.id_sucursal = s.id_sucursal
       WHERE u.email = ?`;
@@ -198,6 +198,7 @@ export const login = async (req, res) => {
         rol: usuario.rol,
         sucursal: usuario.sucursal,
         email: usuario.email,
+        id_sucursal: usuario.id_sucursal,
       },
       process.env.JWT_SECRET,
       { expiresIn: "1h" },
@@ -219,6 +220,7 @@ export const login = async (req, res) => {
       nombre: usuario.nombre_completo || usuario.email,
       sucursal: usuario.sucursal,
       estado: usuario.estado,
+      id_sucursal: usuario.id_sucursal,
     };
 
     console.log(`Sesión iniciada para: ${usuario.email}`);

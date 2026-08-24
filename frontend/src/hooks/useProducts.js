@@ -4,6 +4,11 @@ import { useApp } from "../context/AppContext";
 
 const API_BASE = "http://localhost:3001/api";
 
+const api = axios.create({
+  baseURL: "http://localhost:3001/api",
+  withCredentials: true,
+});
+
 const normalizePizza = (p) => ({
   id: p.id || p.id_pizza,
   name: p.name || p.nombre,
@@ -41,7 +46,7 @@ const normalizeHelado = (h) => ({
 
 const fetchCategory = async (endpoint) => {
   try {
-    const { data } = await axios.get(`${API_BASE}${endpoint}`);
+    const { data } = await api.get(endpoint);
     return data?.data || [];
   } catch (error) {
     console.error(`Error cargando ${endpoint}:`, error);

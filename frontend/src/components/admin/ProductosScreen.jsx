@@ -56,7 +56,12 @@ const CATEGORY_TYPES = [
 
 const getHeaderDate = () => {
   const date = new Date();
-  const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const options = {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  };
   const dateString = date.toLocaleDateString("es-ES", options);
   return dateString
     .split(" ")
@@ -85,20 +90,20 @@ export default function ProductosScreen() {
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        // Consultamos las 4 APIs de manera simultánea
+        const axiosConfig = { withCredentials: true };
         const [pizzasRes, bebidasRes, heladosRes, extrasRes] =
           await Promise.all([
             axios
-              .get("http://localhost:3001/api/pizzas")
+              .get("http://localhost:3001/api/pizzas", axiosConfig)
               .catch(() => ({ data: { data: [] } })),
             axios
-              .get("http://localhost:3001/api/bebidas")
+              .get("http://localhost:3001/api/bebidas", axiosConfig)
               .catch(() => ({ data: { data: [] } })),
             axios
-              .get("http://localhost:3001/api/heladeria")
+              .get("http://localhost:3001/api/heladeria", axiosConfig)
               .catch(() => ({ data: { data: [] } })),
             axios
-              .get("http://localhost:3001/api/extras")
+              .get("http://localhost:3001/api/extras", axiosConfig)
               .catch(() => ({ data: { data: [] } })),
           ]);
 
@@ -148,10 +153,26 @@ export default function ProductosScreen() {
 
   const FILTER_TABS = [
     { id: "all", label: "Todos", count: products.length },
-    { id: "pizzas", label: "Pizza", count: products.filter(p => p.category === "pizzas").length },
-    { id: "drinks", label: "Bebida", count: products.filter(p => p.category === "drinks").length },
-    { id: "icecream", label: "Helado", count: products.filter(p => p.category === "icecream").length },
-    { id: "extras", label: "Extras", count: products.filter(p => p.category === "extras").length },
+    {
+      id: "pizzas",
+      label: "Pizza",
+      count: products.filter((p) => p.category === "pizzas").length,
+    },
+    {
+      id: "drinks",
+      label: "Bebida",
+      count: products.filter((p) => p.category === "drinks").length,
+    },
+    {
+      id: "icecream",
+      label: "Helado",
+      count: products.filter((p) => p.category === "icecream").length,
+    },
+    {
+      id: "extras",
+      label: "Extras",
+      count: products.filter((p) => p.category === "extras").length,
+    },
   ];
 
   // Funciones de apertura
@@ -365,7 +386,9 @@ export default function ProductosScreen() {
                 Pizzas
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
-                {isLoading ? "—" : products.filter(p => p.category === "pizzas").length}
+                {isLoading
+                  ? "—"
+                  : products.filter((p) => p.category === "pizzas").length}
               </p>
             </div>
           </div>
@@ -385,7 +408,9 @@ export default function ProductosScreen() {
                 Bebidas
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
-                {isLoading ? "—" : products.filter(p => p.category === "drinks").length}
+                {isLoading
+                  ? "—"
+                  : products.filter((p) => p.category === "drinks").length}
               </p>
             </div>
           </div>
@@ -405,7 +430,12 @@ export default function ProductosScreen() {
                 Helados y Extras
               </p>
               <p className="text-slate-800 text-2xl font-black leading-none mt-1">
-                {isLoading ? "—" : products.filter(p => p.category === "icecream" || p.category === "extras").length}
+                {isLoading
+                  ? "—"
+                  : products.filter(
+                      (p) =>
+                        p.category === "icecream" || p.category === "extras",
+                    ).length}
               </p>
             </div>
           </div>
@@ -446,17 +476,19 @@ export default function ProductosScreen() {
               <button
                 key={tab.id}
                 onClick={() => setCategoryFilter(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${categoryFilter === tab.id
-                  ? "bg-slate-800 text-white border-slate-800 shadow-sm"
-                  : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700"
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                  categoryFilter === tab.id
+                    ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700"
+                }`}
               >
                 {tab.label}
                 <span
-                  className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-extrabold ${categoryFilter === tab.id
-                    ? "bg-white/20 text-white"
-                    : "bg-slate-100 text-slate-500"
-                    }`}
+                  className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-extrabold ${
+                    categoryFilter === tab.id
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
                 >
                   {tab.count}
                 </span>
