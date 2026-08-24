@@ -432,6 +432,7 @@ export function AppProvider({ children }) {
         role: normalizeRole(data.user.role ?? data.user.rol),
         name: data.user.nombre || data.user.name || data.user.email,
         sucursal: data.user.sucursal ?? data.user.id_sucursal ?? null,
+        id_sucursal: data.user.id_sucursal ?? null,
         estado: data.user.estado,
       };
 

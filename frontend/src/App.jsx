@@ -112,10 +112,6 @@ export default function App() {
                 path="/personal"
                 element={<AdminScreen activeView="personal" />}
               />
-              <Route
-                path="/bitacora"
-                element={<AdminScreen activeView="bitacora" />}
-              />
               <Route path="/clientes" element={<ClientesScreen />} />
               <Route
                 path="/clientes-top"

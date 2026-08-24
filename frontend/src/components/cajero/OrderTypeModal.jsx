@@ -133,11 +133,9 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
   const [showAdvancePaymentEntry, setShowAdvancePaymentEntry] = useState(false);
   const [isRegisteringPending, setIsRegisteringPending] = useState(false);
 
-  // Estados para el flujo de búsqueda de Delivery
-  const [foundDelivery, setFoundDelivery] = useState(null);
-  const [deliveryNotFound, setDeliveryNotFound] = useState(false);
-  const [newDeliveryName, setNewDeliveryName] = useState("");
-  const [deliveryPhone, setDeliveryPhone] = useState("");
+  // Estados para el flujo de Delivery y Pickup (solo registro directo)
+  const [deliveryName, setDeliveryName] = useState("");
+  const [deliveryDigits, setDeliveryDigits] = useState("");
 
   const needsPaymentInfo =
     selectedType === "delivery" || selectedType === "pickup";
@@ -169,32 +167,8 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
     setAdvanceAmount("");
     setAdvancePaymentMethod(null);
     setShowAdvancePaymentEntry(false);
-    setFoundDelivery(null);
-    setDeliveryNotFound(false);
-    setNewDeliveryName("");
-    setDeliveryPhone("");
-  };
-
-  // ── Buscar Delivery (Refactorizado a Axios) ──
-  const handleDeliverySearch = async () => {
-    const q = deliveryPhone.trim();
-    if (!q) return;
-
-    try {
-      const { data } = await axios.get(
-        `http://localhost:3001/api/buscar-delivery?q=${q}`,
-      );
-
-      if (data.success && data.delivery) {
-        setFoundDelivery(data.delivery);
-        setDeliveryNotFound(false);
-      } else {
-        setFoundDelivery(null);
-        setDeliveryNotFound(true);
-      }
-    } catch (error) {
-      console.error("Error buscando delivery:", error);
-    }
+    setDeliveryName("");
+    setDeliveryDigits("");
   };
 
   // ── Buscar Cliente (Refactorizado a Axios) ──
@@ -345,20 +319,16 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
 
     if (shouldRegisterPending) setIsRegisteringPending(true);
 
-    // 1. Determinar y registrar el Delivery si es nuevo
-    let finalDelivery = foundDelivery
-      ? foundDelivery
-      : deliveryNotFound && newDeliveryName
-        ? { name: newDeliveryName.trim(), phone: deliveryPhone.trim() }
-        : null;
+    // 1. Determinar y registrar el Delivery (siempre se registra para delivery o pickup)
+    let finalDelivery = null;
 
-    if (!foundDelivery && deliveryNotFound && finalDelivery?.name) {
+    if (needsPaymentInfo && deliveryDigits.trim()) {
       try {
         const { data: dataDelivery } = await axios.post(
           "http://localhost:3001/api/registrar-delivery",
           {
-            name: finalDelivery.name,
-            phone: finalDelivery.phone,
+            name: selectedType === "delivery" ? "Repartidor" : "Pickup",
+            phone: deliveryDigits.trim(),
           },
         );
 
@@ -427,7 +397,7 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
             phone: finalCustomer.phone,
           }
         : null,
-      "",
+      needsPaymentInfo ? deliveryDigits : "",
       finalDelivery
         ? {
             id: finalDelivery.id ?? finalDelivery.id_delivery,
@@ -467,10 +437,7 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
         paymentStatus !== "partial" ||
         (advancePaymentMethod !== null && parseFloat(advanceAmount) > 0);
 
-      const isDeliveryValid =
-        selectedType !== "delivery" ||
-        Boolean(foundDelivery) ||
-        (deliveryNotFound && String(newDeliveryName || "").trim() !== "");
+      const isDeliveryValid = deliveryDigits.trim().length === 4;
 
       step1Valid = isPaymentStatusSelected && isAbonoValid && isDeliveryValid;
     } else {
@@ -604,82 +571,26 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
                   })}
                 </div>
 
-                {/* Datos del Delivery (Buscador y Nombre) */}
-                {selectedType === "delivery" && (
-                  <div className="flex flex-col gap-4 animate-fade-in">
-                    {/* Buscador */}
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          placeholder="Teléfono del delivery..."
-                          value={deliveryPhone}
-                          onChange={(e) => {
-                            setDeliveryPhone(e.target.value);
-                            setFoundDelivery(null);
-                            setDeliveryNotFound(false);
-                          }}
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && handleDeliverySearch()
-                          }
-                          className="w-full pl-9 pr-3 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-pizza-red focus:ring-2 focus:ring-pizza-red/20 transition-all"
-                        />
-                      </div>
-                      <button
-                        onClick={handleDeliverySearch}
-                        className="px-4 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-sm flex items-center gap-1.5 transition-colors"
-                      >
-                        <Search className="w-4 h-4" />
-                        Buscar
-                      </button>
+                {/* Datos del Delivery o Pickup (Últimos 4 dígitos) */}
+                {needsPaymentInfo && (
+                  <div className="flex flex-col gap-3 p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl animate-fade-in">
+                    <div className="flex items-center gap-2 text-slate-700 pb-1 border-b border-slate-200 mb-1">
+                      <Phone className="w-4 h-4 text-pizza-red" />
+                      <span className="text-sm font-bold">
+                        Teléfono ({selectedType === "delivery" ? "Delivery" : "Pickup"}) *
+                      </span>
                     </div>
-
-                    {/* Tarjeta Verde: Delivery Encontrado */}
-                    {foundDelivery && (
-                      <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 flex items-center gap-3 animate-fade-in">
-                        <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
-                          <Bike className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-slate-800 truncate">
-                            {foundDelivery.name}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {foundDelivery.phone}
-                          </p>
-                        </div>
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                        <button
-                          onClick={() => {
-                            setFoundDelivery(null);
-                            setDeliveryPhone("");
-                          }}
-                          className="text-slate-400 hover:text-slate-600 ml-1"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Formulario: Delivery No Encontrado */}
-                    {deliveryNotFound && !foundDelivery && (
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 flex flex-col gap-3 animate-fade-in">
-                        <div className="flex items-center gap-2 text-blue-700">
-                          <UserPlus className="w-4 h-4" />
-                          <span className="text-sm font-bold">
-                            Delivery no registrado — completa los datos
-                          </span>
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Nombre del delivery *"
-                          value={newDeliveryName}
-                          onChange={(e) => setNewDeliveryName(e.target.value)}
-                          className="w-full px-3 py-2.5 bg-white border border-blue-300 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                        />
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        pattern="[0-9]*"
+                        maxLength={4}
+                        placeholder="Últimos 4 dígitos del teléfono *"
+                        value={deliveryDigits}
+                        onChange={(e) => setDeliveryDigits(e.target.value.replace(/\D/g, ""))}
+                        className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-pizza-red focus:ring-2 focus:ring-pizza-red/20 transition-all"
+                      />
+                    </div>
                   </div>
                 )}
 

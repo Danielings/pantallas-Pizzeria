@@ -635,9 +635,11 @@ export default function CierreScreen() {
                 </label>
                 <input
                   type="password"
-                  placeholder="••••••••"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  placeholder="••••"
                   value={claveCierre}
-                  onChange={(e) => setClaveCierre(e.target.value)}
+                  onChange={(e) => setClaveCierre(e.target.value.replace(/\D/g, ""))}
                   className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-pizza-red/20 focus:border-pizza-red transition-all text-sm font-semibold"
                   autoFocus
                 />

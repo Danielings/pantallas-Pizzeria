@@ -475,17 +475,24 @@ export const obtenerEntregas = async (req, res) => {
           status: det.estado_detalle,
         }));
 
-        const tienePendientes = detalles.some(
-          (det) =>
-            det.estado_detalle !== "Completado" &&
-            det.estado_detalle !== "Cerrado",
-        );
-
         const estaCerrada =
           detalles.length > 0 &&
           detalles.every((det) => det.estado_detalle === "Cerrado");
 
         if (estaCerrada) return null;
+
+        // La orden solo está lista para entregar cuando TODOS los ítems están en estado "Despacho"
+        const todosEnDespacho =
+          detalles.length > 0 &&
+          detalles.every((det) => det.estado_detalle === "Despacho");
+
+        const estaEntregada =
+          detalles.length > 0 &&
+          detalles.every(
+            (det) =>
+              det.estado_detalle === "Completado" ||
+              det.estado_detalle === "Cerrado",
+          );
 
         return {
           id: venta.id_venta,
@@ -503,9 +510,7 @@ export const obtenerEntregas = async (req, res) => {
           items: items,
           total: venta.monto_total_usd,
           orderedAt: venta.fecha_hora,
-
-          status:
-            !tienePendientes && detalles.length > 0 ? "delivered" : "ready",
+          status: estaEntregada ? "delivered" : todosEnDespacho ? "ready" : "preparing",
         };
       }),
     );

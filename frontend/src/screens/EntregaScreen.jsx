@@ -156,10 +156,15 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               Marcar Entregado
             </button>
-          ) : (
+          ) : order.status === "delivered" ? (
             <div className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-extrabold border border-emerald-200/50">
               <CheckCircle2 className="w-5 h-5" />
               Orden Entregada
+            </div>
+          ) : (
+            <div className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-50 text-amber-600 text-sm font-extrabold border border-amber-200 cursor-not-allowed">
+              <Clock className="w-5 h-5 animate-pulse" />
+              En Preparación...
             </div>
           )}
         </div>
@@ -328,7 +333,7 @@ export default function EntregaScreen() {
     }
   };
 
-  // Grouped active orders
+  // Grouped active orders (incluye "preparing" y "ready", excluye "delivered")
   const pendingDelivery = orders.filter(
     (o) => o.type === "delivery" && o.status !== "delivered",
   );
