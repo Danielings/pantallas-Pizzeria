@@ -24,7 +24,9 @@ function ExtrasModal({ item, onClose, onSave }) {
   useEffect(() => {
     const fetchExtras = async () => {
       try {
-        const response = await axios.get("http://localhost:3001/api/extras");
+        const response = await axios.get("http://localhost:3001/api/extras", {
+          withCredentials: true,
+        });
         const data = response.data;
 
         if (data.success) {

@@ -98,8 +98,22 @@ export const actualizarPizza = async (req, res) => {
 // ----bebidasw
 
 export const obtenerBebidas = async (req, res) => {
+  const { id_sucursal, rol } = req.user;
   try {
-    const [rows] = await pool.execute("SELECT * FROM bebidas");
+    let query = `
+      SELECT *
+      FROM bebidas
+    `;
+    let params = [];
+
+    const esAdmin = rol?.toLowerCase() === "admin";
+
+    if (!esAdmin) {
+      query += ` WHERE id_sucursal = ?`;
+      params.push(id_sucursal);
+    }
+
+    const [rows] = await pool.execute(query, params);
 
     const bebidas = rows.map((bebida) => ({
       id: bebida.id_bebida, // <-- Basado en tu imagen, la columna es id_bebida
@@ -168,8 +182,21 @@ export const actualizarBebida = async (req, res) => {
 // -----helados
 
 export const obtenerHelados = async (req, res) => {
+  const { id_sucursal, rol } = req.user;
   try {
-    const [rows] = await pool.execute("SELECT * FROM heladeria");
+    let query = `
+      SELECT * FROM heladeria
+    `;
+    let params = [];
+
+    const esAdmin = rol?.toLowerCase() === "admin";
+
+    if (!esAdmin) {
+      query += ` WHERE id_sucursal = ?`;
+      params.push(id_sucursal);
+    }
+
+    const [rows] = await pool.execute(query, params);
 
     const helados = rows.map((helado) => ({
       id: helado.id_helado, // <-- Asegúrate de que coincida con la columna ID de tu tabla heladeria
@@ -238,12 +265,24 @@ export const actualizarHelado = async (req, res) => {
 // -----extras
 
 export const obtenerExtras = async (req, res) => {
+  const { id_sucursal, rol } = req.user;
   try {
-    const [rows] = await pool.execute(`
+    let query = `
       SELECT e.*, c.categoria AS categoria_nombre 
       FROM extras e
       LEFT JOIN categoria_pizza c ON e.id_categoria_pizza = c.id_categoria_pizza
-    `);
+    `;
+
+    let params = [];
+
+    const esAdmin = rol?.toLowerCase() === "admin";
+
+    if (!esAdmin) {
+      query += ` WHERE e.id_sucursal = ?`;
+      params.push(id_sucursal);
+    }
+
+    const [rows] = await pool.execute(query, params);
 
     const extras = rows.map((extra) => ({
       id: extra.id_extras,
