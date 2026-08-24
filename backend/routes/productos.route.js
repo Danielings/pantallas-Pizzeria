@@ -37,7 +37,7 @@ router.put(
 );
 
 // Rutas de Bebidas
-router.get("/bebidas", obtenerBebidas);
+router.get("/bebidas", verificarToken, obtenerBebidas);
 router.post(
   "/bebidas",
   upload.single("imagen"),
@@ -54,7 +54,7 @@ router.put(
 );
 
 // Rutas de Heladería
-router.get("/heladeria", obtenerHelados);
+router.get("/heladeria", verificarToken, obtenerHelados);
 router.post("/heladeria", upload.single("imagen"), verificarToken, crearHelado);
 router.put(
   "/heladeria/:id",
@@ -65,7 +65,7 @@ router.put(
 );
 
 // Rutas de Extras
-router.get("/extras", obtenerExtras);
+router.get("/extras", verificarToken, obtenerExtras);
 router.post("/extras", upload.none(), verificarToken, esAdmin, crearExtra);
 router.put(
   "/extras/:id",
