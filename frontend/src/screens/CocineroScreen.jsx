@@ -8,7 +8,7 @@ export default function CocineroScreen() {
   const { logout } = useApp();
   const { orders } = useKitchenOrders();
 
-  const pending   = orders.filter((o) => o.status === "pending").length;
+  const pending = orders.filter((o) => o.status === "pending").length;
   const preparing = orders.filter((o) => o.status === "preparing").length;
 
   return (

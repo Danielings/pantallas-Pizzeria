@@ -1,9 +1,9 @@
 import { useApp } from "../../context/AppContext";
+import { useBranches } from "../../hooks/useBranches";
 import {
   LogOut,
   Pizza,
   LayoutDashboard,
-  ListOrdered,
   Users,
   ChefHat,
   FileText,
@@ -15,6 +15,8 @@ import {
   X,
   Archive,
   Building2,
+  Store,
+  MapPin,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -22,9 +24,22 @@ import axios from "axios";
 
 export default function Sidebar({ module, activeView, onNavigate }) {
   const { currentUser, logout } = useApp();
+  const { data: branches = [] } = useBranches();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+
+  const currentBranch = branches.find(
+    (b) =>
+      b.id === currentUser?.id_sucursal ||
+      b.id === currentUser?.sucursal ||
+      Number(b.id) === Number(currentUser?.id_sucursal) ||
+      Number(b.id) === Number(currentUser?.sucursal) ||
+      String(b.name).toLowerCase() === String(currentUser?.sucursal).toLowerCase()
+  ) || {
+    name: currentUser?.sucursal || "Sucursal Desconocida",
+    address: "Dirección no disponible",
+  };
 
   const cashierLinks = [
     {
@@ -62,11 +77,6 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       icon: <Building2 className="w-5 h-5" />,
     },
     { id: "personal", name: "Personal", icon: <Users className="w-5 h-5" /> },
-    {
-      id: "bitacora",
-      name: "Bitácora",
-      icon: <ListOrdered className="w-5 h-5" />,
-    },
     { id: "clientes", name: "Clientes", icon: <Users className="w-5 h-5" /> },
     {
       id: "clientes-top",
@@ -186,16 +196,34 @@ export default function Sidebar({ module, activeView, onNavigate }) {
 
       <div className="p-4 border-t border-slate-100 bg-slate-50">
         <div
-          className={`flex items-center gap-3 mb-4 ${showLabels ? "justify-start" : "justify-center"} mb-4`}
+          className={`flex flex-col gap-3 mb-4 ${showLabels ? "items-start" : "items-center"}`}
         >
           {showLabels && (
-              <div className="flex flex-col overflow-hidden min-w-0">
+              <div className="flex flex-col w-full overflow-hidden min-w-0">
                 <span className="text-sm font-semibold text-slate-800 truncate">
                   {currentUser?.name}
                 </span>
-                <span className="text-xs text-slate-500 truncate">
+                <span className="text-xs text-slate-500 truncate mb-3">
                   {currentUser?.email}
                 </span>
+                
+                {/* Branch Info Box */}
+                {currentUser?.role === "cashier" && (
+                  <div className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm mt-1">
+                    <div className="w-8 h-8 bg-pizza-red/10 rounded-full flex items-center justify-center shrink-0">
+                      <Store className="w-4 h-4 text-pizza-red" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-slate-700 truncate">
+                        {currentBranch.name}
+                      </span>
+                      <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{currentBranch.address}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
           )}
         </div>
