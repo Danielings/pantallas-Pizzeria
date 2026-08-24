@@ -20,7 +20,7 @@ import esAdmin from "../middleware/esAdmin.js";
 const router = Router();
 
 // Rutas de Pizzas
-router.get("/pizzas", obtenerPizzas);
+router.get("/pizzas", verificarToken, obtenerPizzas);
 router.post(
   "/pizzas",
   upload.single("imagen"),
