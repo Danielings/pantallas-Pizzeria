@@ -13,8 +13,12 @@ import esCajero from "../middleware/esCajero.js";
 
 const router = Router();
 
-router.get("/cierre/resumen-dia", obtenerResumenDia);
-router.get("/cierre/pedidos-pendientes", verificarPedidosPendientes);
+router.get("/cierre/resumen-dia", verificarToken, obtenerResumenDia);
+router.get(
+  "/cierre/pedidos-pendientes",
+  verificarToken,
+  verificarPedidosPendientes,
+);
 router.get("/cierre/historial", obtenerHistorialCierres);
 router.get("/cierre/cajeros", obtenerCajeros);
 router.put("/cierre/cajero-pin", verificarToken, esAdmin, actualizarPinCajero);

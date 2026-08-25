@@ -20,9 +20,9 @@ router.get("/obtener-pedidos-horno", obtenerPedidosHorno);
 router.get("/obtener-pedidos-despacho", obtenerPedidosDespacho);
 router.get("/obtener-pedidos-mesero", obtenerPedidosMesero);
 router.get("/obtener-pedidos-pendiente", obtenerPedidosPendiente);
-router.get("/obtener-contador-cajero", obtenerContadorCajero);
+router.get("/obtener-contador-cajero", verificarToken, obtenerContadorCajero);
 router.put("/actualizar-estado-pedido/:id_venta", actualizarEstadoPedido);
-router.get("/entregas", obtenerEntregas);
+router.get("/entregas", verificarToken, obtenerEntregas);
 router.put(
   "/entregas/:id_venta/completar",
   verificarToken,

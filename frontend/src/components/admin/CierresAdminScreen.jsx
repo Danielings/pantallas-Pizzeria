@@ -15,7 +15,7 @@ import {
   Key,
   Lock,
   Unlock,
-  Download
+  Download,
 } from "lucide-react";
 import { exportCierrePDF } from "../../utils/pdfCierre";
 
@@ -41,13 +41,18 @@ const formatTime = (value) => {
   return d.toLocaleTimeString("es-VE", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true
+    hour12: true,
   });
 };
 
 const getHeaderDate = () => {
   const date = new Date();
-  const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const options = {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  };
   const dateString = date.toLocaleDateString("es-ES", options);
   return dateString
     .split(" ")
@@ -62,7 +67,7 @@ export default function CierresAdminScreen() {
     cantidad_cierres: 0,
     total_usd: 0,
     promedio_usd: 0,
-    ultima_hora_ayer: "Ninguno"
+    ultima_hora_ayer: "Ninguno",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [searchDate, setSearchDate] = useState("");
@@ -172,19 +177,23 @@ export default function CierresAdminScreen() {
     try {
       const response = await axios.put(`${API_BASE}/cierre/cajero-pin`, {
         id_usuario,
-        pin: newPin
+        pin: newPin,
       });
       if (response.data.success) {
         setSuccessMsg("PIN actualizado correctamente.");
         setCajeros((prev) =>
-          prev.map((c) => (c.id_usuario === id_usuario ? { ...c, pin: newPin } : c))
+          prev.map((c) =>
+            c.id_usuario === id_usuario ? { ...c, pin: newPin } : c,
+          ),
         );
         setEditingCajero(null);
         setNewPin("");
       }
     } catch (error) {
       console.error("Error al guardar PIN:", error);
-      setErrorMsg(error.response?.data?.mensaje || "Error al actualizar el PIN.");
+      setErrorMsg(
+        error.response?.data?.mensaje || "Error al actualizar el PIN.",
+      );
     }
   };
 
@@ -357,6 +366,7 @@ export default function CierresAdminScreen() {
                 <th className="px-5 py-3.5 text-center">Órdenes</th>
                 <th className="px-5 py-3.5 text-right">Efectivo USD</th>
                 <th className="px-5 py-3.5 text-right">Total Cierre (USD)</th>
+                <th className="px-5 py-3.5 text-right">Sucursal</th>
                 <th className="px-5 py-3.5 text-center">Detalle</th>
               </tr>
             </thead>
@@ -364,19 +374,26 @@ export default function CierresAdminScreen() {
               {isLoading ? (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-slate-400">
-                    <p className="font-medium">Cargando historial de cierres...</p>
+                    <p className="font-medium">
+                      Cargando historial de cierres...
+                    </p>
                   </td>
                 </tr>
               ) : paginatedCierres.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-slate-400">
                     <Calendar className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="font-medium">No se encontraron cierres para el filtro seleccionado</p>
+                    <p className="font-medium">
+                      No se encontraron cierres para el filtro seleccionado
+                    </p>
                   </td>
                 </tr>
               ) : (
                 paginatedCierres.map((cierre, index) => (
-                  <tr key={cierre.id_cierre} className="hover:bg-slate-50/50 transition-colors group">
+                  <tr
+                    key={cierre.id_cierre}
+                    className="hover:bg-slate-50/50 transition-colors group"
+                  >
                     <td className="px-5 py-3.5 text-slate-400 text-xs font-bold">
                       {(currentPage - 1) * 10 + index + 1}
                     </td>
@@ -391,7 +408,9 @@ export default function CierresAdminScreen() {
                         <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 shrink-0">
                           {cierre.usuario_nombre?.charAt(0) || "U"}
                         </div>
-                        <span>{cierre.usuario_nombre || "Cajero Desconocido"}</span>
+                        <span>
+                          {cierre.usuario_nombre || "Cajero Desconocido"}
+                        </span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-center font-bold text-slate-800">
@@ -402,6 +421,9 @@ export default function CierresAdminScreen() {
                     </td>
                     <td className="px-5 py-3.5 text-right font-extrabold text-emerald-600">
                       {formatMoney(cierre.total_usdt)}
+                    </td>
+                    <td className="px-5 py-3.5 text-center font-bold text-slate-800">
+                      {cierre.sucursal}
                     </td>
                     <td className="px-5 py-3.5 text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -442,7 +464,9 @@ export default function CierresAdminScreen() {
               Página {currentPage} de {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
               disabled={currentPage === totalPages}
               className="px-3.5 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1"
             >
@@ -467,9 +491,12 @@ export default function CierresAdminScreen() {
               <div className="w-12 h-12 rounded-2xl bg-pizza-red/20 border border-pizza-red/30 flex items-center justify-center mb-3">
                 <FileText className="w-6 h-6 text-red-300" />
               </div>
-              <h2 className="text-xl font-bold">Detalle del Cierre #{selectedCierre.id_cierre}</h2>
+              <h2 className="text-xl font-bold">
+                Detalle del Cierre #{selectedCierre.id_cierre}
+              </h2>
               <p className="text-slate-400 text-sm mt-1">
-                Realizado el {formatDate(selectedCierre.fecha_hora)} a las {formatTime(selectedCierre.fecha_hora)}
+                Realizado el {formatDate(selectedCierre.fecha_hora)} a las{" "}
+                {formatTime(selectedCierre.fecha_hora)}
               </p>
             </div>
 
@@ -481,8 +508,12 @@ export default function CierresAdminScreen() {
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Cajero Responsable</p>
-                  <p className="text-sm font-bold text-slate-800">{selectedCierre.usuario_nombre}</p>
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                    Cajero Responsable
+                  </p>
+                  <p className="text-sm font-bold text-slate-800">
+                    {selectedCierre.usuario_nombre}
+                  </p>
                 </div>
               </div>
 
@@ -492,36 +523,65 @@ export default function CierresAdminScreen() {
                   <ShoppingBag className="w-4 h-4 text-slate-400" />
                   Órdenes Procesadas
                 </span>
-                <span className="font-extrabold text-slate-800">{selectedCierre.num_ordenes}</span>
+                <span className="font-extrabold text-slate-800">
+                  {selectedCierre.num_ordenes}
+                </span>
               </div>
 
               {/* Desglose de Montos */}
               <div className="flex flex-col gap-2 mt-2">
-                <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-1">Desglose de Caja</h4>
+                <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-1">
+                  Desglose de Caja
+                </h4>
 
                 <div className="flex flex-col gap-1 border border-slate-100 rounded-xl overflow-hidden divide-y divide-slate-100">
                   {/* Efectivo USD */}
                   <div className="flex items-center justify-between p-3 text-sm bg-emerald-50/10">
-                    <span className="text-slate-600 font-medium">Efectivo (USD)</span>
-                    <span className="font-bold text-slate-800">{formatMoney(selectedCierre.monto_efectivo_usd)}</span>
+                    <span className="text-slate-600 font-medium">
+                      Efectivo (USD)
+                    </span>
+                    <span className="font-bold text-slate-800">
+                      {formatMoney(selectedCierre.monto_efectivo_usd)}
+                    </span>
                   </div>
 
                   {/* Efectivo Bs */}
                   <div className="flex items-center justify-between p-3 text-sm">
-                    <span className="text-slate-600 font-medium">Efectivo (Bs)</span>
-                    <span className="font-bold text-slate-800">Bs. {Number(selectedCierre.monto_efectivo_bs || 0).toLocaleString("es-VE", { minimumFractionDigits: 2 })}</span>
+                    <span className="text-slate-600 font-medium">
+                      Efectivo (Bs)
+                    </span>
+                    <span className="font-bold text-slate-800">
+                      Bs.{" "}
+                      {Number(
+                        selectedCierre.monto_efectivo_bs || 0,
+                      ).toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
 
                   {/* Punto Bs */}
                   <div className="flex items-center justify-between p-3 text-sm">
-                    <span className="text-slate-600 font-medium">Punto de Venta (Bs)</span>
-                    <span className="font-bold text-slate-800">Bs. {Number(selectedCierre.monto_punto_bs || 0).toLocaleString("es-VE", { minimumFractionDigits: 2 })}</span>
+                    <span className="text-slate-600 font-medium">
+                      Punto de Venta (Bs)
+                    </span>
+                    <span className="font-bold text-slate-800">
+                      Bs.{" "}
+                      {Number(
+                        selectedCierre.monto_punto_bs || 0,
+                      ).toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
 
                   {/* Pago Móvil Bs */}
                   <div className="flex items-center justify-between p-3 text-sm">
-                    <span className="text-slate-600 font-medium">Pago Móvil (Bs)</span>
-                    <span className="font-bold text-slate-800">Bs. {Number(selectedCierre.monto_pago_movil_bs || 0).toLocaleString("es-VE", { minimumFractionDigits: 2 })}</span>
+                    <span className="text-slate-600 font-medium">
+                      Pago Móvil (Bs)
+                    </span>
+                    <span className="font-bold text-slate-800">
+                      Bs.{" "}
+                      {Number(
+                        selectedCierre.monto_pago_movil_bs || 0,
+                      ).toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -529,11 +589,17 @@ export default function CierresAdminScreen() {
               {/* Total Final */}
               <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">Total Registrado</p>
-                  <p className="text-xs text-slate-400 mt-0.5">En divisas equivalentes (USDT)</p>
+                  <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">
+                    Total Registrado
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    En divisas equivalentes (USDT)
+                  </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xl font-black text-emerald-600">{formatMoney(selectedCierre.total_usdt)}</span>
+                  <span className="text-xl font-black text-emerald-600">
+                    {formatMoney(selectedCierre.total_usdt)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -578,7 +644,9 @@ export default function CierresAdminScreen() {
                 <Key className="w-6 h-6 text-red-300" />
               </div>
               <h2 className="text-xl font-bold">PINs de Cierre</h2>
-              <p className="text-slate-400 text-sm mt-1">Asigna claves de 4 números para cajeros</p>
+              <p className="text-slate-400 text-sm mt-1">
+                Asigna claves de 4 números para cajeros
+              </p>
             </div>
 
             {/* Contenido */}
@@ -597,12 +665,16 @@ export default function CierresAdminScreen() {
               {loadingCajeros ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3">
                   <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin"></div>
-                  <p className="text-slate-400 text-sm font-semibold">Cargando cajeros...</p>
+                  <p className="text-slate-400 text-sm font-semibold">
+                    Cargando cajeros...
+                  </p>
                 </div>
               ) : cajeros.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                   <User className="w-10 h-10 mb-2 opacity-35" />
-                  <p className="text-sm font-bold">No hay cajeros registrados activos</p>
+                  <p className="text-sm font-bold">
+                    No hay cajeros registrados activos
+                  </p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
@@ -632,9 +704,12 @@ export default function CierresAdminScreen() {
 
                   {/* Detalle y Gestión del Cajero Seleccionado */}
                   {(() => {
-                    const activeCajero = cajeros.find(c => String(c.id_usuario) === String(selectedCajeroId));
+                    const activeCajero = cajeros.find(
+                      (c) => String(c.id_usuario) === String(selectedCajeroId),
+                    );
                     if (!activeCajero) return null;
-                    const isEditing = editingCajero?.id_usuario === activeCajero.id_usuario;
+                    const isEditing =
+                      editingCajero?.id_usuario === activeCajero.id_usuario;
 
                     return (
                       <div className="border border-slate-100 rounded-2xl p-5 bg-white shadow-sm flex flex-col gap-4 transition-all duration-300">
@@ -644,8 +719,12 @@ export default function CierresAdminScreen() {
                             {activeCajero.nombre_completo?.charAt(0) || "U"}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-base font-black text-slate-800 truncate">{activeCajero.nombre_completo}</p>
-                            <p className="text-xs text-slate-400 font-medium truncate">{activeCajero.email}</p>
+                            <p className="text-base font-black text-slate-800 truncate">
+                              {activeCajero.nombre_completo}
+                            </p>
+                            <p className="text-xs text-slate-400 font-medium truncate">
+                              {activeCajero.email}
+                            </p>
                           </div>
                           <div className="shrink-0">
                             {activeCajero.pin ? (
@@ -667,7 +746,8 @@ export default function CierresAdminScreen() {
                           {isEditing ? (
                             <div className="flex flex-col gap-3">
                               <p className="text-xs font-semibold text-slate-500">
-                                Introduce el nuevo PIN de seguridad de 4 dígitos:
+                                Introduce el nuevo PIN de seguridad de 4
+                                dígitos:
                               </p>
                               <div className="flex items-center gap-3">
                                 <input
@@ -676,7 +756,10 @@ export default function CierresAdminScreen() {
                                   placeholder="0000"
                                   value={newPin}
                                   onChange={(e) => {
-                                    const val = e.target.value.replace(/\D/g, ""); // solo números
+                                    const val = e.target.value.replace(
+                                      /\D/g,
+                                      "",
+                                    ); // solo números
                                     setNewPin(val);
                                   }}
                                   className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all w-28 text-center font-mono font-black tracking-[0.3em] shadow-inner"
@@ -684,7 +767,9 @@ export default function CierresAdminScreen() {
                                 />
                                 <div className="flex items-center gap-2 flex-1 justify-end">
                                   <button
-                                    onClick={() => handleSavePin(activeCajero.id_usuario)}
+                                    onClick={() =>
+                                      handleSavePin(activeCajero.id_usuario)
+                                    }
                                     className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-2.5 px-4 rounded-xl text-xs font-bold shadow-md transition-all flex-1 max-w-[100px] text-center active:scale-[0.98]"
                                   >
                                     Guardar
@@ -705,7 +790,9 @@ export default function CierresAdminScreen() {
                           ) : (
                             <div className="flex items-center justify-between gap-3 bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
                               <span className="text-xs text-slate-500 font-medium">
-                                {activeCajero.pin ? "El usuario ya posee una clave activa para cierres." : "Este usuario no tiene clave asignada."}
+                                {activeCajero.pin
+                                  ? "El usuario ya posee una clave activa para cierres."
+                                  : "Este usuario no tiene clave asignada."}
                               </span>
                               <button
                                 onClick={() => {
@@ -716,7 +803,9 @@ export default function CierresAdminScreen() {
                                 }}
                                 className="text-xs font-bold text-pizza-red bg-red-50 hover:bg-pizza-red hover:text-white border border-pizza-red/10 px-4 py-2 rounded-xl transition-all shadow-sm shrink-0"
                               >
-                                {activeCajero.pin ? "Cambiar PIN" : "Asignar PIN"}
+                                {activeCajero.pin
+                                  ? "Cambiar PIN"
+                                  : "Asignar PIN"}
                               </button>
                             </div>
                           )}

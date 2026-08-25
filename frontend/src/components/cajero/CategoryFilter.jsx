@@ -10,6 +10,9 @@ export default function CategoryFilter({ selected, onSelect }) {
       try {
         const response = await axios.get(
           "http://localhost:3001/api/obtener-contador-cajero",
+          {
+            withCredentials: true,
+          },
         );
         if (response.data.success) {
           setPedidosPendientes(response.data.total);

@@ -351,14 +351,16 @@ export const obtenerPedidosPendiente = async (req, res) => {
 };
 
 export const obtenerContadorCajero = async (req, res) => {
+  const { id_sucursal } = req.user;
   try {
-    const [result] = await pool.query(
-      `SELECT COUNT(vd.id_detalle) AS total
+    let query = `SELECT COUNT(vd.id_detalle) AS total
        FROM venta_detalle vd
        JOIN ventas v ON vd.id_venta = v.id_venta
        WHERE vd.estado != 'Completado' AND vd.estado != 'Cerrado' 
-         AND DATE(v.fecha_hora) = CURDATE()`,
-    );
+         AND DATE(v.fecha_hora) = CURDATE()
+         AND v.id_sucursal = ?`;
+    let paparemericano = [id_sucursal];
+    const [result] = await pool.query(query, paparemericano);
 
     res.json({
       success: true,
@@ -429,9 +431,9 @@ export const actualizarEstadoPedido = async (req, res) => {
 //-----------------------------Entregas
 
 export const obtenerEntregas = async (req, res) => {
+  const { id_sucursal } = req.user;
   try {
-    const [ventas] = await pool.query(
-      `SELECT DISTINCT
+    let query = `SELECT DISTINCT
         v.id_venta,
         v.fecha_hora,
         v.despacho,
@@ -444,8 +446,11 @@ export const obtenerEntregas = async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE v.despacho IN ('Delivery', 'Pick Up', 'Local', 'Llevar')
         AND DATE(v.fecha_hora) = CURDATE()
-      ORDER BY v.fecha_hora ASC`,
-    );
+        AND v.id_sucursal = ?
+      ORDER BY v.fecha_hora ASC`;
+
+    let paparamericano = [id_sucursal];
+    const [ventas] = await pool.query(query, paparamericano);
 
     const ordenes = await Promise.all(
       ventas.map(async (venta) => {
@@ -510,7 +515,11 @@ export const obtenerEntregas = async (req, res) => {
           items: items,
           total: venta.monto_total_usd,
           orderedAt: venta.fecha_hora,
-          status: estaEntregada ? "delivered" : todosEnDespacho ? "ready" : "preparing",
+          status: estaEntregada
+            ? "delivered"
+            : todosEnDespacho
+              ? "ready"
+              : "preparing",
         };
       }),
     );
