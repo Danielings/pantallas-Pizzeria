@@ -11,7 +11,9 @@ export function useVentasHoy() {
     enabled: !!currentUser,
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/obtener-ventas-hoy`);
+        const res = await fetch(`${API_BASE}/obtener-ventas-hoy`, {
+          credentials: "include",
+        });
         const json = await res.json();
         return json.success ? json.data : null;
       } catch (err) {

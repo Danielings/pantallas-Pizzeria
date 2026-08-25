@@ -12,7 +12,9 @@ export function usePedidosActivos() {
     enabled: !!currentUser,
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/obtener-pedidos-activos`);
+        const res = await fetch(`${API_BASE}/obtener-pedidos-activos`, {
+          credentials: "include",
+        });
         const json = await res.json();
         return json.success ? json.data : [];
       } catch (err) {

@@ -70,7 +70,8 @@ export default function ProductForm({
     if (initial) {
       return {
         ...initial,
-        id_sucursal: initial.id_sucursal || (branches.length > 0 ? branches[0].id : ""),
+        id_sucursal:
+          initial.id_sucursal || (branches.length > 0 ? branches[0].id : ""),
       };
     }
     return { ...EMPTY_PRODUCT };
@@ -169,7 +170,9 @@ export default function ProductForm({
           onChange={(e) => handleChange("id_sucursal", e.target.value)}
           className={`w-full bg-slate-50 border ${errors.id_sucursal ? "border-red-500" : "border-slate-200"} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-slate-400`}
         >
-          <option value="">Selecciona una sucursal</option>
+          <option value="" disabled>
+            Selecciona una sucursal
+          </option>
           {branches.map((branch) => (
             <option key={branch.id} value={branch.id}>
               {branch.name}
@@ -177,7 +180,9 @@ export default function ProductForm({
           ))}
         </select>
         {errors.id_sucursal && (
-          <p className="text-red-500 text-xs mt-1 font-medium">{errors.id_sucursal}</p>
+          <p className="text-red-500 text-xs mt-1 font-medium">
+            {errors.id_sucursal}
+          </p>
         )}
       </div>
 

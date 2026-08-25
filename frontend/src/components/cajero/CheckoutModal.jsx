@@ -382,6 +382,7 @@ export default function CheckoutModal({ onClose }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestPayload),
+        credentials: "include",
       });
 
       // 1. Validar el tipo de contenido antes de intentar parsear a JSON
