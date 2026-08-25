@@ -2,6 +2,7 @@ import pool from "../config/bd.js";
 
 // Verificar si hay pedidos pendientes en la cola de trabajo
 export const verificarPedidosPendientes = async (req, res) => {
+  const { id_sucursal } = req.user;
   try {
     const [rows] = await pool.query(
       `SELECT COUNT(DISTINCT v.id_venta) AS total
@@ -13,7 +14,9 @@ export const verificarPedidosPendientes = async (req, res) => {
         WHERE vd.id_venta = v.id_venta
           AND vd.estado != 'Completado' 
           AND vd.estado != 'Cerrado'
+          AND v.id_sucursal = ?
       );`,
+      [id_sucursal],
     );
     const total = rows[0].total;
     return res.status(200).json({ pendientes: total, bloqueado: total > 0 });
@@ -24,6 +27,7 @@ export const verificarPedidosPendientes = async (req, res) => {
 };
 
 export const obtenerResumenDia = async (req, res) => {
+  const { id_sucursal } = req.user;
   try {
     // 1. Verificar si hay ventas hoy. Si no las hay, tomamos la última fecha con ventas para mostrar datos reales.
     let dateCondition = "DATE(fecha_hora) = CURDATE()";
@@ -60,7 +64,8 @@ export const obtenerResumenDia = async (req, res) => {
         COUNT(*) AS total_ordenes,
         IFNULL(SUM(monto_total_usd), 0) AS ventas_totales
        FROM ventas 
-       WHERE ${dateCondition} AND estado = 'Completado'`,
+       WHERE ${dateCondition} AND estado = 'Completado' AND id_sucursal = ?`,
+      [id_sucursal],
     );
 
     const total_ordenes = ventasHoy[0].total_ordenes;
@@ -74,13 +79,13 @@ export const obtenerResumenDia = async (req, res) => {
     const [anulacionesHoy] = await pool.query(
       `SELECT IFNULL(SUM(monto_total_usd), 0) AS total_anulaciones
        FROM ventas
-       WHERE ${dateCondition} AND estado = 'Rechazado'`,
+       WHERE ${dateCondition} AND estado = 'Rechazado' AND id_sucursal = ?`,
+      [id_sucursal],
     );
     const anulaciones = Number(anulacionesHoy[0].total_anulaciones);
 
     // 5. Desglose de pagos
-    const [pagosHoy] = await pool.query(
-      `SELECT 
+    let query = `SELECT 
         vp.metodo_pago,
         vp.referencia,
         IFNULL(SUM(vp.monto_usd), 0) AS total_usd,
@@ -89,8 +94,11 @@ export const obtenerResumenDia = async (req, res) => {
        INNER JOIN ventas v ON v.id_venta = vp.id_venta
        WHERE DATE(v.fecha_hora) = (SELECT DATE(v2.fecha_hora) FROM ventas v2 WHERE ${dateCondition} LIMIT 1) 
          AND v.estado = 'Completado'
-       GROUP BY vp.metodo_pago, vp.referencia`,
-    );
+         AND v.id_sucursal = ?
+       GROUP BY vp.metodo_pago, vp.referencia`;
+
+    let gloria = [id_sucursal];
+    const [pagosHoy] = await pool.query(query, gloria);
 
     let efectivo_usd = 0;
     let efectivo_bs = 0;
@@ -156,8 +164,10 @@ export const obtenerResumenDia = async (req, res) => {
        LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
        WHERE DATE(v.fecha_hora) = (SELECT DATE(v2.fecha_hora) FROM ventas v2 WHERE ${dateCondition} LIMIT 1)
          AND v.estado = 'Completado'
+         AND v.id_sucursal = ?
        ORDER BY v.fecha_hora DESC
        LIMIT 5`,
+      [id_sucursal],
     );
 
     const resumen = {
@@ -196,6 +206,7 @@ export const cerrarCaja = async (req, res) => {
     total_usdt,
     num_ordenes,
   } = req.body;
+  const { id_sucursal } = req.user;
 
   if (!pin || !String(pin).trim()) {
     return res
@@ -258,8 +269,9 @@ export const cerrarCaja = async (req, res) => {
         monto_punto_bs,
         monto_pago_movil_bs,
         total_usdt,
-        num_ordenes
-      ) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?)`,
+        num_ordenes,
+        id_sucursal
+      ) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?,?)`,
       [
         usuarioEjecutor,
         Number(monto_efectivo_usd || 0),
@@ -268,6 +280,7 @@ export const cerrarCaja = async (req, res) => {
         Number(monto_pago_movil_bs || 0),
         Number(total_usdt || 0),
         Number(num_ordenes || 0),
+        Number(id_sucursal || 0),
       ],
     );
 
@@ -348,9 +361,10 @@ export const obtenerHistorialCierres = async (req, res) => {
 
     // 3. Obtener el listado completo de cierres ordenados por fecha desc por defecto
     const [cierres] = await pool.query(
-      `SELECT c.*, u.nombre_completo AS usuario_nombre
+      `SELECT c.*, u.nombre_completo AS usuario_nombre, s.sucursal
        FROM cierres_caja c
        INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
+       LEFT JOIN sucursal s ON c.id_sucursal = s.id_sucursal
        ORDER BY c.fecha_hora DESC`,
     );
 
