@@ -152,12 +152,15 @@ export default function ProductosScreen() {
     const matchesCategory =
       categoryFilter === "all" || p.category === categoryFilter;
     const matchesBranch =
-      selectedBranchFilter === "all" || String(p.id_sucursal) === String(selectedBranchFilter);
+      selectedBranchFilter === "all" ||
+      String(p.id_sucursal) === String(selectedBranchFilter);
     return matchesSearch && matchesCategory && matchesBranch;
   });
 
-  const branchFilteredProducts = products.filter((p) =>
-    selectedBranchFilter === "all" || String(p.id_sucursal) === String(selectedBranchFilter)
+  const branchFilteredProducts = products.filter(
+    (p) =>
+      selectedBranchFilter === "all" ||
+      String(p.id_sucursal) === String(selectedBranchFilter),
   );
 
   const FILTER_TABS = [
@@ -165,22 +168,26 @@ export default function ProductosScreen() {
     {
       id: "pizzas",
       label: "Pizza",
-      count: branchFilteredProducts.filter((p) => p.category === "pizzas").length,
+      count: branchFilteredProducts.filter((p) => p.category === "pizzas")
+        .length,
     },
     {
       id: "drinks",
       label: "Bebida",
-      count: branchFilteredProducts.filter((p) => p.category === "drinks").length,
+      count: branchFilteredProducts.filter((p) => p.category === "drinks")
+        .length,
     },
     {
       id: "icecream",
       label: "Helado",
-      count: branchFilteredProducts.filter((p) => p.category === "icecream").length,
+      count: branchFilteredProducts.filter((p) => p.category === "icecream")
+        .length,
     },
     {
       id: "extras",
       label: "Extras",
-      count: branchFilteredProducts.filter((p) => p.category === "extras").length,
+      count: branchFilteredProducts.filter((p) => p.category === "extras")
+        .length,
     },
   ];
 
@@ -246,6 +253,7 @@ export default function ProductosScreen() {
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },
+            withCredentials: true,
           },
         );
 
@@ -267,6 +275,7 @@ export default function ProductosScreen() {
       } else {
         const response = await axios.post(endpoint, formData, {
           headers: { "Content-Type": "multipart/form-data" },
+          withCredentials: true,
         });
 
         if (response.data.success) {

@@ -16,6 +16,7 @@ export const procesarVenta = async (req, res) => {
     pagos,
     detalles,
   } = req.body;
+  const { id_sucursal } = req.user;
 
   const connection = await pool.getConnection();
 
@@ -24,8 +25,8 @@ export const procesarVenta = async (req, res) => {
 
     const [resultVenta] = await connection.query(
       `INSERT INTO ventas 
-      (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs) 
-      VALUES (?, ?, ?, ?, 'Completado', NOW(), ?, ?, ?)`,
+      (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, id_sucursal) 
+      VALUES (?, ?, ?, ?, 'Completado', NOW(), ?, ?, ?,?)`,
       [
         id_cliente,
         id_usuario,
@@ -34,6 +35,7 @@ export const procesarVenta = async (req, res) => {
         tasa_cambio,
         monto_total_usd,
         monto_total_bs,
+        id_sucursal,
       ],
     );
 
@@ -538,10 +540,10 @@ export const obtenerMetodosPago = async (req, res) => {
 };
 
 // ---- Obtener ventas del día
-export const obtenerVentasHoy = async (_req, res) => {
+export const obtenerVentasHoy = async (req, res) => {
+  const { id_sucursal } = req.user;
   try {
-    const [ventas] = await pool.query(
-      `SELECT 
+    let query = `SELECT 
         v.id_venta,
         v.monto_total_usd,
         v.monto_total_bs,
@@ -558,8 +560,11 @@ export const obtenerVentasHoy = async (_req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE DATE(v.fecha_hora) = CURDATE()
         AND v.estado = 'Completado'
-      ORDER BY v.fecha_hora DESC`,
-    );
+        AND v.id_sucursal = ?
+      ORDER BY v.fecha_hora DESC`;
+
+    let paraparamericano = [id_sucursal];
+    const [ventas] = await pool.query(query, paraparamericano);
 
     const totalRevenue = ventas.reduce(
       (s, v) => s + (v.monto_total_usd || 0),
@@ -588,10 +593,10 @@ export const obtenerVentasHoy = async (_req, res) => {
 };
 
 // ---- Obtener pedidos activos
-export const obtenerPedidosActivos = async (_req, res) => {
+export const obtenerPedidosActivos = async (req, res) => {
+  const { id_sucursal } = req.user;
   try {
-    const [ventas] = await pool.query(
-      `SELECT DISTINCT
+    let query = `SELECT DISTINCT
         v.id_venta,
         v.fecha_hora,
         v.despacho,
@@ -605,14 +610,16 @@ export const obtenerPedidosActivos = async (_req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE DATE(v.fecha_hora) = CURDATE()
+        AND id_sucursal = ?
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
             AND vd.estado != 'Completado'
             AND vd.estado != 'Cerrado'
         )
-      ORDER BY v.fecha_hora DESC`,
-    );
+      ORDER BY v.fecha_hora DESC`;
+    let params = [id_sucursal];
+    const [ventas] = await pool.query(query, params);
 
     const pedidos = await Promise.all(
       ventas.map(async (venta) => {
