@@ -60,7 +60,43 @@ const getHeaderDate = () => {
     .join(" ");
 };
 
+// Paleta de colores por sucursal (se rota por id_sucursal % paleta.length)
+export const SUCURSAL_PALETTES = [
+  { bg: [239, 68, 68],   light: [254, 226, 226], label: "red" },    // rojo
+  { bg: [59, 130, 246],  light: [219, 234, 254], label: "blue" },   // azul
+  { bg: [16, 185, 129],  light: [209, 250, 229], label: "green" },  // verde
+  { bg: [168, 85, 247],  light: [243, 232, 255], label: "purple" }, // violeta
+  { bg: [245, 158, 11],  light: [254, 243, 199], label: "amber" },  // ámbar
+  { bg: [20, 184, 166],  light: [204, 251, 241], label: "teal" },   // teal
+];
+
+export const getSucursalPalette = (id_sucursal) => {
+  const idx = (Number(id_sucursal) - 1 || 0) % SUCURSAL_PALETTES.length;
+  return SUCURSAL_PALETTES[Math.max(0, idx)];
+};
+
+// Badge de sucursal con color
+function SucursalBadge({ id, nombre }) {
+  if (!nombre) return <span className="text-slate-400 text-xs">—</span>;
+  const palette = getSucursalPalette(id);
+  const tailwindColors = {
+    red:    "bg-red-100 text-red-700 border-red-200",
+    blue:   "bg-blue-100 text-blue-700 border-blue-200",
+    green:  "bg-emerald-100 text-emerald-700 border-emerald-200",
+    purple: "bg-purple-100 text-purple-700 border-purple-200",
+    amber:  "bg-amber-100 text-amber-700 border-amber-200",
+    teal:   "bg-teal-100 text-teal-700 border-teal-200",
+  };
+  const cls = tailwindColors[palette.label] || "bg-slate-100 text-slate-700 border-slate-200";
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${cls} whitespace-nowrap`}>
+      {nombre}
+    </span>
+  );
+}
+
 export default function CierresAdminScreen() {
+
   const [cierres, setCierres] = useState([]);
   const [metrics, setMetrics] = useState({
     mes: "",
@@ -74,6 +110,7 @@ export default function CierresAdminScreen() {
   const [sortOrder, setSortOrder] = useState("desc"); // 'asc' o 'desc'
   const [selectedCierre, setSelectedCierre] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sucursalFilter, setSucursalFilter] = useState(""); // "" = todas
 
   // Pin Modal states
   const [openPinModal, setOpenPinModal] = useState(false);
@@ -129,14 +166,32 @@ export default function CierresAdminScreen() {
     }
   }, [openPinModal]);
 
+  // Obtener lista única de sucursales de los cierres cargados
+  const sucursalesUnicas = useMemo(() => {
+    const map = new Map();
+    cierres.forEach((c) => {
+      if (c.id_sucursal && c.sucursal) {
+        map.set(c.id_sucursal, c.sucursal);
+      }
+    });
+    return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre }));
+  }, [cierres]);
+
   // Resetear página al cambiar búsquedas o filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchDate, sortOrder]);
+  }, [searchDate, sortOrder, sucursalFilter]);
 
   // Filtrar y ordenar cierres
   const filteredAndSortedCierres = useMemo(() => {
     let result = [...cierres];
+
+    // Filtrar por sucursal
+    if (sucursalFilter) {
+      result = result.filter(
+        (c) => String(c.id_sucursal) === String(sucursalFilter)
+      );
+    }
 
     // Filtrar por día (YYYY-MM-DD o formato similar)
     if (searchDate) {
@@ -154,7 +209,7 @@ export default function CierresAdminScreen() {
     });
 
     return result;
-  }, [cierres, searchDate, sortOrder]);
+  }, [cierres, searchDate, sortOrder, sucursalFilter]);
 
   const totalPages = Math.ceil(filteredAndSortedCierres.length / 10);
 
@@ -172,13 +227,29 @@ export default function CierresAdminScreen() {
       setErrorMsg("El PIN debe tener exactamente 4 números.");
       return;
     }
+
+    // Validación local: el PIN no puede estar ya asignado a otro cajero
+    const pinEnUso = cajeros.some(
+      (c) => String(c.id_usuario) !== String(id_usuario) && c.pin === newPin
+    );
+    if (pinEnUso) {
+      setErrorMsg("Ese PIN ya está en uso por otro cajero. Elige uno diferente.");
+      return;
+    }
+
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      const response = await axios.put(`${API_BASE}/cierre/cajero-pin`, {
-        id_usuario,
-        pin: newPin,
-      });
+      const response = await axios.put(
+        `${API_BASE}/cierre/cajero-pin`,
+        {
+          id_usuario,
+          pin: newPin,
+        },
+        {
+          withCredentials: true,
+        }
+      );
       if (response.data.success) {
         setSuccessMsg("PIN actualizado correctamente.");
         setCajeros((prev) =>
@@ -196,6 +267,7 @@ export default function CierresAdminScreen() {
       );
     }
   };
+
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 hide-scrollbar flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300">
@@ -323,8 +395,23 @@ export default function CierresAdminScreen() {
               Lista completa de cajas cerradas en la pizzería
             </p>
           </div>
-          {/* Filtros de fecha y orden */}
-          <div className="flex items-center gap-3">
+          {/* Filtros de fecha, sucursal y orden */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filtro sucursal */}
+            <select
+              value={sucursalFilter}
+              onChange={(e) => setSucursalFilter(e.target.value)}
+              className="bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
+            >
+              <option value="">Todas las Sucursales</option>
+              {sucursalesUnicas.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+
+            {/* Filtro fecha */}
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold uppercase">
                 Día:
@@ -344,6 +431,8 @@ export default function CierresAdminScreen() {
                 </button>
               )}
             </div>
+
+            {/* Botón orden */}
             <button
               onClick={toggleSortOrder}
               className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 text-sm font-semibold rounded-xl hover:bg-slate-50 shadow-sm transition-all shrink-0"
@@ -355,10 +444,10 @@ export default function CierresAdminScreen() {
           </div>
         </div>
 
-        <div className="overflow-x-auto flex-1 min-h-0">
+        <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
           <table className="w-full text-sm min-w-[860px]">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-400 font-bold text-xs uppercase tracking-wider text-left sticky top-0 animate-fade-in">
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-slate-200 bg-white text-slate-400 font-bold text-xs uppercase tracking-wider text-left shadow-sm">
                 <th className="px-5 py-3.5">N°</th>
                 <th className="px-5 py-3.5">Fecha</th>
                 <th className="px-5 py-3.5">Hora</th>
@@ -422,8 +511,8 @@ export default function CierresAdminScreen() {
                     <td className="px-5 py-3.5 text-right font-extrabold text-emerald-600">
                       {formatMoney(cierre.total_usdt)}
                     </td>
-                    <td className="px-5 py-3.5 text-center font-bold text-slate-800">
-                      {cierre.sucursal}
+                    <td className="px-5 py-3.5 text-center">
+                      <SucursalBadge id={cierre.id_sucursal} nombre={cierre.sucursal} />
                     </td>
                     <td className="px-5 py-3.5 text-center">
                       <div className="flex items-center justify-center gap-1">

@@ -361,7 +361,7 @@ export const obtenerHistorialCierres = async (req, res) => {
 
     // 3. Obtener el listado completo de cierres ordenados por fecha desc por defecto
     const [cierres] = await pool.query(
-      `SELECT c.*, u.nombre_completo AS usuario_nombre, s.sucursal
+      `SELECT c.*, u.nombre_completo AS usuario_nombre, s.sucursal, s.direccion AS sucursal_direccion
        FROM cierres_caja c
        INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
        LEFT JOIN sucursal s ON c.id_sucursal = s.id_sucursal
@@ -441,6 +441,21 @@ export const actualizarPinCajero = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, mensaje: "Cajero no encontrado" });
+    }
+
+    // Validar que el PIN no esté en uso por otro cajero
+    if (pin) {
+      const [pinDuplicado] = await pool.query(
+        `SELECT p.id_pin FROM pin p WHERE p.pin = ? AND p.id_usuario != ?`,
+        [String(pin), id_usuario],
+      );
+
+      if (pinDuplicado.length > 0) {
+        return res.status(409).json({
+          success: false,
+          mensaje: "Ese PIN ya está en uso por otro cajero. Elige uno diferente.",
+        });
+      }
     }
 
     const [pinExistente] = await pool.query(

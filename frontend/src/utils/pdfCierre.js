@@ -1,13 +1,14 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoImg from "../assets/login/logo.png";
+import { getSucursalPalette } from "../components/admin/CierresAdminScreen";
 
 // Helper to load image as a Promise
 const loadImage = (src) => {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => resolve(null); // Fallback if image fails to load
+    img.onerror = () => resolve(null);
     img.src = src;
   });
 };
@@ -25,25 +26,34 @@ export const exportCierrePDF = async (cierre) => {
   // Deduce or fallback rate
   let tasa = cierre.tasa_cambio;
   if (!tasa) {
-    const totalBs = Number(cierre.monto_efectivo_bs || 0) + Number(cierre.monto_punto_bs || 0) + Number(cierre.monto_pago_movil_bs || 0);
-    const totalUsdBsEq = Number(cierre.total_usdt || 0) - Number(cierre.monto_efectivo_usd || 0);
+    const totalBs =
+      Number(cierre.monto_efectivo_bs || 0) +
+      Number(cierre.monto_punto_bs || 0) +
+      Number(cierre.monto_pago_movil_bs || 0);
+    const totalUsdBsEq =
+      Number(cierre.total_usdt || 0) - Number(cierre.monto_efectivo_usd || 0);
     if (totalUsdBsEq > 0 && totalBs > 0) {
       tasa = totalBs / totalUsdBsEq;
     } else {
-      tasa = 1.0; // Fallback
+      tasa = 1.0;
     }
   }
 
-  // --- BRAND COLOR SYSTEM ---
-  const PRIMARY_COLOR = [234, 42, 51]; // Pizza Red #EA2A33
-  const SECONDARY_COLOR = [71, 85, 105]; // Slate 600
-  const TEXT_DARK = [30, 41, 59]; // Slate 800
-  const TEXT_MUTED = [148, 163, 184]; // Slate 400
-  const BG_LIGHT = [248, 250, 252]; // Slate 50
+  // --- DYNAMIC BRANCH COLOR PALETTE ---
+  const palette = getSucursalPalette(cierre.id_sucursal);
+  const ACCENT       = palette.bg;         // e.g. [239, 68, 68]
+  const ACCENT_LIGHT = palette.light;      // e.g. [254, 226, 226]
 
-  // Helper for text formatting
+  // Static colors
+  const TEXT_DARK  = [30, 41, 59];    // slate-800
+  const TEXT_MUTED = [148, 163, 184]; // slate-400
+  const SLATE_600  = [71, 85, 105];
+  const BG_LIGHT   = [248, 250, 252]; // slate-50
+  const WHITE      = [255, 255, 255];
+
+  // Money formatters
   const fmtMoneyUSD = (n) => `$${Number(n || 0).toFixed(2)}`;
-  const fmtMoneyBs = (n) =>
+  const fmtMoneyBs  = (n) =>
     `Bs. ${Number(n || 0).toLocaleString("es-VE", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -65,91 +75,149 @@ export const exportCierrePDF = async (cierre) => {
       })
     : "—";
 
-  // --- HEADER SECTION ---
-  // Logo
+
+  // ═══════════════════════════════════════════════════════
+  // HEADER — Logo + Company info
+  // ═══════════════════════════════════════════════════════
   if (img) {
-    // logo.png aspect ratio: let's draw it at 32mm width and 32mm height (square)
-    doc.addImage(img, "PNG", 14, 12, 32, 32);
+    doc.addImage(img, "PNG", 14, 13, 30, 30);
   }
 
-  // Company Information (Right Aligned)
+  // Company name
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(17);
   doc.setTextColor(...TEXT_DARK);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("PIZZERÍA NIKO", 196, 18, { align: "right" });
+  doc.text("PIZZERÍA NIKO", 196, 19, { align: "right" });
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(...SECONDARY_COLOR);
-  doc.text("R.I.F.: J-12345678-9", 196, 23, { align: "right" });
-  doc.text("Sistema de Control Interno y Caja", 196, 27, { align: "right" });
-  doc.text("Email: administracion@pizzerianiko.com", 196, 31, { align: "right" });
+  // Branch name (colored)
+  const sucursalNombre = cierre.sucursal || "Sucursal Principal";
+  const sucursalDir    = cierre.sucursal_direccion || "";
 
-  // Divider Line
-  doc.setDrawColor(226, 232, 240); // border-slate-200
-  doc.setLineWidth(0.5);
-  doc.line(14, 48, 196, 48);
-
-  // --- DOCUMENT TITLE ---
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
-  doc.setTextColor(...PRIMARY_COLOR);
-  doc.text(`REPORTE DE CIERRE DE CAJA #${cierre.id_cierre || "N/A"}`, 14, 57);
-
-  // --- METADATA GRID ---
-  // Background for metadata box
-  doc.setFillColor(...BG_LIGHT);
-  doc.roundedRect(14, 62, 182, 28, 4, 4, "F");
-
-  doc.setTextColor(...TEXT_DARK);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("Información del Cierre:", 18, 68);
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Cajero Responsable:", 18, 75);
-  doc.setFont("helvetica", "normal");
-  doc.text(cierre.usuario_nombre || "Cajero Desconocido", 55, 75);
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Fecha del Cierre:", 18, 82);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${formattedDate}  a las  ${formattedTime}`, 55, 82);
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Órdenes Procesadas:", 120, 75);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${cierre.num_ordenes || 0} órdenes`, 155, 75);
-
-  if (tasa) {
-    doc.setFont("helvetica", "bold");
-    doc.text("Tasa de Cambio:", 120, 82);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Bs. ${tasa.toFixed(2)}`, 155, 82);
-  }
-
-  // --- TOTAL BOX (HERO DISPLAY) ---
-  doc.setFillColor(254, 242, 242); // Red-50
-  doc.roundedRect(14, 96, 182, 18, 3, 3, "F");
-  
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.setTextColor(...PRIMARY_COLOR);
-  doc.text("TOTAL GENERAL CONCILIADO EN DIVISA (USDT):", 20, 107);
+  doc.setTextColor(...ACCENT);
+  doc.text(sucursalNombre.toUpperCase(), 196, 26, { align: "right" });
 
-  doc.setFontSize(16);
-  doc.text(fmtMoneyUSD(cierre.total_usdt), 190, 108, { align: "right" });
+  if (sucursalDir) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...SLATE_600);
+    doc.text(sucursalDir, 196, 31, { align: "right" });
+  }
 
-  // --- TABLE OF BREAKDOWN ---
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text("Sistema de Control Interno y Caja", 196, sucursalDir ? 36 : 31, { align: "right" });
+
+  // Divider line (accent colored)
+  doc.setDrawColor(...ACCENT);
+  doc.setLineWidth(0.8);
+  doc.line(14, 47, 196, 47);
+
+  // ═══════════════════════════════════════════════════════
+  // DOCUMENT TITLE
+  // ═══════════════════════════════════════════════════════
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text(`REPORTE DE CIERRE DE CAJA`, 14, 56);
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.setTextColor(...TEXT_DARK);
-  doc.text("Desglose Detallado por Método de Pago", 14, 124);
+  doc.setTextColor(...ACCENT);
+  doc.text(`#${cierre.id_cierre || "N/A"}`, 196, 56, { align: "right" });
 
-  // Generate Table using autoTable
+  // ═══════════════════════════════════════════════════════
+  // METADATA GRID BOX
+  // ═══════════════════════════════════════════════════════
+  doc.setFillColor(...BG_LIGHT);
+  doc.roundedRect(14, 61, 182, 32, 4, 4, "F");
+
+  // Left accent stripe inside box
+  doc.setFillColor(...ACCENT);
+  doc.roundedRect(14, 61, 3, 32, 2, 2, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...SLATE_600);
+  doc.text("INFORMACIÓN DEL CIERRE", 21, 68);
+
+  // Row 1
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text("Cajero:", 21, 76);
+  doc.setFont("helvetica", "normal");
+  doc.text(cierre.usuario_nombre || "Cajero Desconocido", 46, 76);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Sucursal:", 120, 76);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...ACCENT);
+  doc.text(sucursalNombre, 142, 76);
+
+  // Row 2
+  doc.setTextColor(...TEXT_DARK);
+  doc.setFont("helvetica", "bold");
+  doc.text("Fecha:", 21, 83);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${formattedDate}  •  ${formattedTime}`, 46, 83);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Órdenes:", 120, 83);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${cierre.num_ordenes || 0}`, 142, 83);
+
+  // Row 3
+  if (tasa && tasa !== 1.0) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Tasa de Cambio:", 21, 90);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Bs. ${tasa.toFixed(2)} / USD`, 58, 90);
+  }
+
+  if (sucursalDir) {
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...TEXT_DARK);
+    doc.text("Dirección:", 120, 90);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...SLATE_600);
+    const dirLines = doc.splitTextToSize(sucursalDir, 50);
+    doc.text(dirLines[0], 142, 90);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // TOTAL HERO BOX
+  // ═══════════════════════════════════════════════════════
+  doc.setFillColor(...ACCENT_LIGHT);
+  doc.roundedRect(14, 99, 182, 20, 3, 3, "F");
+
+  // Left accent stripe
+  doc.setFillColor(...ACCENT);
+  doc.roundedRect(14, 99, 4, 20, 2, 2, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text("TOTAL GENERAL CONCILIADO (USDT):", 22, 112);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(...ACCENT);
+  doc.text(fmtMoneyUSD(cierre.total_usdt), 193, 113, { align: "right" });
+
+  // ═══════════════════════════════════════════════════════
+  // BREAKDOWN TABLE
+  // ═══════════════════════════════════════════════════════
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_DARK);
+  doc.text("Desglose Detallado por Método de Pago", 14, 130);
+
   autoTable(doc, {
-    startY: 128,
-    head: [["Método de Pago", "Moneda", "Monto Declarado en Caja", "Equivalencia en USD"]],
+    startY: 134,
+    head: [["Método de Pago", "Moneda", "Monto Declarado", "Equiv. USD"]],
     body: [
       [
         "Efectivo en Dólares (USD)",
@@ -177,17 +245,17 @@ export const exportCierrePDF = async (cierre) => {
       ],
     ],
     headStyles: {
-      fillColor: PRIMARY_COLOR,
-      textColor: [255, 255, 255],
+      fillColor: ACCENT,
+      textColor: WHITE,
       fontStyle: "bold",
       fontSize: 9,
       halign: "left",
     },
     columnStyles: {
-      0: { fontStyle: "bold", cellWidth: 70 },
-      1: { halign: "center", cellWidth: 25 },
-      2: { halign: "right", cellWidth: 47 },
-      3: { halign: "right", cellWidth: 40, fontStyle: "bold" },
+      0: { fontStyle: "bold", cellWidth: 72 },
+      1: { halign: "center", cellWidth: 24 },
+      2: { halign: "right", cellWidth: 48 },
+      3: { halign: "right", cellWidth: 38, fontStyle: "bold", textColor: ACCENT },
     },
     styles: {
       fontSize: 9,
@@ -195,46 +263,27 @@ export const exportCierrePDF = async (cierre) => {
       valign: "middle",
     },
     alternateRowStyles: {
-      fillColor: [250, 250, 250],
+      fillColor: ACCENT_LIGHT,
     },
     margin: { left: 14, right: 14 },
     theme: "striped",
   });
 
-  // --- SIGNATURE SECTION ---
-  const finalY = doc.lastAutoTable.finalY || 160;
-  
-  doc.setDrawColor(203, 213, 225); // Slate 300
-  doc.setLineWidth(0.5);
-  // Signature Line
-  doc.line(70, finalY + 30, 140, finalY + 30);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...TEXT_DARK);
-  doc.text("FIRMA DEL CAJERO", 105, finalY + 35, { align: "center" });
-
+  // ═══════════════════════════════════════════════════════
+  // FOOTER
+  // ═══════════════════════════════════════════════════════
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...TEXT_MUTED);
-  doc.text(cierre.usuario_nombre || "Cajero", 105, finalY + 39, { align: "center" });
-
-  // --- FOOTER SECTION ---
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(...TEXT_MUTED);
   doc.text(
-    `Documento de control interno generado el ${new Date().toLocaleString("es-VE")}.`,
+    `Documento generado el ${new Date().toLocaleString("es-VE")} · ${sucursalNombre}`,
     14,
     285
   );
-  doc.text(
-    "Pág 1 de 1",
-    196,
-    285,
-    { align: "right" }
-  );
+  doc.text("Pág 1 de 1", 196, 285, { align: "right" });
 
-  // Save the document
-  doc.save(`Cierre_Caja_${cierre.id_cierre || "N_A"}_${formattedDate.replace(/\//g, "-")}.pdf`);
+  // Save
+  doc.save(
+    `Cierre_${sucursalNombre.replace(/\s+/g, "_")}_#${cierre.id_cierre || "N_A"}_${formattedDate.replace(/\//g, "-")}.pdf`
+  );
 };
