@@ -27,6 +27,8 @@ export default function CierreScreen() {
   const [loading, setLoading] = useState(true);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [claveCierre, setClaveCierre] = useState("");
+  const [selectedMethodForModal, setSelectedMethodForModal] = useState(null);
+  const [modalPage, setModalPage] = useState(1);
 
   useEffect(() => {
     fetchResumenDia();
@@ -296,6 +298,53 @@ export default function CierreScreen() {
       maximumFractionDigits: 2,
     });
 
+  // Transacciones por método de pago
+  const getTransactionsForMethod = (methodKey) => {
+    if (!transacciones) return [];
+    return transacciones.filter((t) => {
+      if (!t.pagos) return false;
+      return t.pagos.some((p) => {
+        const metodo = p.metodo_pago?.toLowerCase() || "";
+        const ref = p.referencia?.toUpperCase() || "";
+        if (methodKey === "efectivo_usd") {
+          return metodo.includes("efectivo") && ref !== "BS";
+        }
+        if (methodKey === "efectivo_bs") {
+          return metodo.includes("efectivo") && ref === "BS";
+        }
+        if (methodKey === "punto_de_venta_bs") {
+          return metodo.includes("punto") || metodo.includes("tarjeta");
+        }
+        if (methodKey === "transferencia_bs") {
+          return !metodo.includes("efectivo") && !metodo.includes("punto") && !metodo.includes("tarjeta");
+        }
+        return false;
+      });
+    });
+  };
+
+  // Obtener el monto pagado con un método específico en una venta
+  const getPaymentAmountForMethod = (t, methodKey) => {
+    if (!t.pagos) return "";
+    let totalUSD = 0;
+    let totalBS = 0;
+    t.pagos.forEach((p) => {
+      const metodo = p.metodo_pago?.toLowerCase() || "";
+      const ref = p.referencia?.toUpperCase() || "";
+      if (methodKey === "efectivo_usd" && metodo.includes("efectivo") && ref !== "BS") {
+        totalUSD += Number(p.monto_usd || 0);
+      } else if (methodKey === "efectivo_bs" && metodo.includes("efectivo") && ref === "BS") {
+        totalBS += Number(p.monto_bs || 0);
+      } else if (methodKey === "punto_de_venta_bs" && (metodo.includes("punto") || metodo.includes("tarjeta"))) {
+        totalBS += Number(p.monto_bs || 0);
+      } else if (methodKey === "transferencia_bs" && !metodo.includes("efectivo") && !metodo.includes("punto") && !metodo.includes("tarjeta")) {
+        totalBS += Number(p.monto_bs || 0);
+      }
+    });
+    if (methodKey === "efectivo_usd") return `$${totalUSD.toFixed(2)}`;
+    return `Bs. ${fmtBs(totalBS)}`;
+  };
+
   return (
     <div className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 gap-6 overflow-y-auto w-full h-full bg-[#f4f7fc]">
       {/* ── HEADER ── */}
@@ -448,10 +497,11 @@ export default function CierreScreen() {
         </div>
       </div>
 
-      {/* ── WALLET CARDS ── */}
+      {/* ── WALLET CARDS (CLICKABLE) ── */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {[
           {
+            key: "efectivo_usd",
             gradient: "from-[#f59e0b] to-[#ea580c]",
             icon: "$",
             label: "Efectivo USD",
@@ -460,6 +510,7 @@ export default function CierreScreen() {
             textLight: "text-orange-100",
           },
           {
+            key: "efectivo_bs",
             gradient: "from-[#60a5fa] to-[#2563eb]",
             icon: "Bs",
             label: "Efectivo Local (Bs.)",
@@ -468,6 +519,7 @@ export default function CierreScreen() {
             textLight: "text-blue-100",
           },
           {
+            key: "punto_de_venta_bs",
             gradient: "from-[#22d3ee] to-[#0891b2]",
             icon: <CreditCard className="w-5 h-5" />,
             label: "Punto de Venta",
@@ -476,6 +528,7 @@ export default function CierreScreen() {
             textLight: "text-cyan-100",
           },
           {
+            key: "transferencia_bs",
             gradient: "from-[#34d399] to-[#059669]",
             icon: <Smartphone className="w-5 h-5" />,
             label: "Transferencia / PM",
@@ -483,79 +536,151 @@ export default function CierreScreen() {
             value: `Bs. ${fmtBs(desglose_pagos.transferencia_bs)}`,
             textLight: "text-emerald-100",
           },
-        ].map(({ gradient, icon, label, sub, value, textLight }) => (
-          <div
-            key={label}
-            className={`bg-gradient-to-b ${gradient} rounded-3xl p-6 shadow-sm text-white flex flex-col justify-between h-52 relative overflow-hidden`}
-          >
-            <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
-              <DollarSign className="w-36 h-36" />
-            </div>
-            <div
-              className={`w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center font-bold text-base`}
+        ].map(({ key, gradient, icon, label, sub, value, textLight }) => {
+          const methodTxs = getTransactionsForMethod(key);
+          return (
+            <button
+              key={label}
+              onClick={() => {
+                setModalPage(1);
+                setSelectedMethodForModal({ key, label, value, txs: methodTxs });
+              }}
+              className={`bg-gradient-to-b ${gradient} rounded-3xl p-6 shadow-sm text-white flex flex-col justify-between h-52 relative overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group`}
             >
-              {icon}
-            </div>
-            <div>
-              <p
-                className={`text-xs font-semibold ${textLight} mb-1.5`}
-              >
-                {label}
-              </p>
-              <p className="text-2xl font-black truncate leading-tight">{value}</p>
-              <p className={`text-xs ${textLight} mt-1`}>{sub}</p>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* ── TABLA DE TRANSACCIONES MEJORADA ── */}
-      <section className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-black text-slate-800 tracking-tight">
-            Últimas Transacciones del Día
-          </h3>
-          <span className="text-xs px-3 py-1.5 bg-slate-100 text-slate-500 rounded-full font-bold">
-            {total_ordenes} órdenes en total
-          </span>
-        </div>
-
-        {transacciones && transacciones.length > 0 ? (
-          <div className="space-y-2">
-            {transacciones.map((t, i) => (
-              <div
-                key={t.id_venta}
-                className={`flex items-center gap-4 p-4 rounded-2xl transition-all hover:bg-slate-50 ${i < transacciones.length - 1 ? "border-b border-slate-50" : ""}`}
-              >
-                <div className="w-10 h-10 bg-pizza-red/10 text-pizza-red rounded-xl flex items-center justify-center font-black text-xs shrink-0">
-                  #{t.id_venta}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-800 truncate">
-                    {t.nombre_cliente || "Cliente General"}
-                  </p>
-                  <p className="text-xs text-slate-400 font-semibold">
-                    {t.hora}
-                  </p>
-                </div>
-                <span className="text-xs px-2 py-1 bg-slate-100 text-slate-500 font-bold rounded-lg shrink-0">
-                  {t.despacho}
-                </span>
-                <p className="text-sm font-black text-slate-800 shrink-0">
-                  ${t.monto_total_usd.toFixed(2)}
-                </p>
+              <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
+                <DollarSign className="w-36 h-36" />
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-10 text-slate-400">
-            <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-40" />
-            <p className="text-sm font-semibold">
-              No se registraron ventas en esta fecha.
-            </p>
-          </div>
-        )}
+              <div className="flex justify-between items-start w-full">
+                <div
+                  className={`w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center font-bold text-base`}
+                >
+                  {icon}
+                </div>
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-black">
+                  {methodTxs.length} pedido{methodTxs.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div>
+                <p
+                  className={`text-xs font-semibold ${textLight} mb-1.5`}
+                >
+                  {label}
+                </p>
+                <p className="text-2xl font-black truncate leading-tight">{value}</p>
+                <p className={`text-xs ${textLight} mt-1`}>{sub}</p>
+              </div>
+            </button>
+          );
+        })}
       </section>
+
+      {/* ── MODAL DETALLE TRANSACCIONES POR MÉTODO ── */}
+      {selectedMethodForModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-2xl w-full p-6 animate-fade-in flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-pizza-red/10 rounded-xl flex items-center justify-center text-pizza-red">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 tracking-tight">
+                    Pedidos - {selectedMethodForModal.label}
+                  </h3>
+                  <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                    Total Acumulado: {selectedMethodForModal.value}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedMethodForModal(null)}
+                className="text-slate-400 hover:text-slate-600 transition-all p-1.5 hover:bg-slate-100 rounded-xl"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar">
+              {selectedMethodForModal.txs.length > 0 ? (
+                <>
+                  {selectedMethodForModal.txs
+                    .slice((modalPage - 1) * 10, modalPage * 10)
+                    .map((t, idx) => (
+                      <div
+                        key={t.id_venta}
+                        className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl"
+                      >
+                        <div className="w-10 h-10 bg-white border border-slate-100 text-slate-700 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
+                          #{t.id_venta}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-slate-800 truncate">
+                            {t.nombre_cliente || "Cliente General"}
+                          </p>
+                          <p className="text-xs text-slate-400 font-bold mt-0.5">
+                            {t.hora} • <span className="text-pizza-red">{t.despacho}</span>
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-black text-emerald-600">
+                            {getPaymentAmountForMethod(t, selectedMethodForModal.key)}
+                          </p>
+                          <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                            Total Pedido: ${t.monto_total_usd.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+
+                  {/* Controles de paginación del modal */}
+                  {selectedMethodForModal.txs.length > 10 && (
+                    <div className="flex items-center justify-between pt-4 select-none">
+                      <button
+                        type="button"
+                        onClick={() => setModalPage((p) => Math.max(p - 1, 1))}
+                        disabled={modalPage === 1}
+                        className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      >
+                        Anterior
+                      </button>
+                      <span className="text-xs font-extrabold text-slate-500">
+                        Pág. {modalPage} de {Math.ceil(selectedMethodForModal.txs.length / 10)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setModalPage((p) =>
+                            Math.min(p + 1, Math.ceil(selectedMethodForModal.txs.length / 10))
+                          )
+                        }
+                        disabled={modalPage >= Math.ceil(selectedMethodForModal.txs.length / 10)}
+                        className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12 text-slate-400">
+                  <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm font-bold">No hay transacciones registradas hoy con este método.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 mt-4 border-t border-slate-100 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedMethodForModal(null)}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl text-sm transition-all shadow-md"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL PASO 2: DETALLE Y CLAVE ── */}
       {showDetailModal && (
