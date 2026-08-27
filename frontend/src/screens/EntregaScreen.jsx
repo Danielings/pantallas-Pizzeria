@@ -105,25 +105,41 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
         </div>
 
         {/* Info Area */}
-        <div className="space-y-2.5 mb-5 bg-slate-50/80 rounded-2xl p-3 border border-slate-100/80 flex-1">
-          <div className="flex items-center gap-2.5 text-xs text-slate-600">
-            <div className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
+        <div className="space-y-2 mb-4 bg-slate-50/80 rounded-2xl p-2.5 border border-slate-100/80 flex-1">
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+              <Clock className="w-3 h-3 text-slate-400" />
             </div>
             <span className="font-semibold text-slate-700">
               Hace {getElapsed(order.orderedAt)}
             </span>
           </div>
-          <div className="flex items-center gap-2.5 text-xs text-slate-600">
-            <div className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
-              <Phone className="w-3.5 h-3.5 text-slate-400" />
+
+          {/* Combined Phone & Verification */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs text-slate-600 truncate">
+              <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+                <Phone className="w-3 h-3 text-slate-400" />
+              </div>
+              <span className="font-medium truncate">{order.phone || "Sin teléfono"}</span>
             </div>
-            <span className="font-medium">{order.phone}</span>
+
+            {(order.type === "delivery" || order.type === "pickup") && order.phone && (
+              <div className="bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 shadow-inner flex items-center gap-1.5 shrink-0">
+                <span className="text-[9px] font-extrabold text-blue-600 uppercase">
+                  Verif:
+                </span>
+                <span className="text-xl font-black text-blue-700 tracking-wider">
+                  {String(order.phone).slice(-4)}
+                </span>
+              </div>
+            )}
           </div>
+
           {isDelivery && order.address && (
-            <div className="flex items-start gap-2.5 text-xs text-slate-600">
-              <div className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-start gap-2 text-xs text-slate-600">
+              <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+                <MapPin className="w-3 h-3 text-slate-400" />
               </div>
               <span
                 className="leading-snug font-medium line-clamp-2"
@@ -203,7 +219,7 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
           <p className="text-sm font-black text-slate-700">
             {order.customerName}
           </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-medium">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-medium mt-1">
             <span className="flex items-center gap-1">
               <Phone className="w-3.5 h-3.5 text-slate-400" />
               {order.phone || "Sin teléfono"}
@@ -215,6 +231,16 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
               </span>
             )}
           </div>
+          {(order.type === "delivery" || order.type === "pickup") && order.phone && (
+            <div className="inline-flex items-center gap-2 mt-1.5 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">
+               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+                 Verif:
+               </span>
+               <span className="text-xl font-black text-blue-700 tracking-widest">
+                 {String(order.phone).slice(-4)}
+               </span>
+            </div>
+          )}
         </div>
       </div>
 
