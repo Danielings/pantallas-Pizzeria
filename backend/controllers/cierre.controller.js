@@ -152,21 +152,33 @@ export const obtenerResumenDia = async (req, res) => {
       ).toFixed(2),
     );
 
-    // 6. Transacciones recientes de la fecha seleccionada
+    // 6. Transacciones de la fecha seleccionada con sus desglose de pagos
     const [transacciones] = await pool.query(
       `SELECT 
         v.id_venta,
         DATE_FORMAT(v.fecha_hora, '%h:%i %p') AS hora,
         v.monto_total_usd,
+        v.monto_total_bs,
         v.despacho,
-        c.nombre AS nombre_cliente
+        c.nombre AS nombre_cliente,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'metodo_pago', vp.metodo_pago,
+              'referencia', vp.referencia,
+              'monto_usd', vp.monto_usd,
+              'monto_bs', vp.monto_bs
+            )
+          )
+          FROM ventas_pagos vp
+          WHERE vp.id_venta = v.id_venta
+        ) AS pagos
        FROM ventas v
        LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
        WHERE DATE(v.fecha_hora) = (SELECT DATE(v2.fecha_hora) FROM ventas v2 WHERE ${dateCondition} LIMIT 1)
          AND v.estado = 'Completado'
          AND v.id_sucursal = ?
-       ORDER BY v.fecha_hora DESC
-       LIMIT 5`,
+       ORDER BY v.fecha_hora DESC`,
       [id_sucursal],
     );
 
