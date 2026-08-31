@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import {
   Pizza,
   DollarSign,
@@ -13,8 +13,11 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageSquare,
+  EllipsisVertical,
+  Undo2
 } from "lucide-react";
 import OrderEditModal from "../components/cajero/OrderEditModal";
+import ReembolsoModal from "../components/cajero/ReembolsoModal";
 import { useVentasHoy } from "../hooks/useVentasHoy";
 import { usePedidosActivos } from "../hooks/usePedidosActivos";
 
@@ -146,6 +149,10 @@ export default function ColaTrabajoScreen() {
   const [editState, setEditState] = useState(null); // { pedido, displayNum }
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [reembolsoState, setReembolsoState] = useState(null);
+  const menuRef = useRef(null);
 
   const loading = ventasLoading || pedidosLoading || metricsHoy === null;
   const pedidos = Array.isArray(pedidosActivos) ? pedidosActivos : [];
@@ -282,7 +289,7 @@ export default function ColaTrabajoScreen() {
 
         <div className="flex-1 overflow-auto bg-slate-50/30 p-3 sm:p-4 md:p-5">
           <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto pb-32">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/70 border-b border-slate-100 text-xs sm:text-sm font-bold text-slate-500">
@@ -348,10 +355,12 @@ export default function ColaTrabajoScreen() {
                         (d) => d.nota && d.nota.trim(),
                       )?.nota;
 
+                      const isReembolsable = estadoObj === ESTADO_BADGES.Pendiente;
+
                       return (
                         <tr
                           key={pedido.id_venta}
-                          className="hover:bg-slate-50/80 transition-colors"
+                          className={`hover:bg-slate-50/80 transition-colors relative ${openMenuId === pedido.id_venta ? 'z-50' : 'z-0'}`}
                         >
                           {/* Pedido # + Tiempo */}
                           <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5 whitespace-nowrap">
@@ -433,18 +442,54 @@ export default function ColaTrabajoScreen() {
                           </td>
 
                           {/* Acciones */}
-                          <td className="py-4 px-6 text-center whitespace-nowrap">
+                          <td className="py-4 px-6 text-center whitespace-nowrap relative">
+                            <div className="relative inline-block text-left" ref={menuRef}>
                             <button
-                              onClick={() =>
-                                setEditState({
-                                  pedido: JSON.parse(JSON.stringify(pedido)),
-                                  displayNum: num,
-                                })
-                              }
-                              className="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-extrabold text-slate-700 hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all cursor-pointer shadow-sm"
+                              onClick={() => setOpenMenuId(openMenuId === pedido.id_venta ? null : pedido.id_venta)}
+                              className="p-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-all cursor-pointer shadow-sm"
                             >
-                              Editar
+                              <EllipsisVertical className="w-4 h-4" />
                             </button>
+
+                            {/* Dropdown Menu */}
+                            {openMenuId === pedido.id_venta && (
+                              <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95">
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => {
+                                      setEditState({ pedido: JSON.parse(JSON.stringify(pedido)), displayNum: num });
+                                      setOpenMenuId(null);
+                                    }}  
+                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                  >
+                                    <Edit3 className="w-4 h-4 text-slate-400" />
+                                    Editar Pedido
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (!isReembolsable) return; // Bloquea la acción
+                                      setReembolsoState({ pedido: JSON.parse(JSON.stringify(pedido)), displayNum: num });
+                                      setOpenMenuId(null);
+                                      }}
+                                      disabled={!isReembolsable}
+                                      title={
+                                      isReembolsable
+                                      ? "Procesar reembolso de este pedido"
+                                      : `No disponible: el pedido está en estado "${estadoObj.label.trim()}"`
+                                      }
+                                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors border-t border-slate-100 ${
+                                      isReembolsable
+                                      ? "text-red-600 hover:bg-red-50 cursor-pointer"
+                                      : "text-slate-300 cursor-not-allowed opacity-50"
+                                      }`}
+                                    >
+                                    <Undo2 className={`w-4 h-4 ${isReembolsable ? "text-red-400" : "text-slate-300"}`} />
+                                    <span>Reembolso</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                           </td>
                         </tr>
                       );
@@ -505,6 +550,15 @@ export default function ColaTrabajoScreen() {
           pedido={editState.pedido}
           displayNum={editState.displayNum}
           onClose={() => setEditState(null)}
+        />
+      )}
+
+      {/* --- NUEVO MODAL DE REEMBOLSO --- */}
+      {reembolsoState && (
+        <ReembolsoModal
+          pedido={reembolsoState.pedido}
+          displayNum={reembolsoState.displayNum}
+          onClose={() => setReembolsoState(null)}
         />
       )}
     </div>

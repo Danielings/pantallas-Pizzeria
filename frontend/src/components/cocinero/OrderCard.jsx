@@ -58,7 +58,7 @@ const VARIANT_CONFIG = {
     badge: "bg-amber-100 text-amber-700 border border-amber-200",
     dot: "bg-amber-400 animate-pulse",
     primaryBtn: "bg-amber-400 hover:bg-amber-500 text-white",
-    secondaryBtn: "",
+    secondaryBtn: "bg-red-500 hover:bg-red-600 text-white border border-red-600 ",
   },
   orange: {
     border: "border-l-orange-400",
