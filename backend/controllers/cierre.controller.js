@@ -14,6 +14,7 @@ export const verificarPedidosPendientes = async (req, res) => {
         WHERE vd.id_venta = v.id_venta
           AND vd.estado != 'Completado' 
           AND vd.estado != 'Cerrado'
+          AND vd.estado != 'Cancelado'
           AND v.id_sucursal = ?
       );`,
       [id_sucursal],
@@ -477,7 +478,8 @@ export const actualizarPinCajero = async (req, res) => {
       if (pinDuplicado.length > 0) {
         return res.status(409).json({
           success: false,
-          mensaje: "Ese PIN ya está en uso por otro cajero. Elige uno diferente.",
+          mensaje:
+            "Ese PIN ya está en uso por otro cajero. Elige uno diferente.",
         });
       }
     }
