@@ -162,14 +162,14 @@ export const obtenerResumenDia = async (req, res) => {
         v.despacho,
         c.nombre AS nombre_cliente,
         (
-          SELECT JSON_ARRAYAGG(
+          SELECT CONCAT('[', GROUP_CONCAT(
             JSON_OBJECT(
               'metodo_pago', vp.metodo_pago,
               'referencia', vp.referencia,
               'monto_usd', vp.monto_usd,
               'monto_bs', vp.monto_bs
             )
-          )
+          ), ']')
           FROM ventas_pagos vp
           WHERE vp.id_venta = v.id_venta
         ) AS pagos
@@ -181,6 +181,18 @@ export const obtenerResumenDia = async (req, res) => {
        ORDER BY v.fecha_hora DESC`,
       [id_sucursal],
     );
+
+    const transaccionesProcesadas = transacciones.map((t) => {
+      let pagos = [];
+      if (t.pagos) {
+        try {
+          pagos = typeof t.pagos === "string" ? JSON.parse(t.pagos) : t.pagos;
+        } catch (e) {
+          console.error("Error al parsear pagos de la transacción:", e);
+        }
+      }
+      return { ...t, pagos };
+    });
 
     const resumen = {
       fecha_consulta: dateLabel,
@@ -198,7 +210,7 @@ export const obtenerResumenDia = async (req, res) => {
         transferencia_bs, // en Bs.
       },
       salidas_efectivo,
-      transacciones,
+      transacciones: transaccionesProcesadas,
     };
 
     return res.status(200).json(resumen);
