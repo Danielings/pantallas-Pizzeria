@@ -503,6 +503,62 @@ export const editarVenta = async (req, res) => {
   }
 };
 
+//-----Reembolsar venta
+export const reembolsarVenta = async (req, res) => {
+  const { id_venta } = req.body;
+
+  if (!id_venta) {
+    return res.status(400).json({
+      success: false,
+      message: "El id_venta es obligatorio para procesar el reembolso.",
+    });
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    await connection.query(
+      `UPDATE ventas 
+       SET estado = 'Reembolsado', monto_total_usd = 0, monto_total_bs = 0 
+       WHERE id_venta = ?`,
+      [id_venta],
+    );
+
+    await connection.query(
+      `UPDATE ventas_pagos 
+       SET monto_usd = 0, monto_bs = 0 
+       WHERE id_venta = ?`,
+      [id_venta],
+    );
+
+    await connection.query(
+      `UPDATE venta_detalle 
+       SET estado = 'Cancelado', monto_total = 0 
+       WHERE id_venta = ?`,
+      [id_venta],
+    );
+
+    await connection.commit();
+
+    res.status(200).json({
+      success: true,
+      message: "Reembolso procesado correctamente",
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error al procesar el reembolso:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al procesar el reembolso",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
+};
+
 // ---- Obtener métodos de pago
 export const obtenerMetodosPago = async (req, res) => {
   try {
@@ -616,6 +672,7 @@ export const obtenerPedidosActivos = async (req, res) => {
           WHERE vd.id_venta = v.id_venta
             AND vd.estado != 'Completado'
             AND vd.estado != 'Cerrado'
+            AND vd.estado != 'Cancelado'
         )
       ORDER BY v.fecha_hora DESC`;
     let params = [id_sucursal];

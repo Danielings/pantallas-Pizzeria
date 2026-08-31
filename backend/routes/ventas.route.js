@@ -13,6 +13,7 @@ import {
   obtenerTasaDesdeBD,
   editarYAnclarTasa,
   desanclarTasa,
+  reembolsarVenta,
 } from "../controllers/ventas.controller.js";
 import verificarToken from "../middleware/verificarToken.js";
 import esAdmin from "../middleware/esAdmin.js";
@@ -24,6 +25,7 @@ router.post("/registrar-pedido-pendiente", registrarPedidoPendiente);
 
 router.post("/completar-venta-pendiente/:id_venta", completarVentaPendiente);
 router.put("/editar-venta", editarVenta);
+router.put("/reembolsar-venta", reembolsarVenta);
 router.get("/metodos-pagos", obtenerMetodosPago);
 
 router.get("/obtener-ventas-hoy", verificarToken, obtenerVentasHoy);
