@@ -157,38 +157,28 @@ export default function ProductosScreen() {
     return matchesSearch && matchesCategory && matchesBranch;
   });
 
-  const branchFilteredProducts = products.filter(
-    (p) =>
-      selectedBranchFilter === "all" ||
-      String(p.id_sucursal) === String(selectedBranchFilter),
+  const counts = products.reduce(
+    (acc, p) => {
+      if (
+        selectedBranchFilter === "all" ||
+        String(p.id_sucursal) === String(selectedBranchFilter)
+      ) {
+        acc.all++;
+        if (acc[p.category] !== undefined) {
+          acc[p.category]++;
+        }
+      }
+      return acc;
+    },
+    { all: 0, pizzas: 0, drinks: 0, icecream: 0, extras: 0 },
   );
 
   const FILTER_TABS = [
-    { id: "all", label: "Todos", count: branchFilteredProducts.length },
-    {
-      id: "pizzas",
-      label: "Pizza",
-      count: branchFilteredProducts.filter((p) => p.category === "pizzas")
-        .length,
-    },
-    {
-      id: "drinks",
-      label: "Bebida",
-      count: branchFilteredProducts.filter((p) => p.category === "drinks")
-        .length,
-    },
-    {
-      id: "icecream",
-      label: "Helado",
-      count: branchFilteredProducts.filter((p) => p.category === "icecream")
-        .length,
-    },
-    {
-      id: "extras",
-      label: "Extras",
-      count: branchFilteredProducts.filter((p) => p.category === "extras")
-        .length,
-    },
+    { id: "all", label: "Todos", count: counts.all },
+    { id: "pizzas", label: "Pizza", count: counts.pizzas },
+    { id: "drinks", label: "Bebida", count: counts.drinks },
+    { id: "icecream", label: "Helado", count: counts.icecream },
+    { id: "extras", label: "Extras", count: counts.extras },
   ];
 
   // Funciones de apertura
@@ -233,7 +223,6 @@ export default function ProductosScreen() {
       formData.append("name", productData.name);
       formData.append("price", productData.price);
       formData.append("description", productData.description || "");
-      formData.append("id_sucursal", productData.id_sucursal || "");
 
       if (
         (selectedCategory === "pizzas" || selectedCategory === "extras") &&
@@ -479,19 +468,6 @@ export default function ProductosScreen() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-              <select
-                value={selectedBranchFilter}
-                onChange={(e) => setSelectedBranchFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm font-semibold text-slate-700 cursor-pointer h-[38px]"
-              >
-                <option value="all">Todas las Sucursales</option>
-                {branches &&
-                  branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-              </select>
               <div className="relative w-full sm:w-72">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -539,9 +515,6 @@ export default function ProductosScreen() {
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Producto
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Sucursal
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Descripción
@@ -616,13 +589,6 @@ export default function ProductosScreen() {
                           </span>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-5 py-4 font-semibold text-slate-700 text-xs">
-                      {branches &&
-                        (branches.find(
-                          (b) => String(b.id) === String(product.id_sucursal),
-                        )?.name ||
-                          "Sin Sucursal")}
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {product.description}
