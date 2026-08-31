@@ -394,6 +394,9 @@ export const actualizarEstadoPedido = async (req, res) => {
   } else if (status === "completed") {
     nuevoEstado = "Completado";
     estadoAnterior = "Despacho";
+  } else if (status === "pending") {
+    nuevoEstado = "Pendiente";
+    estadoAnterior = "Horno";
   } else {
     return res.status(400).json({
       success: false,

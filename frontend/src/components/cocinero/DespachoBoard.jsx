@@ -5,14 +5,14 @@ import Swal from "sweetalert2";
 
 const Toast = Swal.mixin({
   toast: true,
-  position: 'top-end',       
-  showConfirmButton: false,  
-  timer: 3000,               
-  timerProgressBar: true,    
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
   didOpen: (toast) => {
-    toast.addEventListener('mouseenter', Swal.stopTimer)
-    toast.addEventListener('mouseleave', Swal.resumeTimer)
-  }
+    toast.addEventListener("mouseenter", Swal.stopTimer);
+    toast.addEventListener("mouseleave", Swal.resumeTimer);
+  },
 });
 
 // determina si un pedido es de tipo "Local"
@@ -169,31 +169,39 @@ export default function DespachoBoard() {
                 }
               }}
               secondaryBtnLabel={!isSwapping ? "Devolver" : null}
-            secondaryBtnLabel={!isSwapping ? "Devolver" : null}
-          onSecondary={!isSwapping ? async () => {
-             // 1. Mostrar alerta de confirmación
-            const result = await Swal.fire({
-              title: '¿Devolver pedido?',
-              text: "¿Desea devolver el pedido a la cocina?",
-              icon: 'question',
-              showCancelButton: true,
-              confirmButtonColor: '#84cc16', 
-              cancelButtonColor: '#ef4444',  
-              confirmButtonText: 'Sí, devolver',
-              cancelButtonText: 'Cancelar'
-            });
+              secondaryBtnLabel={!isSwapping ? "Devolver" : null}
+              onSecondary={
+                !isSwapping
+                  ? async () => {
+                      const result = await Swal.fire({
+                        title: "¿Devolver pedido?",
+                        text: "¿Desea devolver el pedido a la cocina?",
+                        icon: "question",
+                        showCancelButton: true,
+                        confirmButtonColor: "#84cc16",
+                        cancelButtonColor: "#ef4444",
+                        confirmButtonText: "Sí, devolver",
+                        cancelButtonText: "Cancelar",
+                      });
 
-             // 2. Si el usuario hizo clic en "Sí, devolver"
-            if (result.isConfirmed) {
-              
-               // Mostrar el Toast de éxito en la esquina
-              Toast.fire({
-                icon: 'success',
-                title: 'El pedido ha sido Devuelto a la Cocina'
-              });
-
-            }
-          } : null}
+                      if (result.isConfirmed) {
+                        try {
+                          await updateOrderStatus(order.id, "pending");
+                          Toast.fire({
+                            icon: "success",
+                            title: "El pedido ha sido devuelto a la cocina",
+                          });
+                        } catch (error) {
+                          console.error("Error al devolver el pedido:", error);
+                          Toast.fire({
+                            icon: "error",
+                            title: "Error al devolver el pedido",
+                          });
+                        }
+                      }
+                    }
+                  : null
+              }
             />
           );
         }}
