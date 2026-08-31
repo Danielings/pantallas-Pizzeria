@@ -3,23 +3,12 @@ import { uploadImageToCloudinary } from "../utils/cloudinary.js";
 
 // ----pizzas
 export const obtenerPizzas = async (req, res) => {
-  const { id_sucursal, rol } = req.user;
   try {
-    let query = `
-      SELECT p.*, c.categoria AS categoria_nombre
-      FROM pizza p
+    const [rows] = await pool.execute(`
+      SELECT p.*, c.categoria AS categoria_nombre 
+      FROM pizza p 
       LEFT JOIN categoria_pizza c ON p.id_categoria_pizza = c.id_categoria_pizza
-    `;
-    let params = [];
-
-    const esAdmin = rol?.toLowerCase() === "admin";
-
-    if (!esAdmin) {
-      query += ` WHERE p.id_sucursal = ?`;
-      params.push(id_sucursal);
-    }
-
-    const [rows] = await pool.execute(query, params);
+    `);
 
     const pizzas = rows.map((pizza) => ({
       id: pizza.id_pizza,
@@ -31,7 +20,6 @@ export const obtenerPizzas = async (req, res) => {
       pizzaCategory: pizza.categoria_nombre || null, // <-- Aquí guardamos el tamaño/categoría (ej. "Familiar")
       url: pizza.url || null,
       estado: pizza.estado || "Activo",
-      id_sucursal: pizza.id_sucursal,
     }));
 
     res.json({ success: true, data: pizzas });
@@ -44,16 +32,15 @@ export const obtenerPizzas = async (req, res) => {
 };
 
 export const crearPizza = async (req, res) => {
-  const { name, price, description, size, id_sucursal } = req.body;
+  const { name, price, description, size } = req.body;
   try {
     let id_categoria_pizza =
       size === "Gigante" ? 3 : size === "Familiar" ? 2 : 1;
     const imageUrl = await uploadImageToCloudinary(req.file, "pizzas");
-    const branchId = id_sucursal || req.user?.id_sucursal;
 
     const [result] = await pool.query(
-      `INSERT INTO pizza (nombre, precio, descripcion, id_categoria_pizza, estado, url, id_sucursal) VALUES (?, ?, ?, ?, 'Activo', ?, ?)`,
-      [name, price, description, id_categoria_pizza, imageUrl, branchId],
+      `INSERT INTO pizza (nombre, precio, descripcion, id_categoria_pizza, estado, url) VALUES (?, ?, ?, ?, 'Activo', ?)`,
+      [name, price, description, id_categoria_pizza, imageUrl],
     );
 
     res.status(201).json({
@@ -69,11 +56,10 @@ export const crearPizza = async (req, res) => {
 
 export const actualizarPizza = async (req, res) => {
   const { id } = req.params;
-  const { name, price, description, size, id_sucursal } = req.body;
+  const { name, price, description, size } = req.body;
   try {
     let id_categoria_pizza =
       size === "Gigante" ? 3 : size === "Familiar" ? 2 : 1;
-    const branchId = id_sucursal || req.user?.id_sucursal;
 
     const [existing] = await pool.query(
       "SELECT url FROM pizza WHERE id_pizza = ?",
@@ -84,8 +70,8 @@ export const actualizarPizza = async (req, res) => {
     if (req.file) imageUrl = await uploadImageToCloudinary(req.file, "pizzas");
 
     await pool.query(
-      `UPDATE pizza SET nombre = ?, precio = ?, descripcion = ?, id_categoria_pizza = ?, url = ?, id_sucursal = ? WHERE id_pizza = ?`,
-      [name, price, description, id_categoria_pizza, imageUrl, branchId, id],
+      `UPDATE pizza SET nombre = ?, precio = ?, descripcion = ?, id_categoria_pizza = ?, url = ? WHERE id_pizza = ?`,
+      [name, price, description, id_categoria_pizza, imageUrl, id],
     );
 
     res.json({
@@ -101,22 +87,8 @@ export const actualizarPizza = async (req, res) => {
 // ----bebidasw
 
 export const obtenerBebidas = async (req, res) => {
-  const { id_sucursal, rol } = req.user;
   try {
-    let query = `
-      SELECT *
-      FROM bebidas
-    `;
-    let params = [];
-
-    const esAdmin = rol?.toLowerCase() === "admin";
-
-    if (!esAdmin) {
-      query += ` WHERE id_sucursal = ?`;
-      params.push(id_sucursal);
-    }
-
-    const [rows] = await pool.execute(query, params);
+    const [rows] = await pool.execute("SELECT * FROM bebidas");
 
     const bebidas = rows.map((bebida) => ({
       id: bebida.id_bebida, // <-- Basado en tu imagen, la columna es id_bebida
@@ -126,7 +98,6 @@ export const obtenerBebidas = async (req, res) => {
       category: "drinks",
       url: bebida.url || null,
       estado: bebida.estado || "Activo",
-      id_sucursal: bebida.id_sucursal,
     }));
 
     res.json({ success: true, data: bebidas });
@@ -139,14 +110,12 @@ export const obtenerBebidas = async (req, res) => {
 };
 
 export const crearBebida = async (req, res) => {
-  const { name, price, description, id_sucursal } = req.body;
+  const { name, price, description } = req.body;
   try {
     const imageUrl = await uploadImageToCloudinary(req.file, "bebidas");
-    const branchId = id_sucursal || req.user?.id_sucursal;
-
     const [result] = await pool.query(
-      `INSERT INTO bebidas (nombre, precio, descripcion, estado, url, id_sucursal) VALUES (?, ?, ?, 'Activo', ?, ?)`,
-      [name, price, description, imageUrl, branchId],
+      `INSERT INTO bebidas (nombre, precio, descripcion, estado, url) VALUES (?, ?, ?, 'Activo', ?)`,
+      [name, price, description, imageUrl],
     );
     res.status(201).json({
       success: true,
@@ -161,10 +130,8 @@ export const crearBebida = async (req, res) => {
 
 export const actualizarBebida = async (req, res) => {
   const { id } = req.params;
-  const { name, price, description, id_sucursal } = req.body;
+  const { name, price, description } = req.body;
   try {
-    const branchId = id_sucursal || req.user?.id_sucursal;
-
     const [existing] = await pool.query(
       "SELECT url FROM bebidas WHERE id_bebida = ?",
       [id],
@@ -174,8 +141,8 @@ export const actualizarBebida = async (req, res) => {
     if (req.file) imageUrl = await uploadImageToCloudinary(req.file, "bebidas");
 
     await pool.query(
-      `UPDATE bebidas SET nombre = ?, precio = ?, descripcion = ?, url = ?, id_sucursal = ? WHERE id_bebida = ?`,
-      [name, price, description, imageUrl, branchId, id],
+      `UPDATE bebidas SET nombre = ?, precio = ?, descripcion = ?, url = ? WHERE id_bebida = ?`,
+      [name, price, description, imageUrl, id],
     );
     res.json({
       success: true,
@@ -190,21 +157,8 @@ export const actualizarBebida = async (req, res) => {
 // -----helados
 
 export const obtenerHelados = async (req, res) => {
-  const { id_sucursal, rol } = req.user;
   try {
-    let query = `
-      SELECT * FROM heladeria
-    `;
-    let params = [];
-
-    const esAdmin = rol?.toLowerCase() === "admin";
-
-    if (!esAdmin) {
-      query += ` WHERE id_sucursal = ?`;
-      params.push(id_sucursal);
-    }
-
-    const [rows] = await pool.execute(query, params);
+    const [rows] = await pool.execute("SELECT * FROM heladeria");
 
     const helados = rows.map((helado) => ({
       id: helado.id_helado, // <-- Asegúrate de que coincida con la columna ID de tu tabla heladeria
@@ -214,7 +168,6 @@ export const obtenerHelados = async (req, res) => {
       category: "icecream",
       url: helado.url || null,
       estado: helado.estado || "Activo",
-      id_sucursal: helado.id_sucursal,
     }));
 
     res.json({ success: true, data: helados });
@@ -227,14 +180,12 @@ export const obtenerHelados = async (req, res) => {
 };
 
 export const crearHelado = async (req, res) => {
-  const { name, price, description, id_sucursal } = req.body;
+  const { name, price, description } = req.body;
   try {
     const imageUrl = await uploadImageToCloudinary(req.file, "helados");
-    const branchId = id_sucursal || req.user?.id_sucursal;
-
     const [result] = await pool.query(
-      `INSERT INTO heladeria (nombre, precio, descripcion, estado, url, id_sucursal) VALUES (?, ?, ?, 'Activo', ?, ?)`,
-      [name, price, description, imageUrl, branchId],
+      `INSERT INTO heladeria (nombre, precio, descripcion, estado, url) VALUES (?, ?, ?, 'Activo', ?)`,
+      [name, price, description, imageUrl],
     );
     res.status(201).json({
       success: true,
@@ -249,10 +200,8 @@ export const crearHelado = async (req, res) => {
 
 export const actualizarHelado = async (req, res) => {
   const { id } = req.params;
-  const { name, price, description, id_sucursal } = req.body;
+  const { name, price, description } = req.body;
   try {
-    const branchId = id_sucursal || req.user?.id_sucursal;
-
     const [existing] = await pool.query(
       "SELECT url FROM heladeria WHERE id_helado = ?",
       [id],
@@ -262,8 +211,8 @@ export const actualizarHelado = async (req, res) => {
     if (req.file) imageUrl = await uploadImageToCloudinary(req.file, "helados");
 
     await pool.query(
-      `UPDATE heladeria SET nombre = ?, precio = ?, descripcion = ?, url = ?, id_sucursal = ? WHERE id_helado = ?`,
-      [name, price, description, imageUrl, branchId, id],
+      `UPDATE heladeria SET nombre = ?, precio = ?, descripcion = ?, url = ? WHERE id_helado = ?`,
+      [name, price, description, imageUrl, id],
     );
     res.json({
       success: true,
@@ -278,24 +227,12 @@ export const actualizarHelado = async (req, res) => {
 // -----extras
 
 export const obtenerExtras = async (req, res) => {
-  const { id_sucursal, rol } = req.user;
   try {
-    let query = `
+    const [rows] = await pool.execute(`
       SELECT e.*, c.categoria AS categoria_nombre 
       FROM extras e
       LEFT JOIN categoria_pizza c ON e.id_categoria_pizza = c.id_categoria_pizza
-    `;
-
-    let params = [];
-
-    const esAdmin = rol?.toLowerCase() === "admin";
-
-    if (!esAdmin) {
-      query += ` WHERE e.id_sucursal = ?`;
-      params.push(id_sucursal);
-    }
-
-    const [rows] = await pool.execute(query, params);
+    `);
 
     const extras = rows.map((extra) => ({
       id: extra.id_extras,
@@ -306,7 +243,6 @@ export const obtenerExtras = async (req, res) => {
       size: extra.categoria_nombre || "Normal",
       extraCategory: extra.categoria_nombre || null,
       estado: extra.estado || "Activo",
-      id_sucursal: extra.id_sucursal,
     }));
 
     res.json({ success: true, data: extras });
@@ -319,15 +255,13 @@ export const obtenerExtras = async (req, res) => {
 };
 
 export const crearExtra = async (req, res) => {
-  const { name, price, size, id_sucursal } = req.body;
+  const { name, price, size } = req.body;
   try {
     let id_categoria_pizza =
       size === "Gigante" ? 3 : size === "Familiar" ? 2 : 1;
-    const branchId = id_sucursal || req.user?.id_sucursal;
-
     const [result] = await pool.query(
-      `INSERT INTO extras (nombre, precio, id_categoria_pizza, estado, id_sucursal) VALUES (?, ?, ?, 'Activo', ?)`,
-      [name, price, id_categoria_pizza, branchId],
+      `INSERT INTO extras (nombre, precio, id_categoria_pizza, estado) VALUES (?, ?, ?, 'Activo')`,
+      [name, price, id_categoria_pizza],
     );
     res.status(201).json({
       success: true,
@@ -341,15 +275,13 @@ export const crearExtra = async (req, res) => {
 
 export const actualizarExtra = async (req, res) => {
   const { id } = req.params;
-  const { name, price, size, id_sucursal } = req.body;
+  const { name, price, size } = req.body;
   try {
     let id_categoria_pizza =
       size === "Gigante" ? 3 : size === "Familiar" ? 2 : 1;
-    const branchId = id_sucursal || req.user?.id_sucursal;
-
     await pool.query(
-      `UPDATE extras SET nombre = ?, precio = ?, id_categoria_pizza = ?, id_sucursal = ? WHERE id_extras = ?`,
-      [name, price, id_categoria_pizza, branchId, id],
+      `UPDATE extras SET nombre = ?, precio = ?, id_categoria_pizza = ? WHERE id_extras = ?`,
+      [name, price, id_categoria_pizza, id],
     );
     res.status(200).json({ success: true, message: "Extra actualizado" });
   } catch (error) {

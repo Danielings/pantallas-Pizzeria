@@ -20,7 +20,7 @@ import esAdmin from "../middleware/esAdmin.js";
 const router = Router();
 
 // Rutas de Pizzas
-router.get("/pizzas", verificarToken, obtenerPizzas);
+router.get("/pizzas", obtenerPizzas);
 router.post(
   "/pizzas",
   upload.single("imagen"),
@@ -37,7 +37,7 @@ router.put(
 );
 
 // Rutas de Bebidas
-router.get("/bebidas", verificarToken, obtenerBebidas);
+router.get("/bebidas", obtenerBebidas);
 router.post(
   "/bebidas",
   upload.single("imagen"),
@@ -54,7 +54,7 @@ router.put(
 );
 
 // Rutas de Heladería
-router.get("/heladeria", verificarToken, obtenerHelados);
+router.get("/heladeria", obtenerHelados);
 router.post("/heladeria", upload.single("imagen"), verificarToken, crearHelado);
 router.put(
   "/heladeria/:id",
@@ -65,7 +65,7 @@ router.put(
 );
 
 // Rutas de Extras
-router.get("/extras", verificarToken, obtenerExtras);
+router.get("/extras", obtenerExtras);
 router.post("/extras", upload.none(), verificarToken, esAdmin, crearExtra);
 router.put(
   "/extras/:id",

@@ -160,32 +160,6 @@ export default function ProductForm({
         </div>
       )}
 
-      {/* Sucursal */}
-      <div>
-        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
-          Sucursal
-        </label>
-        <select
-          value={form.id_sucursal}
-          onChange={(e) => handleChange("id_sucursal", e.target.value)}
-          className={`w-full bg-slate-50 border ${errors.id_sucursal ? "border-red-500" : "border-slate-200"} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-slate-400`}
-        >
-          <option value="" disabled>
-            Selecciona una sucursal
-          </option>
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.name}
-            </option>
-          ))}
-        </select>
-        {errors.id_sucursal && (
-          <p className="text-red-500 text-xs mt-1 font-medium">
-            {errors.id_sucursal}
-          </p>
-        )}
-      </div>
-
       {/* Nombre */}
       <div>
         <label className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5 block">
