@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../context/AppContext";
+import { subscribeToPusher } from "../lib/pusherClient";
 
 const API_BASE = "http://localhost:3001/api";
 
@@ -25,7 +27,9 @@ const adaptVenta = (venta, status) => ({
 
 const fetchKitchen = async (endpoint, status) => {
   try {
-    const res = await fetch(`${API_BASE}/${endpoint}`);
+    const res = await fetch(`${API_BASE}/${endpoint}`, {
+      credentials: "include",
+    });
     const json = await res.json();
     return json.success
       ? (json.data || []).map((v) => adaptVenta(v, status))
@@ -40,10 +44,42 @@ export function useKitchenOrders() {
   const queryClient = useQueryClient();
   const { currentUser } = useApp();
 
+  useEffect(() => {
+    if (!currentUser) return undefined;
+
+    const unsubscribeKitchen = subscribeToPusher({
+      channelName: "pizzeria-kitchen",
+      events: {
+        pedido_estado_cambiado: () => {
+          queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
+        },
+        pedido_actualizado: () => {
+          queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
+        },
+      },
+    });
+
+    const unsubscribeOrders = subscribeToPusher({
+      channelName: "pizzeria-orders",
+      events: {
+        pedido_actualizado: () => {
+          queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
+        },
+        pedido_creado: () => {
+          queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
+        },
+      },
+    });
+
+    return () => {
+      unsubscribeKitchen();
+      unsubscribeOrders();
+    };
+  }, [currentUser, queryClient]);
+
   const query = useQuery({
     queryKey: ["kitchenOrders"],
-    refetchInterval: 40_000,
-    refetchIntervalInBackground: false,
+    staleTime: 15_000,
     enabled: !!currentUser,
     queryFn: async () => {
       const [pending, preparing, delivered, ready, waiter_pending] =
@@ -76,6 +112,7 @@ export function useKitchenOrders() {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status }),
+            credentials: "include",
           },
         );
         const json = await res.json();

@@ -1,4 +1,5 @@
 import pool from "../config/bd.js";
+import { emitPusherEvent } from "../config/pusher.js";
 
 //--------------------------Pedidos
 
@@ -420,6 +421,20 @@ export const actualizarEstadoPedido = async (req, res) => {
         message: "No se encontraron pizzas para este pedido.",
       });
     }
+
+    emitPusherEvent("pizzeria-kitchen", "pedido_estado_cambiado", {
+      id_venta,
+      estado: nuevoEstado,
+      tipo_evento: "pedido_estado_cambiado",
+      timestamp: Date.now(),
+    });
+
+    emitPusherEvent("pizzeria-orders", "pedido_actualizado", {
+      id_venta,
+      estado: nuevoEstado,
+      tipo_evento: "pedido_actualizado",
+      timestamp: Date.now(),
+    });
 
     res.json({
       success: true,
