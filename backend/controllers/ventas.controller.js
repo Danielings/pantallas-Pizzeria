@@ -1,5 +1,6 @@
 import pool from "../config/bd.js";
 import axios from "axios";
+import { emitPusherEvent } from "../config/pusher.js";
 
 const TASA_API_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
 
@@ -91,6 +92,13 @@ export const procesarVenta = async (req, res) => {
     }
 
     await connection.commit();
+
+    emitPusherEvent("pizzeria-orders", "pedido_creado", {
+      id_venta,
+      sucursal_id: id_sucursal,
+      tipo_evento: "pedido_creado",
+      timestamp: Date.now(),
+    });
 
     res.status(201).json({
       success: true,
@@ -227,6 +235,15 @@ export const registrarPedidoPendiente = async (req, res) => {
 
     await connection.commit();
 
+    emitPusherEvent("pizzeria-notifications", "notificacion_pendiente_creada", {
+      id_venta,
+      id_cliente,
+      id_usuario,
+      sucursal_id: id_sucursal,
+      tipo_evento: "notificacion_pendiente_creada",
+      timestamp: Date.now(),
+    });
+
     return res.status(201).json({
       success: true,
       message: "Pedido pendiente registrado exitosamente",
@@ -345,6 +362,23 @@ export const completarVentaPendiente = async (req, res) => {
     );
 
     await connection.commit();
+
+    emitPusherEvent("pizzeria-orders", "pedido_actualizado", {
+      id_venta,
+      sucursal_id: req.user?.id_sucursal || null,
+      tipo_evento: "pedido_actualizado",
+      timestamp: Date.now(),
+    });
+    emitPusherEvent(
+      "pizzeria-notifications",
+      "notificacion_pendiente_resuelta",
+      {
+        id_venta,
+        sucursal_id: req.user?.id_sucursal || null,
+        tipo_evento: "notificacion_pendiente_resuelta",
+        timestamp: Date.now(),
+      },
+    );
 
     return res.json({ success: true, message: "Venta pendiente completada." });
   } catch (error) {
@@ -486,6 +520,13 @@ export const editarVenta = async (req, res) => {
 
     await connection.commit();
 
+    emitPusherEvent("pizzeria-orders", "pedido_actualizado", {
+      id_venta,
+      sucursal_id: null,
+      tipo_evento: "pedido_actualizado",
+      timestamp: Date.now(),
+    });
+
     res.status(200).json({
       success: true,
       message: "Pedido actualizado correctamente",
@@ -541,6 +582,13 @@ export const reembolsarVenta = async (req, res) => {
     );
 
     await connection.commit();
+
+    emitPusherEvent("pizzeria-orders", "pedido_actualizado", {
+      id_venta,
+      sucursal_id: null,
+      tipo_evento: "pedido_actualizado",
+      timestamp: Date.now(),
+    });
 
     res.status(200).json({
       success: true,

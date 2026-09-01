@@ -127,7 +127,7 @@ export const restablecerPassword = async (req, res) => {
       return res.status(400).json({ message: "Enlace inválido o expirado." });
     }
 
-    const hashedPassword = password; // Recuerda descomentar bcrypt en producción
+    const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
       "UPDATE usuarios SET password = ?, reset_token = '', token_expires = '' WHERE id_usuario = ?",
       [hashedPassword, rows[0].id_usuario],

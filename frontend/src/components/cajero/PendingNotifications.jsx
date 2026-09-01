@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { subscribeToPusher } from "../../lib/pusherClient";
 import { Bell, ChevronRight, Loader2, X } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
@@ -22,16 +23,34 @@ export default function PendingNotifications() {
   const [loadingId, setLoadingId] = useState(null);
   const [error, setError] = useState("");
 
-  // Configuración optimizada de TanStack Query
+  useEffect(() => {
+    const unsubscribe = subscribeToPusher({
+      channelName: "pizzeria-notifications",
+      events: {
+        notificacion_pendiente_creada: () => {
+          queryClient.invalidateQueries({
+            queryKey: ["notificaciones-pendientes"],
+          });
+        },
+        notificacion_pendiente_resuelta: () => {
+          queryClient.invalidateQueries({
+            queryKey: ["notificaciones-pendientes"],
+          });
+        },
+      },
+    });
+
+    return () => unsubscribe();
+  }, [queryClient]);
+
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notificaciones-pendientes"],
     queryFn: async () => {
       const { data } = await axios.get(`${API_URL}/notificaciones-pendientes`);
       return data.success ? data.data || [] : [];
     },
-    refetchInterval: 60000,
-    refetchOnWindowFocus: true,
-    staleTime: 5000,
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
   });
 
   const loadNotification = async (notification) => {

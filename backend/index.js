@@ -14,6 +14,7 @@ import cierre from "./routes/cierre.route.js";
 import clientes from "./routes/clientes.route.js";
 import notificaciones from "./routes/notificaciones.route.js";
 import sucursales from "./routes/sucursal.route.js";
+import pusherRoutes from "./routes/pusher.route.js";
 
 const app = express();
 app.use(
@@ -26,6 +27,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Rutitas
@@ -38,6 +40,7 @@ app.use("/api", cierre);
 app.use("/api", clientes);
 app.use("/api", notificaciones);
 app.use("/api", sucursales);
+app.use("/api", pusherRoutes);
 
 cron.schedule("*/30 * * * *", async () => {
   try {

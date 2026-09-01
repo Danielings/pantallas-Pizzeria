@@ -8,5 +8,8 @@ dist/
 
 # Ignorar archivos de configuración sensible
 .env
+.env.local
 backend/.env
+backend/.env.local
 frontend/.env
+frontend/.env.local
