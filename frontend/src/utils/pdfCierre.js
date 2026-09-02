@@ -41,19 +41,19 @@ export const exportCierrePDF = async (cierre) => {
 
   // --- DYNAMIC BRANCH COLOR PALETTE ---
   const palette = getSucursalPalette(cierre.id_sucursal);
-  const ACCENT       = palette.bg;         // e.g. [239, 68, 68]
+  const ACCENT = palette.bg;         // e.g. [239, 68, 68]
   const ACCENT_LIGHT = palette.light;      // e.g. [254, 226, 226]
 
   // Static colors
-  const TEXT_DARK  = [30, 41, 59];    // slate-800
+  const TEXT_DARK = [30, 41, 59];    // slate-800
   const TEXT_MUTED = [148, 163, 184]; // slate-400
-  const SLATE_600  = [71, 85, 105];
-  const BG_LIGHT   = [248, 250, 252]; // slate-50
-  const WHITE      = [255, 255, 255];
+  const SLATE_600 = [71, 85, 105];
+  const BG_LIGHT = [248, 250, 252]; // slate-50
+  const WHITE = [255, 255, 255];
 
   // Money formatters
   const fmtMoneyUSD = (n) => `$${Number(n || 0).toFixed(2)}`;
-  const fmtMoneyBs  = (n) =>
+  const fmtMoneyBs = (n) =>
     `Bs. ${Number(n || 0).toLocaleString("es-VE", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -61,18 +61,18 @@ export const exportCierrePDF = async (cierre) => {
 
   const formattedDate = cierre.fecha_hora
     ? new Date(cierre.fecha_hora).toLocaleDateString("es-VE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
     : "—";
 
   const formattedTime = cierre.fecha_hora
     ? new Date(cierre.fecha_hora).toLocaleTimeString("es-VE", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
     : "—";
 
 
@@ -87,11 +87,11 @@ export const exportCierrePDF = async (cierre) => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
   doc.setTextColor(...TEXT_DARK);
-  doc.text("PIZZERÍA NIKO", 196, 19, { align: "right" });
+  doc.text("PIZZERÍA NICO", 196, 19, { align: "right" });
 
   // Branch name (colored)
   const sucursalNombre = cierre.sucursal || "Sucursal Principal";
-  const sucursalDir    = cierre.sucursal_direccion || "";
+  const sucursalDir = cierre.sucursal_direccion || "";
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);

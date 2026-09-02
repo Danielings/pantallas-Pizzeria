@@ -15,6 +15,7 @@ import clientes from "./routes/clientes.route.js";
 import notificaciones from "./routes/notificaciones.route.js";
 import sucursales from "./routes/sucursal.route.js";
 import pusherRoutes from "./routes/pusher.route.js";
+import reportes from "./routes/reportes.route.js";
 
 const app = express();
 app.use(
@@ -41,6 +42,7 @@ app.use("/api", clientes);
 app.use("/api", notificaciones);
 app.use("/api", sucursales);
 app.use("/api", pusherRoutes);
+app.use("/api", reportes);
 
 cron.schedule("*/30 * * * *", async () => {
   try {
