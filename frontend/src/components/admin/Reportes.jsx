@@ -175,8 +175,6 @@ export default function Reportes() {
   const [comparativa, setComparativa] = useState([]);
   const [pagos, setPagos] = useState([]);
   const [tendencia, setTendencia] = useState([]);
-  const [horas, setHoras] = useState([]);
-  const [categorias, setCategorias] = useState([]);
   const [topProductos, setTopProductos] = useState([]);
   const [cierres, setCierres] = useState([]);
 
@@ -211,13 +209,11 @@ export default function Reportes() {
         params: { id_sucursal: sucursalId, periodo, fecha, modulo },
       };
 
-      const [resumenRes, pagosRes, tendenciaRes, horasRes, catRes, topRes, cierresRes] =
+      const [resumenRes, pagosRes, tendenciaRes, topRes, cierresRes] =
         await Promise.allSettled([
           axios.get(`${API_BASE}/reportes/resumen`, axiosCfg),
           axios.get(`${API_BASE}/reportes/pagos`, axiosCfg),
           axios.get(`${API_BASE}/reportes/tendencia`, axiosCfg),
-          axios.get(`${API_BASE}/reportes/horas`, axiosCfg),
-          axios.get(`${API_BASE}/reportes/categorias`, axiosCfg),
           axios.get(`${API_BASE}/reportes/top-productos`, axiosCfg),
           axios.get(`${API_BASE}/reportes/cierres-detalle`, axiosCfg),
         ]);
@@ -242,13 +238,6 @@ export default function Reportes() {
         setTendencia(tendenciaRes.value.data.tendencia || []);
       }
 
-      if (horasRes.status === "fulfilled") {
-        setHoras(horasRes.value.data.horas || []);
-      }
-
-      if (catRes.status === "fulfilled") {
-        setCategorias(catRes.value.data.categorias || []);
-      }
 
       if (topRes.status === "fulfilled") {
         setTopProductos(topRes.value.data.topProductos || []);
