@@ -56,13 +56,21 @@ export const pusherClient = key
     })
   : null;
 
-export const subscribeToPusher = ({ channelName, events, onEvent }) => {
+export const subscribeToPusher = ({ channelName, events }) => {
   if (!pusherClient || !channelName) {
     return () => {};
   }
 
   const normalizedChannelName = normalizePrivateChannel(channelName);
-  const channel = pusherClient.subscribe(normalizedChannelName);
+
+  // 1. Verificamos si el canal ya está creado en la instancia activa
+  let channel = pusherClient.channel(normalizedChannelName);
+
+  // 2. Solo llamamos a subscribe() (lo que dispara /auth) si el canal NO existe
+  if (!channel) {
+    channel = pusherClient.subscribe(normalizedChannelName);
+  }
+
   const handlers = {};
 
   Object.entries(events).forEach(([eventName, handler]) => {
@@ -70,11 +78,11 @@ export const subscribeToPusher = ({ channelName, events, onEvent }) => {
     handlers[eventName] = handler;
   });
 
+  // 3. Al desmontar, desvinculamos solo los oyentes, manteniendo el canal abierto
   const unsubscribe = () => {
-    Object.keys(handlers).forEach((eventName) => {
-      channel.unbind(eventName, handlers[eventName]);
+    Object.entries(handlers).forEach(([eventName, handler]) => {
+      channel.unbind(eventName, handler);
     });
-    pusherClient.unsubscribe(normalizedChannelName);
   };
 
   return unsubscribe;

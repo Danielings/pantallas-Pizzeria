@@ -58,7 +58,9 @@ export function useProducts() {
   const { currentUser } = useApp();
   return useQuery({
     queryKey: ["products"],
-    staleTime: 5 * 60_000,
+    staleTime: 5 * 60_000, // La data es "fresca" por 5 minutos
+    refetchOnWindowFocus: false, // No recargar al cambiar de pestaña del PC
+    refetchOnMount: false,
     enabled: !!currentUser,
     queryFn: async () => {
       const [pizzas, drinks, icecream] = await Promise.all([
@@ -90,7 +92,9 @@ export function useExtras() {
   const { currentUser } = useApp();
   return useQuery({
     queryKey: ["extras"],
-    staleTime: 60_000,
+    staleTime: 5 * 60_000, // Aumentado a 5 minutos para consistencia
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     enabled: !!currentUser,
     queryFn: async () => {
       try {

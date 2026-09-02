@@ -1,29 +1,8 @@
-import { useState, useEffect } from "react";
 import { Pizza, CupSoda, Sandwich, Star } from "lucide-react";
-import axios from "axios";
+import { useContadorCajero } from "../../hooks/useContadorCajero.js";
 
 export default function CategoryFilter({ selected, onSelect }) {
-  const [pedidosPendientes, setPedidosPendientes] = useState(0);
-
-  useEffect(() => {
-    const obtenerDespachos = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:3001/api/obtener-contador-cajero",
-          {
-            withCredentials: true,
-          },
-        );
-        if (response.data.success) {
-          setPedidosPendientes(response.data.total);
-        }
-      } catch (error) {
-        console.error("Error obteniendo el contador de despachos:", error);
-      }
-    };
-
-    obtenerDespachos();
-  }, []);
+  const { data: pedidosPendientes = 0, isLoading } = useContadorCajero();
 
   const categories = [
     { id: "Normal", name: "Normal", icon: <Pizza className="w-4 h-4" /> },
