@@ -11,8 +11,10 @@ import {
   Coffee,
   IceCream,
   X,
+  Layers,
 } from "lucide-react";
 import ProductForm from "./products/ProductForm";
+import ComboForm from "./products/ComboForm";
 import { useBranches } from "../../hooks/useBranches";
 
 // ─── Configuración ────────────────────────────────────────────────
@@ -52,6 +54,15 @@ const CATEGORY_TYPES = [
     colorLight: "bg-emerald-50 border-emerald-200",
     colorSelected: "bg-emerald-500 border-emerald-500",
     colorIcon: "text-emerald-500",
+  },
+  {
+    id: "combos",
+    label: "Combos",
+    sublabel: "Pizzas + Bebidas",
+    icon: Layers,
+    colorLight: "bg-purple-50 border-purple-200",
+    colorSelected: "bg-purple-600 border-purple-600",
+    colorIcon: "text-purple-600",
   },
 ];
 
@@ -94,7 +105,7 @@ export default function ProductosScreen() {
       setIsLoading(true);
       try {
         const axiosConfig = { withCredentials: true };
-        const [pizzasRes, bebidasRes, heladosRes, extrasRes] =
+        const [pizzasRes, bebidasRes, heladosRes, extrasRes, combosRes] =
           await Promise.all([
             axios
               .get("http://localhost:3001/api/pizzas", axiosConfig)
@@ -107,6 +118,9 @@ export default function ProductosScreen() {
               .catch(() => ({ data: { data: [] } })),
             axios
               .get("http://localhost:3001/api/extras", axiosConfig)
+              .catch(() => ({ data: { data: [] } })),
+            axios
+              .get("http://localhost:3001/api/combos", axiosConfig)
               .catch(() => ({ data: { data: [] } })),
           ]);
 
@@ -131,7 +145,18 @@ export default function ProductosScreen() {
           category: "extras",
         }));
 
-        const allProducts = [...pizzas, ...bebidas, ...helados, ...extras];
+        const combos = (combosRes.data.data || []).map((p) => ({
+          ...p,
+          category: "combos",
+        }));
+
+        const allProducts = [
+          ...pizzas,
+          ...bebidas,
+          ...helados,
+          ...extras,
+          ...combos,
+        ];
 
         setProducts(allProducts);
       } catch (error) {
@@ -170,7 +195,7 @@ export default function ProductosScreen() {
       }
       return acc;
     },
-    { all: 0, pizzas: 0, drinks: 0, icecream: 0, extras: 0 },
+    { all: 0, pizzas: 0, drinks: 0, icecream: 0, extras: 0, combos: 0 },
   );
 
   const FILTER_TABS = [
@@ -179,6 +204,7 @@ export default function ProductosScreen() {
     { id: "drinks", label: "Bebida", count: counts.drinks },
     { id: "icecream", label: "Helado", count: counts.icecream },
     { id: "extras", label: "Extras", count: counts.extras },
+    { id: "combos", label: "Combos", count: counts.combos },
   ];
 
   // Funciones de apertura
@@ -205,7 +231,7 @@ export default function ProductosScreen() {
     }, 300);
   };
 
-  // Guardar en DB (Crear o Actualizar)
+  // Guardar en DB (Crear o Actualizar) — Productos individuales
   const handleSaveProduct = async (productData) => {
     setIsSaving(true);
     try {
@@ -295,6 +321,83 @@ export default function ProductosScreen() {
     }
   };
 
+  // Guardar en DB — Combos
+  const handleSaveCombo = async (comboData) => {
+    setIsSaving(true);
+    try {
+      const endpoint = "http://localhost:3001/api/combos";
+
+      const formData = new FormData();
+      formData.append("nombre", comboData.nombre);
+      formData.append("descripcion", comboData.descripcion || "");
+      formData.append("precio", comboData.precio);
+      formData.append("items", JSON.stringify(comboData.items));
+      if (comboData.image) formData.append("imagen", comboData.image);
+
+      if (editingProduct) {
+        const response = await axios.put(
+          `${endpoint}/${editingProduct.id}`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+            withCredentials: true,
+          },
+        );
+        if (response.data.success) {
+          const updatedCombo = {
+            ...editingProduct,
+            name: comboData.nombre,
+            description: comboData.descripcion,
+            price: comboData.precio,
+            items: comboData.items,
+            category: "combos",
+          };
+          if (response.data.url) updatedCombo.url = response.data.url;
+          setProducts((prev) =>
+            prev.map((p) => (p.id === editingProduct.id ? updatedCombo : p)),
+          );
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Combo actualizado exitosamente!",
+          });
+        }
+      } else {
+        const response = await axios.post(endpoint, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          withCredentials: true,
+        });
+        if (response.data.success) {
+          setProducts((prev) => [
+            ...prev,
+            {
+              id: response.data.id,
+              name: comboData.nombre,
+              description: comboData.descripcion,
+              price: comboData.precio,
+              url: response.data.url,
+              items: comboData.items,
+              category: "combos",
+              estado: "Activo",
+            },
+          ]);
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Combo creado exitosamente!",
+          });
+        }
+      }
+      closeModal();
+    } catch (error) {
+      console.error("Error al guardar combo:", error);
+      window.Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "Error al guardar el combo",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDelete = async (id, category) => {
     window.confirmDelete(async () => {
       let endpoint = "";
@@ -303,18 +406,25 @@ export default function ProductosScreen() {
       if (category === "icecream")
         endpoint = "http://localhost:3001/api/heladeria";
       if (category === "extras") endpoint = "http://localhost:3001/api/extras";
+      if (category === "combos") endpoint = "http://localhost:3001/api/combos";
 
       try {
-        await axios.delete(`${endpoint}/${id}`);
+        await axios.delete(`${endpoint}/${id}`, { withCredentials: true });
         setProducts((prev) => prev.filter((p) => p.id !== id));
         window.Toast.fire({
           icon: "success",
-          title: "¡Producto eliminado exitosamente!",
+          title:
+            category === "combos"
+              ? "¡Combo eliminado exitosamente!"
+              : "¡Producto eliminado exitosamente!",
         });
       } catch (error) {
         window.Toast.fire({
           icon: "error",
-          title: "Error al eliminar el producto",
+          title:
+            category === "combos"
+              ? "Error al eliminar el combo"
+              : "Error al eliminar el producto",
         });
       }
     });
@@ -327,6 +437,8 @@ export default function ProductosScreen() {
         return "🥤";
       case "icecream":
         return "🍦";
+      case "combos":
+        return "🎁";
       case "extras":
       case "pizzas":
       default:
@@ -586,6 +698,16 @@ export default function ProductosScreen() {
                                     product.extraCategory}
                                 </span>
                               )}
+                              {product.category === "combos" &&
+                                product.items?.length > 0 && (
+                                <span className="text-slate-500 font-semibold normal-case truncate max-w-[220px]">
+                                  •{" "}
+                                    {product.items
+                                    .map((item) => item.nombre_producto)
+                                    .filter(Boolean)
+                                    .join(", ")}
+                              </span>
+                              )}
                           </span>
                         </div>
                       </div>
@@ -637,17 +759,23 @@ export default function ProductosScreen() {
               </button>
               <h2 className="text-xl font-bold mb-1">
                 {editingProduct
-                  ? "Editar Producto"
+                  ? selectedCategory === "combos"
+                    ? "Editar Combo"
+                    : "Editar Producto"
                   : modalStep === 1
                     ? "¿Qué vas a registrar?"
-                    : "Detalles del Producto"}
+                    : selectedCategory === "combos"
+                      ? "Nuevo Combo"
+                      : "Detalles del Producto"}
               </h2>
               <p className="text-slate-400 text-sm">
                 {editingProduct
                   ? "Modifica la información a continuación"
                   : modalStep === 1
                     ? "Selecciona la categoría del producto"
-                    : "Completa la información requerida"}
+                    : selectedCategory === "combos"
+                      ? "Configura los productos y el precio del combo"
+                      : "Completa la información requerida"}
               </p>
               {!editingProduct && (
                 <div className="flex items-center mt-6 text-sm">
@@ -743,16 +871,27 @@ export default function ProductosScreen() {
                       </p>
                     </div>
                   </div>
-                  <ProductForm
-                    initial={editingProduct}
-                    category={selectedCategory}
-                    isSaving={isSaving}
-                    onSave={handleSaveProduct}
-                    onCancel={() =>
-                      editingProduct ? closeModal() : setModalStep(1)
-                    }
-                    branches={branches || []}
-                  />
+                  {selectedCategory === "combos" ? (
+                    <ComboForm
+                      initial={editingProduct}
+                      isSaving={isSaving}
+                      onSave={handleSaveCombo}
+                      onCancel={() =>
+                        editingProduct ? closeModal() : setModalStep(1)
+                      }
+                    />
+                  ) : (
+                    <ProductForm
+                      initial={editingProduct}
+                      category={selectedCategory}
+                      isSaving={isSaving}
+                      onSave={handleSaveProduct}
+                      onCancel={() =>
+                        editingProduct ? closeModal() : setModalStep(1)
+                      }
+                      branches={branches || []}
+                    />
+                  )}
                 </div>
               )}
             </div>
