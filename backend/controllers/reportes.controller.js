@@ -1,0 +1,362 @@
+import pool from "../config/bd.js";
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function buildDateRange(periodo, fecha) {
+  if (periodo === "semana") {
+    const [yearStr, weekStr] = (fecha || "").split("-W");
+    const year = parseInt(yearStr) || new Date().getFullYear();
+    const week = parseInt(weekStr) || 1;
+
+    const jan4 = new Date(year, 0, 4);
+    const jan4Day = jan4.getDay() || 7;
+    const monday = new Date(jan4);
+    monday.setDate(jan4.getDate() - (jan4Day - 1) + (week - 1) * 7);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const fmt = (d) => d.toISOString().split("T")[0];
+    return {
+      conditionCierres: `DATE(c.fecha_hora) BETWEEN ? AND ?`,
+      conditionVentas: `DATE(v.fecha_hora) BETWEEN ? AND ?`,
+      params: [fmt(monday), fmt(sunday)],
+      start: monday,
+      end: sunday,
+    };
+  } else {
+    const [yearStr, monthStr] = (fecha || "").split("-");
+    const year = parseInt(yearStr) || new Date().getFullYear();
+    const month = parseInt(monthStr) || new Date().getMonth() + 1;
+    const firstDay = `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, month, 0).toISOString().split("T")[0];
+    return {
+      conditionCierres: `DATE(c.fecha_hora) BETWEEN ? AND ?`,
+      conditionVentas: `DATE(v.fecha_hora) BETWEEN ? AND ?`,
+      params: [firstDay, lastDay],
+      start: new Date(firstDay),
+      end: new Date(lastDay),
+    };
+  }
+}
+
+// ─── Obtener sucursales activas ─────────────────────────────────────────────
+export const obtenerSucursalesReporte = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id_sucursal AS id, sucursal AS nombre, direccion
+       FROM sucursal
+       WHERE estado = 'Activo'
+       ORDER BY id_sucursal ASC`
+    );
+    return res.json({ success: true, sucursales: rows });
+  } catch (error) {
+    console.error("Error obteniendo sucursales para reporte:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno" });
+  }
+};
+
+// ─── KPIs de resumen ────────────────────────────────────────────────────────
+export const obtenerResumenReporte = async (req, res) => {
+  const { id_sucursal, periodo = "mes", fecha, modulo = "todos" } = req.query;
+
+  try {
+    const { conditionCierres, conditionVentas, params } = buildDateRange(periodo, fecha);
+
+    const branchCierres = id_sucursal ? `AND c.id_sucursal = ?` : "";
+    const branchVentas = id_sucursal ? `AND v.id_sucursal = ?` : "";
+    const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
+
+    // Tasa de cambio actual
+    const [tasaRows] = await pool.query(
+      "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1"
+    );
+    const tasa = tasaRows.length > 0 ? Number(tasaRows[0].tasa_sistema) : 1;
+
+    // Resumen desde cierres de caja
+    const [cierresRows] = await pool.query(
+      `SELECT
+         COUNT(*)                              AS total_cierres,
+         IFNULL(SUM(c.total_usdt), 0)          AS total_usd,
+         IFNULL(SUM(c.monto_efectivo_usd), 0)  AS efectivo_usd,
+         IFNULL(SUM(c.monto_efectivo_bs), 0)   AS efectivo_bs,
+         IFNULL(SUM(c.monto_punto_bs), 0)      AS punto_bs,
+         IFNULL(SUM(c.monto_pago_movil_bs), 0) AS pago_movil_bs,
+         IFNULL(SUM(c.num_ordenes), 0)         AS total_ordenes,
+         IFNULL(AVG(c.total_usdt), 0)          AS promedio_cierre_usd,
+         IFNULL(
+           SUM(c.total_usdt) / NULLIF(SUM(c.num_ordenes), 0),
+           0
+         )                                      AS ticket_promedio_usd
+       FROM cierres_caja c
+       WHERE ${conditionCierres} ${branchCierres}`,
+      [...params, ...branchParams]
+    );
+
+    // Métricas por tipo de producto si hay filtro de módulo
+    let moduloCondition = "";
+    if (modulo === "heladeria") {
+      moduloCondition = "AND vd.tipo_producto = 'Helado'";
+    } else if (modulo === "pizzeria") {
+      moduloCondition = "AND vd.tipo_producto != 'Helado'";
+    }
+
+    const [detallesVentas] = await pool.query(
+      `SELECT
+         IFNULL(SUM(vd.monto_total), 0) AS total_modulo_usd,
+         COUNT(DISTINCT v.id_venta)    AS total_modulo_ordenes,
+         IFNULL(SUM(vd.cantidad), 0)   AS total_modulo_items
+       FROM venta_detalle vd
+       INNER JOIN ventas v ON v.id_venta = vd.id_venta
+       WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado' ${moduloCondition}`,
+      [...params, ...branchParams]
+    );
+
+    const r = cierresRows[0];
+    const mod = detallesVentas[0];
+
+    const isFilteredByModule = modulo === "heladeria" || modulo === "pizzeria";
+
+    return res.json({
+      success: true,
+      tasa,
+      resumen: {
+        total_cierres: Number(r.total_cierres),
+        total_usd: isFilteredByModule ? Number(mod.total_modulo_usd) : Number(r.total_usd),
+        total_ordenes: isFilteredByModule ? Number(mod.total_modulo_ordenes) : Number(r.total_ordenes),
+        total_items: Number(mod.total_modulo_items),
+        efectivo_usd: Number(r.efectivo_usd),
+        efectivo_bs: Number(r.efectivo_bs),
+        punto_bs: Number(r.punto_bs),
+        pago_movil_bs: Number(r.pago_movil_bs),
+        promedio_cierre_usd: Number(r.promedio_cierre_usd),
+        ticket_promedio_usd: isFilteredByModule && Number(mod.total_modulo_ordenes) > 0
+          ? Number(mod.total_modulo_usd) / Number(mod.total_modulo_ordenes)
+          : Number(r.ticket_promedio_usd),
+      },
+    });
+  } catch (error) {
+    console.error("Error en resumen reporte:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno" });
+  }
+};
+
+// ─── Desglose de pagos ──────────────────────────────────────────────────────
+export const obtenerPagosReporte = async (req, res) => {
+  const { id_sucursal, periodo = "mes", fecha } = req.query;
+
+  try {
+    const { conditionCierres, params } = buildDateRange(periodo, fecha);
+    const branchCierres = id_sucursal ? `AND c.id_sucursal = ?` : "";
+    const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
+
+    const [rows] = await pool.query(
+      `SELECT
+         IFNULL(SUM(c.monto_efectivo_usd), 0)  AS efectivo_usd,
+         IFNULL(SUM(c.monto_efectivo_bs), 0)   AS efectivo_bs,
+         IFNULL(SUM(c.monto_punto_bs), 0)      AS punto_bs,
+         IFNULL(SUM(c.monto_pago_movil_bs), 0) AS pago_movil_bs
+       FROM cierres_caja c
+       WHERE ${conditionCierres} ${branchCierres}`,
+      [...params, ...branchParams]
+    );
+
+    const [tasaRows] = await pool.query(
+      "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1"
+    );
+    const tasa = tasaRows.length > 0 ? Number(tasaRows[0].tasa_sistema) : 1;
+
+    const r = rows[0];
+    const efectivoUsd = Number(r.efectivo_usd);
+    const efectivoBsEnUsd = tasa > 0 ? Number(r.efectivo_bs) / tasa : 0;
+    const puntoEnUsd = tasa > 0 ? Number(r.punto_bs) / tasa : 0;
+    const pagoMovilEnUsd = tasa > 0 ? Number(r.pago_movil_bs) / tasa : 0;
+
+    return res.json({
+      success: true,
+      tasa,
+      pagos: [
+        {
+          nombre: "Efectivo USD",
+          valor_usd: efectivoUsd,
+          valor_bs: 0,
+          color: "#10b981",
+        },
+        {
+          nombre: "Efectivo Bs",
+          valor_usd: efectivoBsEnUsd,
+          valor_bs: Number(r.efectivo_bs),
+          color: "#14b8a6",
+        },
+        {
+          nombre: "Punto de Venta",
+          valor_usd: puntoEnUsd,
+          valor_bs: Number(r.punto_bs),
+          color: "#3b82f6",
+        },
+        {
+          nombre: "Pago Móvil",
+          valor_usd: pagoMovilEnUsd,
+          valor_bs: Number(r.pago_movil_bs),
+          color: "#8b5cf6",
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("Error en pagos reporte:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno" });
+  }
+};
+
+// ─── Tendencia (Serie Temporal) ─────────────────────────────────────────────
+export const obtenerTendenciaReporte = async (req, res) => {
+  const { id_sucursal, periodo = "mes", fecha, modulo = "todos" } = req.query;
+
+  try {
+    const { conditionCierres, conditionVentas, params, start, end } = buildDateRange(periodo, fecha);
+    const branchCierres = id_sucursal ? `AND c.id_sucursal = ?` : "";
+    const branchVentas = id_sucursal ? `AND v.id_sucursal = ?` : "";
+    const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
+
+    let rows = [];
+
+    if (modulo === "heladeria" || modulo === "pizzeria") {
+      const filter = modulo === "heladeria" ? "AND vd.tipo_producto = 'Helado'" : "AND vd.tipo_producto != 'Helado'";
+      const [vRows] = await pool.query(
+        `SELECT
+           DATE_FORMAT(v.fecha_hora, '%Y-%m-%d') AS fecha,
+           IFNULL(SUM(vd.monto_total), 0)        AS total_usd,
+           COUNT(DISTINCT v.id_venta)            AS ordenes
+         FROM venta_detalle vd
+         INNER JOIN ventas v ON v.id_venta = vd.id_venta
+         WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado' ${filter}
+         GROUP BY fecha
+         ORDER BY fecha ASC`,
+        [...params, ...branchParams]
+      );
+      rows = vRows;
+    } else {
+      const [cRows] = await pool.query(
+        `SELECT
+           DATE_FORMAT(c.fecha_hora, '%Y-%m-%d') AS fecha,
+           IFNULL(SUM(c.total_usdt), 0)          AS total_usd,
+           IFNULL(SUM(c.num_ordenes), 0)         AS ordenes
+         FROM cierres_caja c
+         WHERE ${conditionCierres} ${branchCierres}
+         GROUP BY fecha
+         ORDER BY fecha ASC`,
+        [...params, ...branchParams]
+      );
+      rows = cRows;
+    }
+
+    const dataMap = {};
+    rows.forEach((r) => {
+      dataMap[r.fecha] = {
+        fecha: r.fecha,
+        total_usd: Number(r.total_usd),
+        ordenes: Number(r.ordenes),
+      };
+    });
+
+    const series = [];
+    const cur = new Date(start);
+    const endDate = new Date(end);
+    while (cur <= endDate) {
+      const key = cur.toISOString().split("T")[0];
+      const dayLabel =
+        periodo === "semana"
+          ? cur.toLocaleDateString("es-VE", { weekday: "short", day: "2-digit" })
+          : cur.toLocaleDateString("es-VE", { day: "2-digit", month: "2-digit" });
+
+      series.push(
+        dataMap[key] || {
+          fecha: key,
+          total_usd: 0,
+          ordenes: 0,
+        }
+      );
+      series[series.length - 1].label = dayLabel;
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    return res.json({ success: true, tendencia: series });
+  } catch (error) {
+    console.error("Error en tendencia reporte:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno" });
+  }
+};
+
+// ─── Top Productos Vendidos ──────────────────────────────────────────────────
+export const obtenerTopProductosReporte = async (req, res) => {
+  const { id_sucursal, periodo = "mes", fecha, modulo = "todos" } = req.query;
+
+  try {
+    const { conditionVentas, params } = buildDateRange(periodo, fecha);
+    const branchVentas = id_sucursal ? `AND v.id_sucursal = ?` : "";
+    const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
+
+    let filter = "";
+    if (modulo === "heladeria") filter = "AND vd.tipo_producto = 'Helado'";
+    if (modulo === "pizzeria") filter = "AND vd.tipo_producto != 'Helado'";
+
+    const [rows] = await pool.query(
+      `SELECT
+         vd.tipo_producto,
+         COALESCE(p.nombre, b.nombre, h.nombre, ex.nombre, 'Producto') AS producto_nombre,
+         IFNULL(SUM(vd.cantidad), 0)    AS cantidad_vendida,
+         IFNULL(SUM(vd.monto_total), 0)  AS total_recaudado_usd
+       FROM venta_detalle vd
+       INNER JOIN ventas v ON v.id_venta = vd.id_venta
+       LEFT JOIN pizza p       ON p.id_pizza = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
+       LEFT JOIN bebidas b     ON b.id_bebida = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
+       LEFT JOIN heladeria h   ON h.id_heladeria = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
+       LEFT JOIN extras ex     ON ex.id_extras = vd.id_producto_origen AND vd.tipo_producto = 'Extra'
+       WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado' ${filter}
+       GROUP BY vd.tipo_producto, producto_nombre
+       ORDER BY cantidad_vendida DESC
+       LIMIT 10`,
+      [...params, ...branchParams]
+    );
+
+    return res.json({ success: true, topProductos: rows });
+  } catch (error) {
+    console.error("Error en top productos reporte:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno" });
+  }
+};
+
+// ─── Detalle de Cierres de Caja (Tabla) ──────────────────────────────────────
+export const obtenerCierresDetalleReporte = async (req, res) => {
+  const { id_sucursal, periodo = "mes", fecha } = req.query;
+
+  try {
+    const { conditionCierres, params } = buildDateRange(periodo, fecha);
+    const branchCierres = id_sucursal ? `AND c.id_sucursal = ?` : "";
+    const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
+
+    const [rows] = await pool.query(
+      `SELECT
+         c.id_cierre,
+         c.fecha_hora,
+         c.total_usdt,
+         c.monto_efectivo_usd,
+         c.monto_efectivo_bs,
+         c.monto_punto_bs,
+         c.monto_pago_movil_bs,
+         c.num_ordenes,
+         u.nombre_completo AS cajero,
+         s.sucursal        AS sucursal_nombre
+       FROM cierres_caja c
+       INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
+       LEFT JOIN sucursal s ON c.id_sucursal = s.id_sucursal
+       WHERE ${conditionCierres} ${branchCierres}
+       ORDER BY c.fecha_hora DESC`,
+      [...params, ...branchParams]
+    );
+
+    return res.json({ success: true, cierres: rows });
+  } catch (error) {
+    console.error("Error en cierres detalle reporte:", error);
+    return res.status(500).json({ success: false, mensaje: "Error interno" });
+  }
+};

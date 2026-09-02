@@ -1,5 +1,5 @@
 import Dashboard from "../components/admin/Dashboard";
-import SalesReport from "../components/admin/Reportes";
+import Reportes from "../components/admin/Reportes";
 import StaffManagement from "../components/admin/Gestion_de_personal";
 import Sucursales from "../components/admin/Sucursales";
 import ClientesPrincipalesScreen from "../components/admin/ClientesPrincipalesScreen";
@@ -13,7 +13,7 @@ export default function AdminScreen({ activeView }) {
       {/* Content */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {activeView === "dashboard" && <Dashboard />}
-        {activeView === "reportes" && <SalesReport />}
+        {activeView === "reportes" && <Reportes />}
         {activeView === "sucursales" && <Sucursales />}
         {activeView === "personal" && <StaffManagement />}
         {activeView === "clientes-top" && <ClientesPrincipalesScreen />}
