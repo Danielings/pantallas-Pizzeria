@@ -257,7 +257,7 @@ export default function ClientesScreen() {
       </header>
 
       {/* Cards de estadísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 shrink-0">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 shrink-0">
         {/* Total Clientes */}
         <div className="bg-red-50/70 border border-red-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0  flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
@@ -308,7 +308,7 @@ export default function ClientesScreen() {
               <p className="text-[8px] sm:text-[9px] font-extrabold text-blue-500 uppercase tracking-wider whitespace-nowrap">
                 Ventas Totales
               </p>
-              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 whitespace-nowrap">
+              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 truncate">
                 {formatTotal(stats.ventasTotales)}
               </p>
             </div>
@@ -328,7 +328,7 @@ export default function ClientesScreen() {
               <p className="text-[9px] sm:text-[10px] font-extrabold text-purple-500 uppercase tracking-wider whitespace-nowrap">
                 Ticket Promedio
               </p>
-              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 break-words">
+              <p className="text-slate-800 text-lg sm:text-xl font-black leading-none mt-1.5 truncate">
                 {formatTotal(stats.ticketPromedio)}
               </p>
             </div>
