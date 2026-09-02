@@ -411,7 +411,7 @@ export default function CheckoutModal({ onClose }) {
       // Refrescar cola y métricas sin recargar página
       queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
       queryClient.invalidateQueries({ queryKey: ["ventasHoy"] });
-
+      queryClient.invalidateQueries({ queryKey: ["contadorCajero"] });
       window.Toast.fire({
         icon: "success",
         title: "¡Venta procesada exitosamente!",

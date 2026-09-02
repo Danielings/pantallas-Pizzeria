@@ -357,7 +357,7 @@ export const obtenerContadorCajero = async (req, res) => {
     let query = `SELECT COUNT(vd.id_detalle) AS total
        FROM venta_detalle vd
        JOIN ventas v ON vd.id_venta = v.id_venta
-       WHERE vd.estado != 'Completado' AND vd.estado != 'Cerrado' 
+       WHERE vd.estado != 'Completado' AND vd.estado != 'Cerrado' AND v.estado != 'Reembolsado'
          AND DATE(v.fecha_hora) = CURDATE()
          AND v.id_sucursal = ?`;
     let paparemericano = [id_sucursal];
@@ -464,6 +464,7 @@ export const obtenerEntregas = async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE v.despacho IN ('Delivery', 'Pick Up', 'Local', 'Llevar')
         AND DATE(v.fecha_hora) = CURDATE()
+        AND v.estado != 'Reembolsado'
         AND v.id_sucursal = ?
       ORDER BY v.fecha_hora ASC`;
 
