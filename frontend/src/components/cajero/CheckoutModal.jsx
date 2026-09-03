@@ -412,6 +412,8 @@ export default function CheckoutModal({ onClose }) {
       queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
       queryClient.invalidateQueries({ queryKey: ["ventasHoy"] });
       queryClient.invalidateQueries({ queryKey: ["contadorCajero"] });
+      queryClient.invalidateQueries({ queryKey: ["entregas"] });
+
       window.Toast.fire({
         icon: "success",
         title: "¡Venta procesada exitosamente!",

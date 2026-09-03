@@ -17,7 +17,7 @@ export const obtenerPizzas = async (req, res) => {
       description: pizza.descripcion,
       category: "pizzas",
       size: pizza.categoria_nombre || "Normal",
-      pizzaCategory: pizza.categoria_nombre || null, // <-- Aquí guardamos el tamaño/categoría (ej. "Familiar")
+      pizzaCategory: pizza.categoria_nombre || null,
       url: pizza.url || null,
       estado: pizza.estado || "Activo",
     }));
@@ -88,10 +88,14 @@ export const actualizarPizza = async (req, res) => {
 
 export const obtenerBebidas = async (req, res) => {
   try {
-    const [rows] = await pool.execute("SELECT * FROM bebidas");
+    const activo = "Activo";
+    const [rows] = await pool.execute(
+      "SELECT * FROM bebidas WHERE estado = ?",
+      [activo],
+    );
 
     const bebidas = rows.map((bebida) => ({
-      id: bebida.id_bebida, // <-- Basado en tu imagen, la columna es id_bebida
+      id: bebida.id_bebida,
       name: bebida.nombre,
       price: bebida.precio,
       description: bebida.descripcion,
