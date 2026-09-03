@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEntregas } from "../hooks/useEntregas";
 import {
   Bike,
   Store,
@@ -283,8 +285,14 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
 }
 
 export default function EntregaScreen() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const {
+    data: orders = [],
+    isLoading: loading,
+    isFetching,
+    error: queryError,
+    refetch: fetchOrders,
+  } = useEntregas();
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -299,31 +307,6 @@ export default function EntregaScreen() {
     }
   });
   const itemsPerPage = 10;
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await axios.get("http://localhost:3001/api/entregas", {
-        withCredentials: true,
-      });
-      setOrders(res.data);
-    } catch (err) {
-      console.error(err);
-      setError("Error al cargar órdenes de entrega");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(() => {
-      // Refresh times every minute just to update 'Hace X min'
-      setOrders((prev) => [...prev]);
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Whenever selectedGroup changes, reset history filter to "all" to avoid incompatible active state
   useEffect(() => {
@@ -346,7 +329,7 @@ export default function EntregaScreen() {
       setDeliveryTimes(updatedTimes);
       localStorage.setItem("delivery_times", JSON.stringify(updatedTimes));
 
-      setOrders((prev) =>
+      queryClient.setQueryData(["entregas"], (prev = []) =>
         prev.map((o) => (o.id === id ? { ...o, status: "delivered" } : o)),
       );
     } catch (err) {
@@ -449,18 +432,18 @@ export default function EntregaScreen() {
 
           <button
             onClick={fetchOrders}
-            disabled={loading}
+            disabled={loading || isFetching}
             className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-extrabold transition-all shadow-sm disabled:opacity-50"
           >
-            {loading ? "Sincronizando..." : "Actualizar"}
+            {loading || isFetching ? "Sincronizando..." : "Actualizar"}
           </button>
         </div>
       </div>
 
-      {error && (
+      {(error || queryError) && (
         <div className="bg-red-50 text-red-600 p-4 mx-8 mt-6 rounded-2xl flex items-center gap-3 text-sm font-bold border border-red-200 shrink-0">
           <AlertCircle className="w-5 h-5" />
-          {error}
+          {error || "Error al cargar órdenes de entrega"}
         </div>
       )}
 

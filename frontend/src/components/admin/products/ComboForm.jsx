@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { useProducts } from "../../../hooks/useProducts";
 import {
   Save,
   XCircle,
@@ -72,12 +73,13 @@ function ItemTypeModal({ onSelect, onClose }) {
 
 // ─── Sub-modal: Selector de Pizzas ──────────────────────────────────────────
 function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
-  const [pizzas, setPizzas] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [catFilter, setCatFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState({}); // { id: cantidad }
+  const { data: products, isLoading: productsLoading } = useProducts();
+  const pizzas = products?.pizzas || [];
 
   // Pre-cargar las pizzas ya elegidas
   useEffect(() => {
@@ -93,12 +95,11 @@ function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const [pRes, cRes] = await Promise.all([
-          axios.get(`${API}/pizzas/activas`, axiosConfig),
-          axios.get(`${API}/categorias-pizza`, axiosConfig),
-        ]);
-        setPizzas(pRes.data.data || []);
-        setCategorias(cRes.data.data || []);
+        const { data: cRes } = await axios.get(
+          `${API}/categorias-pizza`,
+          axiosConfig,
+        );
+        setCategorias(cRes.data || []);
       } catch (e) {
         console.error("Error cargando pizzas:", e);
       } finally {
@@ -109,7 +110,11 @@ function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
   }, []);
 
   const filtered = pizzas.filter((p) => {
-    const matchCat = catFilter === "all" || p.id_categoria_pizza === catFilter;
+    const selectedCategory = categorias.find(
+      (category) => String(category.id_categoria_pizza) === String(catFilter),
+    );
+    const matchCat =
+      catFilter === "all" || p.pizzaCategory === selectedCategory?.categoria;
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
@@ -139,7 +144,7 @@ function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
         cantidad,
         nombre_producto: pizza?.name || "",
         url_producto: pizza?.url || null,
-        categoria_pizza: pizza?.categoria_nombre || null,
+        categoria_pizza: pizza?.pizzaCategory || null,
       };
     });
     onConfirm(items);
@@ -199,7 +204,7 @@ function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
 
         {/* Lista de pizzas */}
         <div className="overflow-y-auto flex-1 px-4 py-3 flex flex-col gap-2">
-          {loading ? (
+          {loading || productsLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
             </div>
@@ -308,10 +313,10 @@ function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
 
 // ─── Sub-modal: Selector de Bebidas ─────────────────────────────────────────
 function BebidaPickerModal({ currentItems, onConfirm, onClose }) {
-  const [bebidas, setBebidas] = useState([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState({}); // { id: cantidad }
+  const { data: products, isLoading: productsLoading } = useProducts();
+  const bebidas = products?.drinks || [];
 
   // Pre-cargar las bebidas ya elegidas
   useEffect(() => {
@@ -323,20 +328,6 @@ function BebidaPickerModal({ currentItems, onConfirm, onClose }) {
       });
     setSelected(preselected);
   }, [currentItems]);
-
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await axios.get(`${API}/bebidas/activas`, axiosConfig);
-        setBebidas(res.data.data || []);
-      } catch (e) {
-        console.error("Error cargando bebidas:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
 
   const filtered = bebidas.filter((b) =>
     b.name.toLowerCase().includes(search.toLowerCase()),
@@ -410,7 +401,7 @@ function BebidaPickerModal({ currentItems, onConfirm, onClose }) {
 
         {/* Lista de bebidas */}
         <div className="overflow-y-auto flex-1 px-4 py-3 flex flex-col gap-2">
-          {loading ? (
+          {productsLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
             </div>
