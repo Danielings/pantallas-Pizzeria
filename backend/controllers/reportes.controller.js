@@ -17,7 +17,6 @@ function buildDateRange(periodo, fecha) {
 
     const fmt = (d) => d.toISOString().split("T")[0];
     return {
-      conditionCierres: `DATE(c.fecha_hora) BETWEEN ? AND ?`,
       conditionVentas: `DATE(v.fecha_hora) BETWEEN ? AND ?`,
       params: [fmt(monday), fmt(sunday)],
       start: monday,
@@ -30,7 +29,6 @@ function buildDateRange(periodo, fecha) {
     const firstDay = `${year}-${String(month).padStart(2, "0")}-01`;
     const lastDay = new Date(year, month, 0).toISOString().split("T")[0];
     return {
-      conditionCierres: `DATE(c.fecha_hora) BETWEEN ? AND ?`,
       conditionVentas: `DATE(v.fecha_hora) BETWEEN ? AND ?`,
       params: [firstDay, lastDay],
       start: new Date(firstDay),
@@ -46,7 +44,7 @@ export const obtenerSucursalesReporte = async (req, res) => {
       `SELECT id_sucursal AS id, sucursal AS nombre, direccion
        FROM sucursal
        WHERE estado = 'Activo'
-       ORDER BY id_sucursal ASC`
+       ORDER BY id_sucursal ASC`,
     );
     return res.json({ success: true, sucursales: rows });
   } catch (error) {
@@ -60,36 +58,26 @@ export const obtenerResumenReporte = async (req, res) => {
   const { id_sucursal, periodo = "mes", fecha, modulo = "todos" } = req.query;
 
   try {
-    const { conditionCierres, conditionVentas, params } = buildDateRange(periodo, fecha);
+    const { conditionVentas, params } = buildDateRange(periodo, fecha);
 
-    const branchCierres = id_sucursal ? `AND c.id_sucursal = ?` : "";
     const branchVentas = id_sucursal ? `AND v.id_sucursal = ?` : "";
     const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
 
     // Tasa de cambio actual
     const [tasaRows] = await pool.query(
-      "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1"
+      "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
     );
     const tasa = tasaRows.length > 0 ? Number(tasaRows[0].tasa_sistema) : 1;
 
-    // Resumen desde cierres de caja
-    const [cierresRows] = await pool.query(
+    // Resumen desde ventas
+    const [ventasRows] = await pool.query(
       `SELECT
-         COUNT(*)                              AS total_cierres,
-         IFNULL(SUM(c.total_usdt), 0)          AS total_usd,
-         IFNULL(SUM(c.monto_efectivo_usd), 0)  AS efectivo_usd,
-         IFNULL(SUM(c.monto_efectivo_bs), 0)   AS efectivo_bs,
-         IFNULL(SUM(c.monto_punto_bs), 0)      AS punto_bs,
-         IFNULL(SUM(c.monto_pago_movil_bs), 0) AS pago_movil_bs,
-         IFNULL(SUM(c.num_ordenes), 0)         AS total_ordenes,
-         IFNULL(AVG(c.total_usdt), 0)          AS promedio_cierre_usd,
-         IFNULL(
-           SUM(c.total_usdt) / NULLIF(SUM(c.num_ordenes), 0),
-           0
-         )                                      AS ticket_promedio_usd
-       FROM cierres_caja c
-       WHERE ${conditionCierres} ${branchCierres}`,
-      [...params, ...branchParams]
+         COUNT(*) AS total_ordenes,
+         IFNULL(SUM(v.monto_total_usd), 0) AS total_usd,
+         IFNULL(AVG(v.monto_total_usd), 0) AS ticket_promedio_usd
+       FROM ventas v
+       WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado'`,
+      [...params, ...branchParams],
     );
 
     // Métricas por tipo de producto si hay filtro de módulo
@@ -108,10 +96,10 @@ export const obtenerResumenReporte = async (req, res) => {
        FROM venta_detalle vd
        INNER JOIN ventas v ON v.id_venta = vd.id_venta
        WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado' ${moduloCondition}`,
-      [...params, ...branchParams]
+      [...params, ...branchParams],
     );
 
-    const r = cierresRows[0];
+    const r = ventasRows[0];
     const mod = detallesVentas[0];
 
     const isFilteredByModule = modulo === "heladeria" || modulo === "pizzeria";
@@ -120,18 +108,17 @@ export const obtenerResumenReporte = async (req, res) => {
       success: true,
       tasa,
       resumen: {
-        total_cierres: Number(r.total_cierres),
-        total_usd: isFilteredByModule ? Number(mod.total_modulo_usd) : Number(r.total_usd),
-        total_ordenes: isFilteredByModule ? Number(mod.total_modulo_ordenes) : Number(r.total_ordenes),
+        total_usd: isFilteredByModule
+          ? Number(mod.total_modulo_usd)
+          : Number(r.total_usd),
+        total_ordenes: isFilteredByModule
+          ? Number(mod.total_modulo_ordenes)
+          : Number(r.total_ordenes),
         total_items: Number(mod.total_modulo_items),
-        efectivo_usd: Number(r.efectivo_usd),
-        efectivo_bs: Number(r.efectivo_bs),
-        punto_bs: Number(r.punto_bs),
-        pago_movil_bs: Number(r.pago_movil_bs),
-        promedio_cierre_usd: Number(r.promedio_cierre_usd),
-        ticket_promedio_usd: isFilteredByModule && Number(mod.total_modulo_ordenes) > 0
-          ? Number(mod.total_modulo_usd) / Number(mod.total_modulo_ordenes)
-          : Number(r.ticket_promedio_usd),
+        ticket_promedio_usd:
+          isFilteredByModule && Number(mod.total_modulo_ordenes) > 0
+            ? Number(mod.total_modulo_usd) / Number(mod.total_modulo_ordenes)
+            : Number(r.ticket_promedio_usd),
       },
     });
   } catch (error) {
@@ -145,23 +132,24 @@ export const obtenerPagosReporte = async (req, res) => {
   const { id_sucursal, periodo = "mes", fecha } = req.query;
 
   try {
-    const { conditionCierres, params } = buildDateRange(periodo, fecha);
-    const branchCierres = id_sucursal ? `AND c.id_sucursal = ?` : "";
+    const { conditionVentas, params } = buildDateRange(periodo, fecha);
+    const branchVentas = id_sucursal ? `AND v.id_sucursal = ?` : "";
     const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
 
     const [rows] = await pool.query(
       `SELECT
-         IFNULL(SUM(c.monto_efectivo_usd), 0)  AS efectivo_usd,
-         IFNULL(SUM(c.monto_efectivo_bs), 0)   AS efectivo_bs,
-         IFNULL(SUM(c.monto_punto_bs), 0)      AS punto_bs,
-         IFNULL(SUM(c.monto_pago_movil_bs), 0) AS pago_movil_bs
-       FROM cierres_caja c
-       WHERE ${conditionCierres} ${branchCierres}`,
-      [...params, ...branchParams]
+         IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%efectivo%' AND UPPER(vp.referencia) != 'BS' THEN vp.monto_usd ELSE 0 END), 0) AS efectivo_usd,
+         IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%efectivo%' AND UPPER(vp.referencia) = 'BS' THEN vp.monto_bs ELSE 0 END), 0) AS efectivo_bs,
+         IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%punto%' OR vp.metodo_pago LIKE '%tarjeta%' THEN vp.monto_bs ELSE 0 END), 0) AS punto_bs,
+         IFNULL(SUM(CASE WHEN vp.metodo_pago NOT LIKE '%efectivo%' AND vp.metodo_pago NOT LIKE '%punto%' AND vp.metodo_pago NOT LIKE '%tarjeta%' THEN vp.monto_bs ELSE 0 END), 0) AS pago_movil_bs
+       FROM ventas_pagos vp
+       INNER JOIN ventas v ON v.id_venta = vp.id_venta
+       WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado'`,
+      [...params, ...branchParams],
     );
 
     const [tasaRows] = await pool.query(
-      "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1"
+      "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
     );
     const tasa = tasaRows.length > 0 ? Number(tasaRows[0].tasa_sistema) : 1;
 
@@ -212,15 +200,20 @@ export const obtenerTendenciaReporte = async (req, res) => {
   const { id_sucursal, periodo = "mes", fecha, modulo = "todos" } = req.query;
 
   try {
-    const { conditionCierres, conditionVentas, params, start, end } = buildDateRange(periodo, fecha);
-    const branchCierres = id_sucursal ? `AND c.id_sucursal = ?` : "";
+    const { conditionVentas, params, start, end } = buildDateRange(
+      periodo,
+      fecha,
+    );
     const branchVentas = id_sucursal ? `AND v.id_sucursal = ?` : "";
     const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
 
     let rows = [];
 
     if (modulo === "heladeria" || modulo === "pizzeria") {
-      const filter = modulo === "heladeria" ? "AND vd.tipo_producto = 'Helado'" : "AND vd.tipo_producto != 'Helado'";
+      const filter =
+        modulo === "heladeria"
+          ? "AND vd.tipo_producto = 'Helado'"
+          : "AND vd.tipo_producto != 'Helado'";
       const [vRows] = await pool.query(
         `SELECT
            DATE_FORMAT(v.fecha_hora, '%Y-%m-%d') AS fecha,
@@ -231,22 +224,22 @@ export const obtenerTendenciaReporte = async (req, res) => {
          WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado' ${filter}
          GROUP BY fecha
          ORDER BY fecha ASC`,
-        [...params, ...branchParams]
+        [...params, ...branchParams],
       );
       rows = vRows;
     } else {
-      const [cRows] = await pool.query(
+      const [vRows] = await pool.query(
         `SELECT
-           DATE_FORMAT(c.fecha_hora, '%Y-%m-%d') AS fecha,
-           IFNULL(SUM(c.total_usdt), 0)          AS total_usd,
-           IFNULL(SUM(c.num_ordenes), 0)         AS ordenes
-         FROM cierres_caja c
-         WHERE ${conditionCierres} ${branchCierres}
+           DATE_FORMAT(v.fecha_hora, '%Y-%m-%d') AS fecha,
+           IFNULL(SUM(v.monto_total_usd), 0) AS total_usd,
+           COUNT(*) AS ordenes
+         FROM ventas v
+         WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado'
          GROUP BY fecha
          ORDER BY fecha ASC`,
-        [...params, ...branchParams]
+        [...params, ...branchParams],
       );
-      rows = cRows;
+      rows = vRows;
     }
 
     const dataMap = {};
@@ -265,15 +258,21 @@ export const obtenerTendenciaReporte = async (req, res) => {
       const key = cur.toISOString().split("T")[0];
       const dayLabel =
         periodo === "semana"
-          ? cur.toLocaleDateString("es-VE", { weekday: "short", day: "2-digit" })
-          : cur.toLocaleDateString("es-VE", { day: "2-digit", month: "2-digit" });
+          ? cur.toLocaleDateString("es-VE", {
+              weekday: "short",
+              day: "2-digit",
+            })
+          : cur.toLocaleDateString("es-VE", {
+              day: "2-digit",
+              month: "2-digit",
+            });
 
       series.push(
         dataMap[key] || {
           fecha: key,
           total_usd: 0,
           ordenes: 0,
-        }
+        },
       );
       series[series.length - 1].label = dayLabel;
       cur.setDate(cur.getDate() + 1);
@@ -315,48 +314,12 @@ export const obtenerTopProductosReporte = async (req, res) => {
        GROUP BY vd.tipo_producto, producto_nombre
        ORDER BY cantidad_vendida DESC
        LIMIT 10`,
-      [...params, ...branchParams]
+      [...params, ...branchParams],
     );
 
     return res.json({ success: true, topProductos: rows });
   } catch (error) {
     console.error("Error en top productos reporte:", error);
-    return res.status(500).json({ success: false, mensaje: "Error interno" });
-  }
-};
-
-// ─── Detalle de Cierres de Caja (Tabla) ──────────────────────────────────────
-export const obtenerCierresDetalleReporte = async (req, res) => {
-  const { id_sucursal, periodo = "mes", fecha } = req.query;
-
-  try {
-    const { conditionCierres, params } = buildDateRange(periodo, fecha);
-    const branchCierres = id_sucursal ? `AND c.id_sucursal = ?` : "";
-    const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
-
-    const [rows] = await pool.query(
-      `SELECT
-         c.id_cierre,
-         c.fecha_hora,
-         c.total_usdt,
-         c.monto_efectivo_usd,
-         c.monto_efectivo_bs,
-         c.monto_punto_bs,
-         c.monto_pago_movil_bs,
-         c.num_ordenes,
-         u.nombre_completo AS cajero,
-         s.sucursal        AS sucursal_nombre
-       FROM cierres_caja c
-       INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
-       LEFT JOIN sucursal s ON c.id_sucursal = s.id_sucursal
-       WHERE ${conditionCierres} ${branchCierres}
-       ORDER BY c.fecha_hora DESC`,
-      [...params, ...branchParams]
-    );
-
-    return res.json({ success: true, cierres: rows });
-  } catch (error) {
-    console.error("Error en cierres detalle reporte:", error);
     return res.status(500).json({ success: false, mensaje: "Error interno" });
   }
 };
