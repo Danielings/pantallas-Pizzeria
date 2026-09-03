@@ -44,6 +44,19 @@ const normalizeHelado = (h) => ({
   emoji: "🍦",
 });
 
+const normalizeCombo = (c) => ({
+  ...c,
+  id: c.id || c.id_combo,
+  name: c.name || c.nombre,
+  price: Number(c.price || c.precio),
+  description: c.description || c.descripcion,
+  category: "combos",
+  estado: c.estado || "Activo",
+  url: c.url || null,
+  items: c.items || [],
+  emoji: "🎁",
+});
+
 const fetchCategory = async (endpoint) => {
   try {
     const { data } = await api.get(endpoint);
@@ -63,15 +76,22 @@ export function useProducts() {
     refetchOnMount: false,
     enabled: !!currentUser,
     queryFn: async () => {
-      const [pizzas, drinks, icecream] = await Promise.all([
+      const [pizzas, drinks, icecream, extras, combos, categoriesPizza] =
+        await Promise.all([
         fetchCategory("/pizzas"),
         fetchCategory("/bebidas"),
         fetchCategory("/heladeria"),
+        fetchCategory("/extras"),
+        fetchCategory("/combos"),
+        fetchCategory("/categorias-pizza"),
       ]);
       return {
         pizzas: pizzas.map(normalizePizza),
         drinks: drinks.map(normalizeBebida),
         icecream: icecream.map(normalizeHelado),
+        extras: extras.map(normalizeExtra),
+        combos: combos.map(normalizeCombo),
+        categoriesPizza,
       };
     },
   });

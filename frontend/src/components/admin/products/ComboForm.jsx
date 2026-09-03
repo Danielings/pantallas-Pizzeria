@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { useProducts } from "../../../hooks/useProducts";
 import {
   Save,
@@ -15,9 +14,6 @@ import {
   Search,
   Loader2,
 } from "lucide-react";
-
-const API = "http://localhost:3001/api";
-const axiosConfig = { withCredentials: true };
 
 // ─── Sub-modal: Selector de Tipo de Ítem ────────────────────────────────────
 function ItemTypeModal({ onSelect, onClose }) {
@@ -73,13 +69,12 @@ function ItemTypeModal({ onSelect, onClose }) {
 
 // ─── Sub-modal: Selector de Pizzas ──────────────────────────────────────────
 function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
-  const [categorias, setCategorias] = useState([]);
   const [catFilter, setCatFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState({}); // { id: cantidad }
   const { data: products, isLoading: productsLoading } = useProducts();
   const pizzas = products?.pizzas || [];
+  const categorias = products?.categoriesPizza || [];
 
   // Pre-cargar las pizzas ya elegidas
   useEffect(() => {
@@ -91,23 +86,6 @@ function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
       });
     setSelected(preselected);
   }, [currentItems]);
-
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const { data: cRes } = await axios.get(
-          `${API}/categorias-pizza`,
-          axiosConfig,
-        );
-        setCategorias(cRes.data || []);
-      } catch (e) {
-        console.error("Error cargando pizzas:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
 
   const filtered = pizzas.filter((p) => {
     const selectedCategory = categorias.find(
@@ -204,7 +182,7 @@ function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
 
         {/* Lista de pizzas */}
         <div className="overflow-y-auto flex-1 px-4 py-3 flex flex-col gap-2">
-          {loading || productsLoading ? (
+          {productsLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
             </div>
