@@ -16,6 +16,7 @@ import {
 import ProductForm from "./products/ProductForm";
 import ComboForm from "./products/ComboForm";
 import { useBranches } from "../../hooks/useBranches";
+import { useProducts } from "../../hooks/useProducts";
 
 // ─── Configuración ────────────────────────────────────────────────
 const CATEGORY_TYPES = [
@@ -84,11 +85,11 @@ const getHeaderDate = () => {
 // ─── Componente Principal ────────────────────────────────────────────────
 export default function ProductosScreen() {
   const { data: branches } = useBranches();
+  const { data: catalog, isLoading } = useProducts();
   const [selectedBranchFilter, setSelectedBranchFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [products, setProducts] = useState([]); // Iniciamos vacío, se llenará con la DB
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState([]);
 
   // Estados para el Modal y Flujo
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,76 +100,19 @@ export default function ProductosScreen() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // ─── Carga de Datos desde APIs Independientes ───
   useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      try {
-        const axiosConfig = { withCredentials: true };
-        const [pizzasRes, bebidasRes, heladosRes, extrasRes, combosRes] =
-          await Promise.all([
-            axios
-              .get("http://localhost:3001/api/pizzas", axiosConfig)
-              .catch(() => ({ data: { data: [] } })),
-            axios
-              .get("http://localhost:3001/api/bebidas", axiosConfig)
-              .catch(() => ({ data: { data: [] } })),
-            axios
-              .get("http://localhost:3001/api/heladeria", axiosConfig)
-              .catch(() => ({ data: { data: [] } })),
-            axios
-              .get("http://localhost:3001/api/extras", axiosConfig)
-              .catch(() => ({ data: { data: [] } })),
-            axios
-              .get("http://localhost:3001/api/combos", axiosConfig)
-              .catch(() => ({ data: { data: [] } })),
-          ]);
+    if (!catalog) return;
 
-        // Mapeamos los datos asegurando que cada producto tenga su categoría correcta y 'category' requerida
-        const pizzas = (pizzasRes.data.data || []).map((p) => ({
-          ...p,
-          category: "pizzas",
-        }));
+    setProducts([
+      ...(catalog.pizzas || []),
+      ...(catalog.drinks || []),
+      ...(catalog.icecream || []),
+      ...(catalog.extras || []),
+      ...(catalog.combos || []),
+    ]);
+  }, [catalog]);
 
-        const bebidas = (bebidasRes.data.data || []).map((p) => ({
-          ...p,
-          category: "drinks",
-        }));
-
-        const helados = (heladosRes.data.data || []).map((p) => ({
-          ...p,
-          category: "icecream",
-        }));
-
-        const extras = (extrasRes.data.data || []).map((p) => ({
-          ...p,
-          category: "extras",
-        }));
-
-        const combos = (combosRes.data.data || []).map((p) => ({
-          ...p,
-          category: "combos",
-        }));
-
-        const allProducts = [
-          ...pizzas,
-          ...bebidas,
-          ...helados,
-          ...extras,
-          ...combos,
-        ];
-
-        setProducts(allProducts);
-      } catch (error) {
-        console.error("Error al cargar los productos:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
-
+  // ─── Carga de Datos desde useProducts ───
   const filtered = products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
