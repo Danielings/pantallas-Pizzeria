@@ -259,13 +259,13 @@ export const obtenerTendenciaReporte = async (req, res) => {
       const dayLabel =
         periodo === "semana"
           ? cur.toLocaleDateString("es-VE", {
-              weekday: "short",
-              day: "2-digit",
-            })
+            weekday: "short",
+            day: "2-digit",
+          })
           : cur.toLocaleDateString("es-VE", {
-              day: "2-digit",
-              month: "2-digit",
-            });
+            day: "2-digit",
+            month: "2-digit",
+          });
 
       series.push(
         dataMap[key] || {

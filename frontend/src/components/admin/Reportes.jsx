@@ -221,11 +221,11 @@ export default function Reportes() {
     porcentaje:
       pagos.reduce((total, item) => total + Number(item.valor_usd || 0), 0) > 0
         ? (Number(pago.valor_usd || 0) /
-            pagos.reduce(
-              (total, item) => total + Number(item.valor_usd || 0),
-              0,
-            )) *
-          100
+          pagos.reduce(
+            (total, item) => total + Number(item.valor_usd || 0),
+            0,
+          )) *
+        100
         : 0,
   }));
 
@@ -270,22 +270,20 @@ export default function Reportes() {
             <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-0.5 border border-slate-200/60">
               <button
                 onClick={() => setModulo("todos")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  modulo === "todos"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${modulo === "todos"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+                  }`}
               >
                 <Layers className="w-3.5 h-3.5" />
                 General
               </button>
               <button
                 onClick={() => setModulo("heladeria")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  modulo === "heladeria"
-                    ? "bg-pink-500 text-white shadow-sm"
-                    : "text-slate-500 hover:text-pink-600"
-                }`}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${modulo === "heladeria"
+                  ? "bg-pink-500 text-white shadow-sm"
+                  : "text-slate-500 hover:text-pink-600"
+                  }`}
               >
                 <IceCream className="w-3.5 h-3.5" />
                 Heladería
@@ -317,11 +315,10 @@ export default function Reportes() {
                 <button
                   key={p}
                   onClick={() => handlePeriodo(p)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                    periodo === p
-                      ? "bg-white text-slate-800 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${periodo === p
+                    ? "bg-white text-slate-800 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                    }`}
                 >
                   {p === "mes" ? "Mes" : "Semana"}
                 </button>
@@ -724,9 +721,8 @@ export default function Reportes() {
             <div className="flex items-center justify-between mb-3.5">
               <div className="flex items-center gap-2">
                 <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-white ${
-                    modulo === "heladeria" ? "bg-pink-500" : "bg-amber-500"
-                  }`}
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-white ${modulo === "heladeria" ? "bg-pink-500" : "bg-amber-500"
+                    }`}
                 >
                   <Award className="w-4 h-4" />
                 </div>
@@ -756,11 +752,10 @@ export default function Reportes() {
                       #{idx + 1}
                     </span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        prod.tipo_producto === "Helado"
-                          ? "bg-pink-100 text-pink-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${prod.tipo_producto === "Helado"
+                        ? "bg-pink-100 text-pink-700"
+                        : "bg-amber-100 text-amber-700"
+                        }`}
                     >
                       {prod.tipo_producto}
                     </span>
@@ -843,18 +838,18 @@ export default function Reportes() {
                           <td className="px-4 py-3 text-slate-800 font-semibold whitespace-nowrap">
                             {fecha_hora
                               ? fecha_hora.toLocaleDateString("es-VE", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                               : "—"}
                             <span className="text-slate-400 font-normal ml-1.5">
                               {fecha_hora
                                 ? fecha_hora.toLocaleTimeString("es-VE", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                  })
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })
                                 : ""}
                             </span>
                           </td>
