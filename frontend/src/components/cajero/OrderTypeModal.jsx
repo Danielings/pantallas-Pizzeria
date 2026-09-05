@@ -303,6 +303,7 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
             : [],
         detalles: getPendingDetails(),
       },
+      { withCredentials: true },
     );
 
     if (!response.data?.success) {
@@ -577,7 +578,8 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
                     <div className="flex items-center gap-2 text-slate-700 pb-1 border-b border-slate-200 mb-1">
                       <Phone className="w-4 h-4 text-pizza-red" />
                       <span className="text-sm font-bold">
-                        Teléfono ({selectedType === "delivery" ? "Delivery" : "Pickup"}) *
+                        Teléfono (
+                        {selectedType === "delivery" ? "Delivery" : "Pickup"}) *
                       </span>
                     </div>
                     <div className="flex flex-col gap-2">
@@ -587,7 +589,9 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
                         maxLength={4}
                         placeholder="Últimos 4 dígitos del teléfono *"
                         value={deliveryDigits}
-                        onChange={(e) => setDeliveryDigits(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) =>
+                          setDeliveryDigits(e.target.value.replace(/\D/g, ""))
+                        }
                         className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-pizza-red focus:ring-2 focus:ring-pizza-red/20 transition-all"
                       />
                     </div>

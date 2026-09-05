@@ -132,7 +132,7 @@ export const registrarPedidoPendiente = async (req, res) => {
     pagos = [],
     detalles = [],
   } = req.body;
-
+  const { id_sucursal } = req.user;
   if (
     !id_cliente ||
     !id_usuario ||

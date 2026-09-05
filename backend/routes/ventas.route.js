@@ -21,7 +21,11 @@ import esAdmin from "../middleware/esAdmin.js";
 const router = Router();
 
 router.post("/procesar-venta", verificarToken, procesarVenta);
-router.post("/registrar-pedido-pendiente", registrarPedidoPendiente);
+router.post(
+  "/registrar-pedido-pendiente",
+  verificarToken,
+  registrarPedidoPendiente,
+);
 
 router.post("/completar-venta-pendiente/:id_venta", completarVentaPendiente);
 router.put("/editar-venta", editarVenta);
