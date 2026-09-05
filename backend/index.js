@@ -17,6 +17,7 @@ import sucursales from "./routes/sucursal.route.js";
 import pusherRoutes from "./routes/pusher.route.js";
 import reportes from "./routes/reportes.route.js";
 import combos from "./routes/combos.route.js";
+import dashboardRoutes from "./routes/dashboard.route.js";
 
 const app = express();
 app.use(
@@ -45,6 +46,8 @@ app.use("/api", sucursales);
 app.use("/api", pusherRoutes);
 app.use("/api", reportes);
 app.use("/api", combos);
+app.use("/api", dashboardRoutes);
+
 
 cron.schedule("*/30 * * * *", async () => {
   try {

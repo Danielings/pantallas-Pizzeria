@@ -123,6 +123,10 @@ export const obtenerCombos = async (req, res) => {
 
     res.json({ success: true, data: result });
   } catch (error) {
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      console.warn("Tabla 'combos' no encontrada en BD. Retornando lista vacía.");
+      return res.json({ success: true, data: [] });
+    }
     console.error("Error obteniendo combos:", error);
     res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
