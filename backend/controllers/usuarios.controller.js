@@ -28,33 +28,43 @@ export const buscarDelivery = async (req, res) => {
 
 export const registrarDelivery = async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const digits = String(req.body?.phone || "").replace(/\D/g, "");
+    const name = String(req.body?.name || "").trim();
 
-    if (!name || !phone) {
+    if (digits.length !== 4) {
       return res.status(400).json({
         success: false,
-        message: "El nombre y el teléfono son requeridos.",
+        message: "Se requieren exactamente los últimos 4 dígitos del teléfono.",
       });
     }
 
-    const [result] = await pool.query(
-      "INSERT INTO delivery (digitos, nombre) VALUES (?, ?)",
-      [phone, name],
+    const [existing] = await pool.query(
+      "SELECT id_delivery as id, nombre as name, digitos as phone FROM delivery WHERE digitos = ? LIMIT 1",
+      [digits],
     );
 
-    const deliveryData = {
-      id: result.insertId,
-      name,
-      phone,
-    };
+    if (existing.length > 0) {
+      return res.json({
+        success: true,
+        created: false,
+        delivery: existing[0],
+      });
+    }
+
+    const deliveryName = name || `Delivery-${digits}`;
+    const [result] = await pool.query(
+      "INSERT INTO delivery (digitos, nombre) VALUES (?, ?)",
+      [digits, deliveryName],
+    );
 
     res.status(201).json({
       success: true,
       message: "Delivery registrado con éxito",
+      created: true,
       delivery: {
         id: result.insertId,
-        name,
-        phone,
+        name: deliveryName,
+        phone: digits,
       },
     });
   } catch (error) {
@@ -202,7 +212,7 @@ export const activarUsuario = async (req, res) => {
   try {
     const [result] = await pool.query(
       "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = ?",
-      [id]
+      [id],
     );
 
     if (result.affectedRows === 0) {
@@ -231,9 +241,16 @@ export const actualizarUsuario = async (req, res) => {
     const { nombre_completo, email, rol, id_sucursal, password } = req.body;
 
     const nameTrim = String(nombre_completo || "").trim();
-    const emailTrim = String(email || "").trim().toLowerCase();
-    
-    if (!nameTrim || !emailTrim || !rol || (!id_sucursal && id_sucursal !== 0)) {
+    const emailTrim = String(email || "")
+      .trim()
+      .toLowerCase();
+
+    if (
+      !nameTrim ||
+      !emailTrim ||
+      !rol ||
+      (!id_sucursal && id_sucursal !== 0)
+    ) {
       return res.status(400).json({
         success: false,
         message: "El nombre, email, rol y sucursal son obligatorios.",
@@ -243,7 +260,7 @@ export const actualizarUsuario = async (req, res) => {
     // Validar unicidad del correo electrónico
     const [existingUser] = await pool.query(
       "SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario != ? LIMIT 1",
-      [emailTrim, id]
+      [emailTrim, id],
     );
 
     if (existingUser.length > 0) {
@@ -254,7 +271,8 @@ export const actualizarUsuario = async (req, res) => {
     }
 
     let queryParams = [nameTrim, emailTrim, rol, Number(id_sucursal)];
-    let queryStr = "UPDATE usuarios SET nombre_completo = ?, email = ?, rol = ?, id_sucursal = ?";
+    let queryStr =
+      "UPDATE usuarios SET nombre_completo = ?, email = ?, rol = ?, id_sucursal = ?";
 
     // Actualizar contraseña si se provee una nueva
     if (password && password.trim() !== "") {
@@ -291,9 +309,8 @@ export const actualizarUsuario = async (req, res) => {
         email: emailTrim,
         rol,
         id_sucursal: Number(id_sucursal),
-      }
+      },
     });
-
   } catch (error) {
     console.error("Error al actualizar usuario:", error);
     res.status(500).json({

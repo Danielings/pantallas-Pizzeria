@@ -18,9 +18,9 @@ export const buscarClientes = async (req, res) => {
               COUNT(v.id_venta) as orders
        FROM clientes c
        LEFT JOIN ventas v ON c.id_cliente = v.id_cliente
-       WHERE c.cedula = ? OR c.nombre LIKE ?
+      WHERE c.cedula = ? OR RIGHT(c.cedula, 4) = ? OR c.nombre LIKE ?
        GROUP BY c.id_cliente`,
-      [searchTerm, `%${searchTerm}%`],
+      [searchTerm, searchTerm, `%${searchTerm}%`],
     );
 
     if (rows.length > 0) {
@@ -30,6 +30,95 @@ export const buscarClientes = async (req, res) => {
     }
   } catch (error) {
     console.error("Error buscando cliente:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const buscarORegistrarClienteDelivery = async (req, res) => {
+  const digits = String(req.body?.phoneLastDigits || "").replace(/\D/g, "");
+
+  if (digits.length !== 4) {
+    return res.status(400).json({
+      success: false,
+      message: "Se requieren exactamente los últimos 4 dígitos del teléfono.",
+    });
+  }
+
+  try {
+    const [existing] = await pool.query(
+      `SELECT c.id_cliente AS id, c.cedula, c.nombre AS name, c.telefono AS phone,
+              COUNT(v.id_venta) AS orders
+       FROM clientes c
+       LEFT JOIN ventas v ON c.id_cliente = v.id_cliente
+       WHERE RIGHT(CAST(c.telefono AS CHAR), 4) = ?
+       GROUP BY c.id_cliente
+       ORDER BY c.id_cliente ASC
+       LIMIT 1`,
+      [digits],
+    );
+
+    if (existing.length > 0) {
+      return res.json({ success: true, cliente: existing[0], created: false });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO clientes (cedula, nombre, telefono, descripcion)
+       VALUES (?, ?, ?, ?)`,
+      [
+        `Delivery-${digits}`,
+        "Cliente Delivery",
+        Number(digits),
+        "eres el mas fuerte por ser satoru gojo o eres satoru gojo porque eres el mas fuerte.",
+      ],
+    );
+
+    return res.status(201).json({
+      success: true,
+      created: true,
+      cliente: {
+        id: result.insertId,
+        cedula: `DELIVERY-${digits}`,
+        name: "Cliente Delivery",
+        phone: Number(digits),
+        orders: 0,
+      },
+    });
+  } catch (error) {
+    console.error("Error buscando o registrando cliente de delivery:", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const actualizarAliasCliente = async (req, res) => {
+  const { id } = req.params;
+  const name = String(req.body?.name || "").trim();
+
+  if (!name) {
+    return res.status(400).json({
+      success: false,
+      message: "El alias del cliente es obligatorio.",
+    });
+  }
+
+  try {
+    const [result] = await pool.query(
+      "UPDATE clientes SET nombre = ? WHERE id_cliente = ?",
+      [name, id],
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Cliente no encontrado.",
+      });
+    }
+
+    res.json({
+      success: true,
+      cliente: { id: Number(id), name },
+    });
+  } catch (error) {
+    console.error("Error actualizando alias del cliente:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
