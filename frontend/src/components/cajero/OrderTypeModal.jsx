@@ -293,6 +293,22 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
     }
   };
 
+  const getProductOriginId = (item) => {
+    const value =
+      item.productId ??
+      item.productOriginId ??
+      item.id ??
+      item.id_helado ??
+      item.id_heladeria;
+    const id = typeof value === "string" ? parseInt(value, 10) : Number(value);
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error(
+        `El producto "${item.name || "sin nombre"}" no tiene un identificador válido.`,
+      );
+    }
+    return id;
+  };
+
   const getPendingDetails = () => {
     const items = currentOrder.items.length
       ? currentOrder.items
@@ -316,7 +332,7 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
         : Number(item.price || 0) * sizeMultiplier;
       return {
         tipo_producto: getProductTypeForApi(item.category),
-        id_producto_origen: Number(item.productId ?? item.id),
+        id_producto_origen: getProductOriginId(item),
         cantidad: Number(item.qty || 1),
         monto_total: Number((unitPrice * (item.qty || 1)).toFixed(2)),
         nota: item.note || "",

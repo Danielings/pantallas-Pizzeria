@@ -197,6 +197,22 @@ export default function CheckoutModal({ onClose }) {
     }
   };
 
+  const getProductOriginId = (item) => {
+    const value =
+      item.productId ??
+      item.productOriginId ??
+      item.id ??
+      item.id_helado ??
+      item.id_heladeria;
+    const id = typeof value === "string" ? parseInt(value, 10) : Number(value);
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error(
+        `El producto "${item.name || "sin nombre"}" no tiene un identificador válido.`,
+      );
+    }
+    return id;
+  };
+
   const handleSelectMethod = (method) => {
     setSelectedMethod(method);
     // open modal to enter full/partial amount
@@ -304,58 +320,61 @@ export default function CheckoutModal({ onClose }) {
       return;
     }
 
-    const payload = {
-      id_cliente: clienteIdReal,
-      id_usuario: 1,
-      id_delivery: deliveryIdReal,
-      despacho,
-      tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
-      monto_total_usd: Number(totalToUse.toFixed(2)),
-      monto_total_bs: Number((totalToUse * (exchangeRate || 0)).toFixed(2)),
-      pagos: paymentsInternal.map((payment) => {
-        const isUSD = payment.currency === "USD";
-        const isBs = payment.currency === "Bs";
-        const isCash = mapPaymentMethodToApi(payment.method) === "Efectivo";
+    let payload;
+    try {
+      payload = {
+        id_cliente: clienteIdReal,
+        id_usuario: 1,
+        id_delivery: deliveryIdReal,
+        despacho,
+        tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
+        monto_total_usd: Number(totalToUse.toFixed(2)),
+        monto_total_bs: Number((totalToUse * (exchangeRate || 0)).toFixed(2)),
+        pagos: paymentsInternal.map((payment) => {
+          const isUSD = payment.currency === "USD";
+          const isBs = payment.currency === "Bs";
+          const isCash = mapPaymentMethodToApi(payment.method) === "Efectivo";
 
-        return {
-          metodo: mapPaymentMethodToApi(payment.method),
-          monto_usd: isCash
-            ? isUSD
-              ? Number(payment.amount.toFixed(2))
-              : 0
-            : Number(payment.amount.toFixed(2)),
-          monto_bs: isCash
-            ? isBs
-              ? Number((payment.amount * (exchangeRate || 0)).toFixed(2))
-              : 0
-            : Number((payment.amount * (exchangeRate || 0)).toFixed(2)),
-          referencia: payment.currency || "Bs",
-        };
-      }),
+          return {
+            metodo: mapPaymentMethodToApi(payment.method),
+            monto_usd: isCash
+              ? isUSD
+                ? Number(payment.amount.toFixed(2))
+                : 0
+              : Number(payment.amount.toFixed(2)),
+            monto_bs: isCash
+              ? isBs
+                ? Number((payment.amount * (exchangeRate || 0)).toFixed(2))
+                : 0
+              : Number((payment.amount * (exchangeRate || 0)).toFixed(2)),
+            referencia: payment.currency || "Bs",
+          };
+        }),
 
-      detalles: currentOrder.items.map((item) => {
-        const idOrigen =
-          typeof item.productId === "string"
-            ? parseInt(item.productId.replace(/\D/g, ""))
-            : Number(item.productId);
+        detalles: currentOrder.items.map((item) => {
+          const idOrigen = getProductOriginId(item);
 
-        return {
-          id_detalle: item.id_detalle || null,
-          tipo_producto: getProductTypeForApi(item.category),
-          id_producto_origen: idOrigen,
-          cantidad: item.qty,
-          monto_total: Number((item.price * item.qty).toFixed(2)),
-          nota: item.note || "",
-          extras: item.extras
-            ? item.extras.map((extra) =>
-                typeof extra.id === "string"
-                  ? parseInt(extra.id.replace(/\D/g, ""))
-                  : Number(extra.id),
-              )
-            : [],
-        };
-      }),
-    };
+          return {
+            id_detalle: item.id_detalle || null,
+            tipo_producto: getProductTypeForApi(item.category),
+            id_producto_origen: idOrigen,
+            cantidad: item.qty,
+            monto_total: Number((item.price * item.qty).toFixed(2)),
+            nota: item.note || "",
+            extras: item.extras
+              ? item.extras.map((extra) =>
+                  typeof extra.id === "string"
+                    ? parseInt(extra.id.replace(/\D/g, ""))
+                    : Number(extra.id),
+                )
+              : [],
+          };
+        }),
+      };
+    } catch (error) {
+      setError(error.message);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
