@@ -190,6 +190,8 @@ export default function CheckoutModal({ onClose }) {
         return "Bebida";
       case "icecream":
         return "Helado";
+      case "combos":
+        return "Combo";
       default:
         return "Pizza";
     }

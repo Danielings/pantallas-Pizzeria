@@ -15,6 +15,7 @@ export default function MenuGrid({ category }) {
     ...(catalog?.pizzas || []),
     ...(catalog?.drinks || []),
     ...(catalog?.icecream || []),
+    ...(catalog?.combos || []),
   ];
 
   const [showCrud, setShowCrud] = useState(false);
@@ -57,6 +58,7 @@ export default function MenuGrid({ category }) {
     (p) => p.pizzaCategory === "Grande" || p.pizzaCategory === "Familiar",
   );
   const gigantes = allPizzas.filter((p) => p.pizzaCategory === "Gigante");
+  const combos = activeProducts.filter((p) => p.category === "combos");
   const drinks = activeProducts.filter((p) => p.category === "drinks");
 
   switch (category) {
@@ -72,6 +74,9 @@ export default function MenuGrid({ category }) {
       break;
     case "Gigantes":
       displayedProducts = gigantes;
+      break;
+    case "combos":
+      displayedProducts = combos;
       break;
     case "all":
     default:
