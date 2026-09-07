@@ -34,7 +34,7 @@ const normalizeBebida = (b) => ({
 });
 
 const normalizeHelado = (h) => ({
-  id: h.id || h.id_helado,
+  id: h.id ?? h.id_helado ?? h.id_heladeria ?? h.id_producto,
   name: h.name || h.nombre,
   price: Number(h.price || h.precio),
   description: h.description || h.descripcion,
@@ -78,13 +78,13 @@ export function useProducts() {
     queryFn: async () => {
       const [pizzas, drinks, icecream, extras, combos, categoriesPizza] =
         await Promise.all([
-        fetchCategory("/pizzas"),
-        fetchCategory("/bebidas"),
-        fetchCategory("/heladeria"),
-        fetchCategory("/extras"),
-        fetchCategory("/combos"),
-        fetchCategory("/categorias-pizza"),
-      ]);
+          fetchCategory("/pizzas"),
+          fetchCategory("/bebidas"),
+          fetchCategory("/heladeria"),
+          fetchCategory("/extras"),
+          fetchCategory("/combos"),
+          fetchCategory("/categorias-pizza"),
+        ]);
       return {
         pizzas: pizzas.map(normalizePizza),
         drinks: drinks.map(normalizeBebida),

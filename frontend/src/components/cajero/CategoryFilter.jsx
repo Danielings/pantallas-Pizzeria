@@ -1,4 +1,4 @@
-import { Pizza, CupSoda, Sandwich, Star } from "lucide-react";
+import { Pizza, CupSoda, Sandwich, Star, IceCreamBowl } from "lucide-react";
 import { useContadorCajero } from "../../hooks/useContadorCajero.js";
 
 export default function CategoryFilter({ selected, onSelect }) {
@@ -6,17 +6,22 @@ export default function CategoryFilter({ selected, onSelect }) {
 
   const categories = [
     { id: "Normal", name: "Normal", icon: <Pizza className="w-4 h-4" /> },
-    { id: "Grande", name: "Grande", icon: <Star className="w-4 h-4" /> },
+    { id: "Grande", name: "Grande", icon: <Pizza className="w-6 h-4" /> },
     { id: "bebidas", name: "Bebidas", icon: <CupSoda className="w-4 h-4" /> },
     {
       id: "Gigantes",
       name: "Gigantes",
-      icon: <Sandwich className="w-4 h-4" />,
+      icon: <Pizza className="w-4 h-4" />,
     },
     {
       id: "combos",
       name: "Combos",
-      icon: <Star className="w-4 h-4" />,
+      icon: <Pizza className="w-4 h-4" />,
+    },
+    {
+      id: "Helados",
+      name: "Helados",
+      icon: <IceCreamBowl className="w-4 h-4" />,
       mostrarContador: true,
     },
   ];

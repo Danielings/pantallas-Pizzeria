@@ -114,6 +114,8 @@ function reducer(state, action) {
       const newItem = {
         id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         productId: product.id,
+        productOriginId:
+          product.id ?? product.id_helado ?? product.id_heladeria,
         name: product.name,
         basePrice: product.price,
         price: calculateItemPrice(product.price, size || null, []),

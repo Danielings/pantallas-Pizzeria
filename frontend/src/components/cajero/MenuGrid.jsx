@@ -60,6 +60,7 @@ export default function MenuGrid({ category }) {
   const gigantes = allPizzas.filter((p) => p.pizzaCategory === "Gigante");
   const combos = activeProducts.filter((p) => p.category === "combos");
   const drinks = activeProducts.filter((p) => p.category === "drinks");
+  const icecreams = activeProducts.filter((p) => p.category === "icecream");
 
   switch (category) {
     case "Normal":
@@ -78,6 +79,9 @@ export default function MenuGrid({ category }) {
     case "combos":
       displayedProducts = combos;
       break;
+    case "Helados":
+      displayedProducts = icecreams;
+      break;
     case "all":
     default:
       displayedProducts = activeProducts;
@@ -94,50 +98,59 @@ export default function MenuGrid({ category }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4 auto-rows-max">
-          {displayedProducts.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white border border-slate-100 rounded-xl overflow-hidden hover:shadow-pizza hover:border-pizza-red/30 transition-all cursor-pointer group flex flex-col"
-              onClick={() => handleAddToCart(product, product.size)}
-            >
-              {product.url || product.image ? (
-                <div className="h-24 sm:h-28 md:h-32 w-full shrink-0 overflow-hidden bg-slate-50 relative">
-                  <img
-                    src={product.url || product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                  <span className="absolute bottom-2 left-2 text-white font-bold">
-                    ${product.price.toFixed(2)}
-                  </span>
-                </div>
-              ) : (
-                <div className="h-16 sm:h-20 md:h-24 w-full shrink-0 bg-slate-50 flex items-center justify-center text-3xl sm:text-4xl  relative">
-                  {product.emoji}
-                  <span className="absolute bottom-2 right-2 text-slate-800 font-bold text-sm bg-white/80 px-2 rounded-full backdrop-blur-sm">
-                    ${product.price.toFixed(2)}
-                  </span>
-                </div>
-              )}
+          {displayedProducts.map((product, index) => {
+            const productId =
+              product.id ??
+              product.id_helado ??
+              product.id_heladeria ??
+              product.id_producto;
+            const productWithId = { ...product, id: productId };
 
-              <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">
-                    {product.name}
-                  </h3>
-                  <p className="text-[9px] sm:text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-tight">
-                    {product.description}
-                  </p>
-                </div>
+            return (
+              <div
+                key={`${product.category}-${productId ?? index}`}
+                className="bg-white border border-slate-100 rounded-xl overflow-hidden hover:shadow-pizza hover:border-pizza-red/30 transition-all cursor-pointer group flex flex-col"
+                onClick={() => handleAddToCart(productWithId, product.size)}
+              >
+                {product.url || product.image ? (
+                  <div className="h-24 sm:h-28 md:h-32 w-full shrink-0 overflow-hidden bg-slate-50 relative">
+                    <img
+                      src={product.url || product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                    <span className="absolute bottom-2 left-2 text-white font-bold">
+                      ${product.price.toFixed(2)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="h-16 sm:h-20 md:h-24 w-full shrink-0 bg-slate-50 flex items-center justify-center text-3xl sm:text-4xl  relative">
+                    {product.emoji}
+                    <span className="absolute bottom-2 right-2 text-slate-800 font-bold text-sm bg-white/80 px-2 rounded-full backdrop-blur-sm">
+                      ${product.price.toFixed(2)}
+                    </span>
+                  </div>
+                )}
 
-                <button className="mt-2 sm:mt-3 w-full shrink-0 py-1 sm:py-1.5 flex items-center justify-center gap-1 bg-slate-50 hover:bg-pizza-red hover:text-white text-slate-600 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors">
-                  <Plus className="w-3 h-3" />
-                  Agregar
-                </button>
+                <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-[9px] sm:text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-tight">
+                      {product.description}
+                    </p>
+                  </div>
+
+                  <button className="mt-2 sm:mt-3 w-full shrink-0 py-1 sm:py-1.5 flex items-center justify-center gap-1 bg-slate-50 hover:bg-pizza-red hover:text-white text-slate-600 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors">
+                    <Plus className="w-3 h-3" />
+                    Agregar
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {!isLoading && displayedProducts.length === 0 && (
             <div className="col-span-full py-12 text-center text-slate-400">

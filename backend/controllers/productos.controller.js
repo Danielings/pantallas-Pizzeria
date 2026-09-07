@@ -165,7 +165,7 @@ export const obtenerHelados = async (req, res) => {
     const [rows] = await pool.execute("SELECT * FROM heladeria");
 
     const helados = rows.map((helado) => ({
-      id: helado.id_helado, // <-- Asegúrate de que coincida con la columna ID de tu tabla heladeria
+      id: helado.id_heladeria, //
       name: helado.nombre,
       price: helado.precio,
       description: helado.descripcion,
@@ -207,7 +207,7 @@ export const actualizarHelado = async (req, res) => {
   const { name, price, description } = req.body;
   try {
     const [existing] = await pool.query(
-      "SELECT url FROM heladeria WHERE id_helado = ?",
+      "SELECT url FROM heladeria WHERE id_heladeria = ?",
       [id],
     );
     let imageUrl = existing.length > 0 ? existing[0].url : null;
@@ -215,7 +215,7 @@ export const actualizarHelado = async (req, res) => {
     if (req.file) imageUrl = await uploadImageToCloudinary(req.file, "helados");
 
     await pool.query(
-      `UPDATE heladeria SET nombre = ?, precio = ?, descripcion = ?, url = ? WHERE id_helado = ?`,
+      `UPDATE heladeria SET nombre = ?, precio = ?, descripcion = ?, url = ? WHERE id_heladeria = ?`,
       [name, price, description, imageUrl, id],
     );
     res.json({

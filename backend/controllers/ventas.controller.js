@@ -4,6 +4,16 @@ import { emitPusherEvent } from "../config/pusher.js";
 
 const TASA_API_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
 
+const tieneIdProductoValido = (detalle) => {
+  const id = Number(detalle?.id_producto_origen);
+  return Number.isInteger(id) && id > 0;
+};
+
+const validarDetallesNuevos = (detalles) =>
+  detalles.every(
+    (detalle) => detalle?.id_detalle || tieneIdProductoValido(detalle),
+  );
+
 // ---- Procesar venta
 export const procesarVenta = async (req, res) => {
   const {
@@ -18,6 +28,13 @@ export const procesarVenta = async (req, res) => {
     detalles,
   } = req.body;
   const { id_sucursal } = req.user;
+
+  if (!Array.isArray(detalles) || !validarDetallesNuevos(detalles)) {
+    return res.status(400).json({
+      success: false,
+      message: "Cada producto debe tener un id_producto_origen válido.",
+    });
+  }
 
   const connection = await pool.getConnection();
 
@@ -151,6 +168,13 @@ export const registrarPedidoPendiente = async (req, res) => {
     });
   }
 
+  if (!validarDetallesNuevos(detalles)) {
+    return res.status(400).json({
+      success: false,
+      message: "Cada producto debe tener un id_producto_origen válido.",
+    });
+  }
+
   const connection = await pool.getConnection();
 
   try {
@@ -273,6 +297,13 @@ export const completarVentaPendiente = async (req, res) => {
     monto_total_bs,
   } = req.body;
   const connection = await pool.getConnection();
+
+  if (!Array.isArray(detalles) || !validarDetallesNuevos(detalles)) {
+    return res.status(400).json({
+      success: false,
+      message: "Cada producto nuevo debe tener un id_producto_origen válido.",
+    });
+  }
 
   try {
     await connection.beginTransaction();
@@ -406,6 +437,16 @@ export const editarVenta = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "El id_venta es obligatorio para actualizar el pedido.",
+    });
+  }
+
+  if (
+    Array.isArray(detalles_actualizados) &&
+    !validarDetallesNuevos(detalles_actualizados)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Cada producto nuevo debe tener un id_producto_origen válido.",
     });
   }
 
