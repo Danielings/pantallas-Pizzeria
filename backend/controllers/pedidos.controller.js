@@ -1,6 +1,60 @@
 import pool from "../config/bd.js";
 import { emitPusherEvent } from "../config/pusher.js";
 
+const obtenerDetallesCocina = async (idVenta, estado) => {
+  const [detalles] = await pool.query(
+    `
+      SELECT
+        vd.id_detalle,
+        vd.cantidad,
+        vd.nota,
+        vd.tipo_producto,
+        vd.estado AS estado_detalle,
+        p.nombre AS nombre_producto,
+        cp.categoria AS categoria_pizza
+      FROM venta_detalle vd
+      INNER JOIN pizza p ON p.id_pizza = vd.id_producto_origen
+      LEFT JOIN categoria_pizza cp ON cp.id_categoria_pizza = p.id_categoria_pizza
+      WHERE vd.id_venta = ?
+        AND vd.estado = ?
+        AND vd.tipo_producto = 'Pizza'
+
+      UNION ALL
+
+      SELECT
+        vd.id_detalle,
+        vd.cantidad * cd.cantidad AS cantidad,
+        vd.nota,
+        'Pizza' AS tipo_producto,
+        vd.estado AS estado_detalle,
+        p.nombre AS nombre_producto,
+        cp.categoria AS categoria_pizza
+      FROM venta_detalle vd
+      INNER JOIN combo_detalle cd ON cd.id_combo = vd.id_producto_origen
+      INNER JOIN pizza p ON p.id_pizza = cd.id_pizza
+      LEFT JOIN categoria_pizza cp ON cp.id_categoria_pizza = p.id_categoria_pizza
+      WHERE vd.id_venta = ?
+        AND vd.estado = ?
+        AND (
+          vd.tipo_producto = 'Combo'
+          OR (
+            vd.tipo_producto = 'Pizza'
+            AND NOT EXISTS (
+              SELECT 1
+              FROM pizza pizza_existente
+              WHERE pizza_existente.id_pizza = vd.id_producto_origen
+            )
+          )
+        )
+
+      ORDER BY id_detalle ASC
+    `,
+    [idVenta, estado, idVenta, estado],
+  );
+
+  return detalles;
+};
+
 //--------------------------Pedidos
 
 export const obtenerPedidosCocina = async (req, res) => {
@@ -21,28 +75,16 @@ export const obtenerPedidosCocina = async (req, res) => {
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
             AND vd.estado = 'Pendiente'
-            AND vd.tipo_producto = 'Pizza'
+            AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
     );
 
     const pedidosCocina = await Promise.all(
       ventas.map(async (venta) => {
-        const [detalles] = await pool.query(
-          `SELECT 
-            vd.id_detalle,
-            vd.cantidad,
-            vd.nota,
-            vd.estado AS estado_detalle,
-            p.nombre AS nombre_producto,
-            cp.categoria AS categoria_pizza 
-          FROM venta_detalle vd
-          LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen
-          LEFT JOIN categoria_pizza cp ON p.id_categoria_pizza = cp.id_categoria_pizza
-          WHERE vd.id_venta = ? 
-            AND vd.estado = 'Pendiente' 
-            AND vd.tipo_producto = 'Pizza'`,
-          [venta.id_venta],
+        const detalles = await obtenerDetallesCocina(
+          venta.id_venta,
+          "Pendiente",
         );
 
         const detallesConExtras = await Promise.all(
@@ -91,29 +133,14 @@ export const obtenerPedidosHorno = async (req, res) => {
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
             AND vd.estado = 'Horno'
-            AND vd.tipo_producto = 'Pizza'
+            AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
     );
 
     const pedidosHorno = await Promise.all(
       ventas.map(async (venta) => {
-        const [detalles] = await pool.query(
-          `SELECT 
-            vd.id_detalle,
-            vd.cantidad,
-            vd.nota,
-            vd.estado AS estado_detalle,
-            p.nombre AS nombre_producto,
-            cp.categoria AS categoria_pizza 
-          FROM venta_detalle vd
-          LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen
-          LEFT JOIN categoria_pizza cp ON p.id_categoria_pizza = cp.id_categoria_pizza
-          WHERE vd.id_venta = ? 
-            AND vd.estado = 'Horno' 
-            AND vd.tipo_producto = 'Pizza'`,
-          [venta.id_venta],
-        );
+        const detalles = await obtenerDetallesCocina(venta.id_venta, "Horno");
 
         const detallesConExtras = await Promise.all(
           detalles.map(async (det) => {
@@ -161,28 +188,16 @@ export const obtenerPedidosDespacho = async (req, res) => {
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
             AND vd.estado = 'Despacho'
-            AND vd.tipo_producto = 'Pizza'
+            AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
     );
 
     const pedidosCompletado = await Promise.all(
       ventas.map(async (venta) => {
-        const [detalles] = await pool.query(
-          `SELECT 
-            vd.id_detalle,
-            vd.cantidad,
-            vd.nota,
-            vd.estado AS estado_detalle,
-            p.nombre AS nombre_producto,
-            cp.categoria AS categoria_pizza 
-          FROM venta_detalle vd
-          LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen
-          LEFT JOIN categoria_pizza cp ON p.id_categoria_pizza = cp.id_categoria_pizza
-          WHERE vd.id_venta = ? 
-            AND vd.estado = 'Despacho' 
-            AND vd.tipo_producto = 'Pizza'`,
-          [venta.id_venta],
+        const detalles = await obtenerDetallesCocina(
+          venta.id_venta,
+          "Despacho",
         );
 
         const detallesConExtras = await Promise.all(
@@ -229,28 +244,16 @@ export const obtenerPedidosMesero = async (req, res) => {
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
             AND vd.estado = 'Despacho'
-            AND vd.tipo_producto = 'Pizza'
+            AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
     );
 
     const pedidosCompletado = await Promise.all(
       ventas.map(async (venta) => {
-        const [detalles] = await pool.query(
-          `SELECT 
-            vd.id_detalle,
-            vd.cantidad,
-            vd.nota,
-            vd.estado AS estado_detalle,
-            p.nombre AS nombre_producto,
-            cp.categoria AS categoria_pizza 
-          FROM venta_detalle vd
-          LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen
-          LEFT JOIN categoria_pizza cp ON p.id_categoria_pizza = cp.id_categoria_pizza
-          WHERE vd.id_venta = ? 
-            AND vd.estado = 'Despacho' 
-            AND vd.tipo_producto = 'Pizza'`,
-          [venta.id_venta],
+        const detalles = await obtenerDetallesCocina(
+          venta.id_venta,
+          "Despacho",
         );
 
         const detallesConExtras = await Promise.all(
@@ -299,28 +302,16 @@ export const obtenerPedidosPendiente = async (req, res) => {
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
             AND vd.estado = 'pDespacho'
-            AND vd.tipo_producto = 'Pizza'
+            AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
     );
 
     const pedidosCompletado = await Promise.all(
       ventas.map(async (venta) => {
-        const [detalles] = await pool.query(
-          `SELECT 
-            vd.id_detalle,
-            vd.cantidad,
-            vd.nota,
-            vd.estado AS estado_detalle,
-            p.nombre AS nombre_producto,
-            cp.categoria AS categoria_pizza 
-          FROM venta_detalle vd
-          LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen
-          LEFT JOIN categoria_pizza cp ON p.id_categoria_pizza = cp.id_categoria_pizza
-          WHERE vd.id_venta = ? 
-            AND vd.estado = 'pDespacho' 
-            AND vd.tipo_producto = 'Pizza'`,
-          [venta.id_venta],
+        const detalles = await obtenerDetallesCocina(
+          venta.id_venta,
+          "pDespacho",
         );
 
         const detallesConExtras = await Promise.all(
@@ -411,7 +402,7 @@ export const actualizarEstadoPedido = async (req, res) => {
       `UPDATE venta_detalle 
        SET estado = ? 
        WHERE id_venta = ? 
-         AND tipo_producto = 'Pizza'`,
+         AND tipo_producto IN ('Pizza', 'Combo')`,
       [nuevoEstado, id_venta],
     );
 

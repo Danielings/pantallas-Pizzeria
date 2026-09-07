@@ -12,6 +12,11 @@ export default function CategoryFilter({ selected, onSelect }) {
       id: "Gigantes",
       name: "Gigantes",
       icon: <Sandwich className="w-4 h-4" />,
+    },
+    {
+      id: "combos",
+      name: "Combos",
+      icon: <Star className="w-4 h-4" />,
       mostrarContador: true,
     },
   ];

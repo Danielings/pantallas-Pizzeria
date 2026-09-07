@@ -20,7 +20,7 @@ const adaptVenta = (venta, status) => ({
     qty: detalle.cantidad,
     note: detalle.nota,
     size: detalle.categoria_pizza,
-    category: "pizzas",
+    category: detalle.tipo_producto === "Combo" ? "combos" : "pizzas",
     extras: detalle.extras || [],
   })),
 });

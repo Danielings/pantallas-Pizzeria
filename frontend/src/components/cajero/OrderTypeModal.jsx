@@ -286,6 +286,8 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
         return "Bebida";
       case "icecream":
         return "Helado";
+      case "combos":
+        return "Combo";
       default:
         return "Pizza";
     }
