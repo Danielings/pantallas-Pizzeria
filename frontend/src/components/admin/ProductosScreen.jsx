@@ -288,8 +288,10 @@ export default function ProductosScreen() {
           },
         );
         if (response.data.success) {
+          const comboId = editingProduct.id ?? editingProduct.id_combo;
           const updatedCombo = {
             ...editingProduct,
+            id: comboId,
             name: comboData.nombre,
             description: comboData.descripcion,
             price: comboData.precio,
@@ -297,9 +299,19 @@ export default function ProductosScreen() {
             category: "combos",
           };
           if (response.data.url) updatedCombo.url = response.data.url;
-          setProducts((prev) =>
-            prev.map((p) => (p.id === editingProduct.id ? updatedCombo : p)),
-          );
+          setProducts((prev) => {
+            let comboReplaced = false;
+            return prev.reduce((next, product) => {
+              const productId = product.id ?? product.id_combo;
+              if (Number(productId) !== Number(comboId)) {
+                next.push(product);
+              } else if (!comboReplaced) {
+                next.push(updatedCombo);
+                comboReplaced = true;
+              }
+              return next;
+            }, []);
+          });
           window.Toast.fire({
             icon: "success",
             title: "¡Combo actualizado exitosamente!",
@@ -642,15 +654,15 @@ export default function ProductosScreen() {
                                     product.extraCategory}
                                 </span>
                               )}
-                              {product.category === "combos" &&
-                                product.items?.length > 0 && (
+                            {product.category === "combos" &&
+                              product.items?.length > 0 && (
                                 <span className="text-slate-500 font-semibold normal-case truncate max-w-[220px]">
                                   •{" "}
-                                    {product.items
+                                  {product.items
                                     .map((item) => item.nombre_producto)
                                     .filter(Boolean)
                                     .join(", ")}
-                              </span>
+                                </span>
                               )}
                           </span>
                         </div>
