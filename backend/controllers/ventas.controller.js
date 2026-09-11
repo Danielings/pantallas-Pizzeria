@@ -1,4 +1,4 @@
-import pool from "../config/bd.js";
+import db from "../config/turso.js";
 import axios from "axios";
 import { emitPusherEvent } from "../config/pusher.js";
 
@@ -36,16 +36,16 @@ export const procesarVenta = async (req, res) => {
     });
   }
 
-  const connection = await pool.getConnection();
+  let tx;
 
   try {
-    await connection.beginTransaction();
+    tx = await db.transaction("write");
 
-    const [resultVenta] = await connection.query(
-      `INSERT INTO ventas 
+    const resultVenta = await tx.execute({
+      sql: `INSERT INTO ventas 
       (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, id_sucursal) 
-      VALUES (?, ?, ?, ?, 'Completado', NOW(), ?, ?, ?,?)`,
-      [
+      VALUES (?, ?, ?, ?, 'Completado', datetime('now', 'localtime'), ?, ?, ?, ?)`,
+      args: [
         id_cliente,
         id_usuario,
         id_delivery || null,
@@ -55,23 +55,23 @@ export const procesarVenta = async (req, res) => {
         monto_total_bs,
         id_sucursal,
       ],
-    );
+    });
 
-    const id_venta = resultVenta.insertId;
+    const id_venta = Number(resultVenta.lastInsertRowid);
 
-    for (const pago of pagos) {
-      await connection.query(
-        `INSERT INTO ventas_pagos 
+    for (const pago of pagos || []) {
+      await tx.execute({
+        sql: `INSERT INTO ventas_pagos 
         (id_venta, metodo_pago, monto_usd, monto_bs, referencia) 
         VALUES (?, ?, ?, ?, ?)`,
-        [
+        args: [
           id_venta,
           pago.metodo,
           pago.monto_usd,
           pago.monto_bs,
           pago.referencia || null,
         ],
-      );
+      });
     }
 
     for (const item of detalles) {
@@ -81,11 +81,11 @@ export const procesarVenta = async (req, res) => {
         estadoInicial = "Completado";
       }
 
-      const [resultDetalle] = await connection.query(
-        `INSERT INTO venta_detalle 
+      const resultDetalle = await tx.execute({
+        sql: `INSERT INTO venta_detalle 
         (id_venta, tipo_producto, id_producto_origen, cantidad, monto_total, nota, estado) 
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
+        args: [
           id_venta,
           item.tipo_producto,
           item.id_producto_origen,
@@ -94,21 +94,21 @@ export const procesarVenta = async (req, res) => {
           item.nota,
           estadoInicial,
         ],
-      );
+      });
 
-      const id_detalle = resultDetalle.insertId;
+      const id_detalle = Number(resultDetalle.lastInsertRowid);
 
       if (item.extras && item.extras.length > 0) {
         for (const id_extra of item.extras) {
-          await connection.query(
-            `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
-            [id_detalle, id_extra],
-          );
+          await tx.execute({
+            sql: `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+            args: [id_detalle, id_extra],
+          });
         }
       }
     }
 
-    await connection.commit();
+    await tx.commit();
 
     emitPusherEvent("pizzeria-orders", "pedido_creado", {
       id_venta,
@@ -123,15 +123,13 @@ export const procesarVenta = async (req, res) => {
       id_venta: id_venta,
     });
   } catch (error) {
-    await connection.rollback();
+    if (tx) await tx.rollback();
     console.error("Error al procesar la venta:", error);
     res.status(500).json({
       success: false,
       message: "Error procesando la venta",
       error: error.message,
     });
-  } finally {
-    connection.release();
   }
 };
 
@@ -175,16 +173,16 @@ export const registrarPedidoPendiente = async (req, res) => {
     });
   }
 
-  const connection = await pool.getConnection();
+  let tx;
 
   try {
-    await connection.beginTransaction();
+    tx = await db.transaction("write");
 
-    const [resultVenta] = await connection.query(
-      `INSERT INTO ventas
-       (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs)
-       VALUES (?, ?, ?, ?, 'Pendiente', NOW(), ?, ?, ?)`,
-      [
+    const resultVenta = await tx.execute({
+      sql: `INSERT INTO ventas
+       (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, id_sucursal)
+       VALUES (?, ?, ?, ?, 'Pendiente', datetime('now', 'localtime'), ?, ?, ?, ?)`,
+      args: [
         id_cliente,
         id_usuario,
         id_delivery || null,
@@ -192,24 +190,25 @@ export const registrarPedidoPendiente = async (req, res) => {
         tasa_cambio || 0,
         monto_total_usd || 0,
         monto_total_bs || 0,
+        id_sucursal,
       ],
-    );
+    });
 
-    const id_venta = resultVenta.insertId;
+    const id_venta = Number(resultVenta.lastInsertRowid);
 
     for (const pago of pagos) {
-      await connection.query(
-        `INSERT INTO ventas_pagos
+      await tx.execute({
+        sql: `INSERT INTO ventas_pagos
          (id_venta, metodo_pago, monto_usd, monto_bs, referencia)
          VALUES (?, ?, ?, ?, ?)`,
-        [
+        args: [
           id_venta,
           pago.metodo,
           pago.monto_usd || 0,
           pago.monto_bs || 0,
           pago.referencia || null,
         ],
-      );
+      });
     }
 
     for (const item of detalles) {
@@ -218,11 +217,11 @@ export const registrarPedidoPendiente = async (req, res) => {
           ? "Completado"
           : "Pendiente";
 
-      const [resultDetalle] = await connection.query(
-        `INSERT INTO venta_detalle
+      const resultDetalle = await tx.execute({
+        sql: `INSERT INTO venta_detalle
          (id_venta, tipo_producto, id_producto_origen, cantidad, monto_total, nota, estado)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
+        args: [
           id_venta,
           item.tipo_producto,
           item.id_producto_origen,
@@ -231,33 +230,33 @@ export const registrarPedidoPendiente = async (req, res) => {
           item.nota || "",
           estadoInicial,
         ],
-      );
+      });
 
       if (Array.isArray(item.extras)) {
         for (const id_extra of item.extras) {
-          await connection.query(
-            `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
-            [resultDetalle.insertId, id_extra],
-          );
+          await tx.execute({
+            sql: `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+            args: [Number(resultDetalle.lastInsertRowid), id_extra],
+          });
         }
       }
     }
 
     const estadoNotificaciones = "Pendiente";
-    await connection.query(
-      `INSERT INTO notificaciones
+    await tx.execute({
+      sql: `INSERT INTO notificaciones
        (id_venta, id_cliente, id_usuario, monto_restante, fecha_hora, estado)
-       VALUES (?, ?, ?, ?, NOW(), ?)`,
-      [
+      VALUES (?, ?, ?, ?, datetime('now', 'localtime'), ?)`,
+      args: [
         id_venta,
         id_cliente,
         id_usuario,
         monto_pendiente || 0,
         estadoNotificaciones,
       ],
-    );
+    });
 
-    await connection.commit();
+    await tx.commit();
 
     emitPusherEvent("pizzeria-notifications", "notificacion_pendiente_creada", {
       id_venta,
@@ -274,15 +273,13 @@ export const registrarPedidoPendiente = async (req, res) => {
       id_venta,
     });
   } catch (error) {
-    await connection.rollback();
+    if (tx) await tx.rollback();
     console.error("Error al registrar el pedido pendiente:", error);
     return res.status(500).json({
       success: false,
       message: "Error registrando el pedido pendiente",
       error: error.message,
     });
-  } finally {
-    connection.release();
   }
 };
 
@@ -296,8 +293,6 @@ export const completarVentaPendiente = async (req, res) => {
     monto_total_usd,
     monto_total_bs,
   } = req.body;
-  const connection = await pool.getConnection();
-
   if (!Array.isArray(detalles) || !validarDetallesNuevos(detalles)) {
     return res.status(400).json({
       success: false,
@@ -305,49 +300,50 @@ export const completarVentaPendiente = async (req, res) => {
     });
   }
 
+  let tx;
   try {
-    await connection.beginTransaction();
+    tx = await db.transaction("write");
 
-    const [ventas] = await connection.query(
-      `SELECT id_venta FROM ventas WHERE id_venta = ? AND estado = 'Pendiente' FOR UPDATE`,
-      [id_venta],
-    );
+    const ventas = await tx.execute({
+      sql: "SELECT id_venta FROM ventas WHERE id_venta = ? AND estado = 'Pendiente'",
+      args: [id_venta],
+    });
 
-    if (!ventas.length) {
-      await connection.rollback();
+    if (!ventas.rows.length) {
+      await tx.rollback();
       return res
         .status(404)
         .json({ success: false, message: "Venta pendiente no encontrada." });
     }
 
     for (const pago of pagos) {
-      await connection.query(
-        `INSERT INTO ventas_pagos (id_venta, metodo_pago, monto_usd, monto_bs, referencia)
+      await tx.execute({
+        sql: `INSERT INTO ventas_pagos (id_venta, metodo_pago, monto_usd, monto_bs, referencia)
          VALUES (?, ?, ?, ?, ?)`,
-        [
+        args: [
           id_venta,
           pago.metodo,
           pago.monto_usd || 0,
           pago.monto_bs || 0,
           pago.referencia || null,
         ],
-      );
+      });
     }
 
     for (const detalle of detalles) {
       if (detalle.id_detalle) {
-        await connection.query(
-          `UPDATE venta_detalle
+        await tx.execute({
+          sql: `UPDATE venta_detalle
            SET cantidad = ?, monto_total = ?, nota = ?
            WHERE id_detalle = ? AND id_venta = ?`,
-          [
+          args: [
             detalle.cantidad,
             detalle.monto_total,
             detalle.nota || "",
             detalle.id_detalle,
             id_venta,
           ],
-        );
+        });
         continue;
       }
 
@@ -356,11 +352,11 @@ export const completarVentaPendiente = async (req, res) => {
           ? "Completado"
           : "Pendiente";
 
-      const [resultDetalle] = await connection.query(
-        `INSERT INTO venta_detalle
+      const resultDetalle = await tx.execute({
+        sql: `INSERT INTO venta_detalle
          (id_venta, tipo_producto, id_producto_origen, cantidad, monto_total, nota, estado)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
+        args: [
           id_venta,
           detalle.tipo_producto,
           detalle.id_producto_origen,
@@ -369,30 +365,35 @@ export const completarVentaPendiente = async (req, res) => {
           detalle.nota || "",
           estadoDetalle,
         ],
-      );
+      });
 
       for (const idExtra of detalle.extras || []) {
-        await connection.query(
-          `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
-          [resultDetalle.insertId, idExtra],
-        );
+        await tx.execute({
+          sql: `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+          args: [Number(resultDetalle.lastInsertRowid), idExtra],
+        });
       }
     }
 
     const estadoNotificacionesListo = "Listo";
-    await connection.query(
-      `UPDATE ventas
+    await tx.execute({
+      sql: `UPDATE ventas
        SET id_usuario = ?, estado = 'Completado', monto_total_usd = ?, monto_total_bs = ?
        WHERE id_venta = ?`,
-      [id_usuario || 1, monto_total_usd || 0, monto_total_bs || 0, id_venta],
-    );
+      args: [
+        id_usuario || 1,
+        monto_total_usd || 0,
+        monto_total_bs || 0,
+        id_venta,
+      ],
+    });
 
-    await connection.query(
-      "UPDATE notificaciones SET estado = ? WHERE id_venta = ?",
-      [estadoNotificacionesListo, id_venta],
-    );
+    await tx.execute({
+      sql: "UPDATE notificaciones SET estado = ? WHERE id_venta = ?",
+      args: [estadoNotificacionesListo, id_venta],
+    });
 
-    await connection.commit();
+    await tx.commit();
 
     emitPusherEvent("pizzeria-orders", "pedido_actualizado", {
       id_venta,
@@ -413,11 +414,9 @@ export const completarVentaPendiente = async (req, res) => {
 
     return res.json({ success: true, message: "Venta pendiente completada." });
   } catch (error) {
-    await connection.rollback();
+    if (tx) await tx.rollback();
     console.error("Error completando venta pendiente:", error);
     return res.status(500).json({ success: false, message: error.message });
-  } finally {
-    connection.release();
   }
 };
 
@@ -450,10 +449,9 @@ export const editarVenta = async (req, res) => {
     });
   }
 
-  const connection = await pool.getConnection();
-
+  let tx;
   try {
-    await connection.beginTransaction();
+    tx = await db.transaction("write");
 
     const updates = [];
     const params = [];
@@ -480,20 +478,20 @@ export const editarVenta = async (req, res) => {
 
     if (updates.length > 0) {
       params.push(id_venta);
-      await connection.query(
-        `UPDATE ventas SET ${updates.join(", ")} WHERE id_venta = ?`,
-        params,
-      );
+      await tx.execute({
+        sql: `UPDATE ventas SET ${updates.join(", ")} WHERE id_venta = ?`,
+        args: params,
+      });
     }
 
     if (Array.isArray(detalles_actualizados)) {
       for (const item of detalles_actualizados) {
         if (item.id_detalle) {
-          await connection.query(
-            `UPDATE venta_detalle
+          await tx.execute({
+            sql: `UPDATE venta_detalle
              SET tipo_producto = ?, id_producto_origen = ?, cantidad = ?, monto_total = ?, nota = ?
              WHERE id_detalle = ?`,
-            [
+            args: [
               item.tipo_producto,
               item.id_producto_origen,
               item.cantidad,
@@ -501,27 +499,27 @@ export const editarVenta = async (req, res) => {
               item.nota || "",
               item.id_detalle,
             ],
-          );
+          });
 
-          await connection.query(
-            `DELETE FROM detalle_venta_extras WHERE id_detalle = ?`,
-            [item.id_detalle],
-          );
+          await tx.execute({
+            sql: `DELETE FROM detalle_venta_extras WHERE id_detalle = ?`,
+            args: [item.id_detalle],
+          });
 
           if (Array.isArray(item.extras) && item.extras.length > 0) {
             for (const id_extra of item.extras) {
-              await connection.query(
-                `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
-                [item.id_detalle, id_extra],
-              );
+              await tx.execute({
+                sql: `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+                args: [item.id_detalle, id_extra],
+              });
             }
           }
         } else {
-          const [resultDetalle] = await connection.query(
-            `INSERT INTO venta_detalle
+          const resultDetalle = await tx.execute({
+            sql: `INSERT INTO venta_detalle
              (id_venta, tipo_producto, id_producto_origen, cantidad, monto_total, nota, estado)
              VALUES (?, ?, ?, ?, ?, ?, 'Pendiente')`,
-            [
+            args: [
               id_venta,
               item.tipo_producto,
               item.id_producto_origen,
@@ -529,15 +527,15 @@ export const editarVenta = async (req, res) => {
               item.monto_total,
               item.nota || "",
             ],
-          );
+          });
 
-          const id_detalle = resultDetalle.insertId;
+          const id_detalle = Number(resultDetalle.lastInsertRowid);
           if (Array.isArray(item.extras) && item.extras.length > 0) {
             for (const id_extra of item.extras) {
-              await connection.query(
-                `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
-                [id_detalle, id_extra],
-              );
+              await tx.execute({
+                sql: `INSERT INTO detalle_venta_extras (id_detalle, id_extra) VALUES (?, ?)`,
+                args: [id_detalle, id_extra],
+              });
             }
           }
         }
@@ -545,21 +543,21 @@ export const editarVenta = async (req, res) => {
     }
 
     if (info_pago) {
-      await connection.query(
-        `INSERT INTO ventas_pagos
+      await tx.execute({
+        sql: `INSERT INTO ventas_pagos
          (id_venta, metodo_pago, monto_usd, monto_bs, referencia)
          VALUES (?, ?, ?, ?, ?)`,
-        [
+        args: [
           id_venta,
           info_pago.metodo,
           info_pago.monto_usd,
           info_pago.monto_bs || 0,
           info_pago.referencia || null,
         ],
-      );
+      });
     }
 
-    await connection.commit();
+    await tx.commit();
 
     emitPusherEvent("pizzeria-orders", "pedido_actualizado", {
       id_venta,
@@ -573,15 +571,13 @@ export const editarVenta = async (req, res) => {
       message: "Pedido actualizado correctamente",
     });
   } catch (error) {
-    await connection.rollback();
+    if (tx) await tx.rollback();
     console.error("Error al actualizar el pedido:", error);
     res.status(500).json({
       success: false,
       message: "Error actualizando el pedido",
       error: error.message,
     });
-  } finally {
-    connection.release();
   }
 };
 
@@ -596,33 +592,32 @@ export const reembolsarVenta = async (req, res) => {
     });
   }
 
-  const connection = await pool.getConnection();
-
+  let tx;
   try {
-    await connection.beginTransaction();
+    tx = await db.transaction("write");
 
-    await connection.query(
-      `UPDATE ventas 
+    await tx.execute({
+      sql: `UPDATE ventas 
        SET estado = 'Reembolsado', monto_total_usd = 0, monto_total_bs = 0 
        WHERE id_venta = ?`,
-      [id_venta],
-    );
+      args: [id_venta],
+    });
 
-    await connection.query(
-      `UPDATE ventas_pagos 
+    await tx.execute({
+      sql: `UPDATE ventas_pagos 
        SET monto_usd = 0, monto_bs = 0 
        WHERE id_venta = ?`,
-      [id_venta],
-    );
+      args: [id_venta],
+    });
 
-    await connection.query(
-      `UPDATE venta_detalle 
+    await tx.execute({
+      sql: `UPDATE venta_detalle 
        SET estado = 'Cancelado', monto_total = 0 
        WHERE id_venta = ?`,
-      [id_venta],
-    );
+      args: [id_venta],
+    });
 
-    await connection.commit();
+    await tx.commit();
 
     emitPusherEvent("pizzeria-orders", "pedido_actualizado", {
       id_venta,
@@ -636,15 +631,13 @@ export const reembolsarVenta = async (req, res) => {
       message: "Reembolso procesado correctamente",
     });
   } catch (error) {
-    await connection.rollback();
+    if (tx) await tx.rollback();
     console.error("Error al procesar el reembolso:", error);
     res.status(500).json({
       success: false,
       message: "Error al procesar el reembolso",
       error: error.message,
     });
-  } finally {
-    connection.release();
   }
 };
 
@@ -659,12 +652,12 @@ export const obtenerMetodosPago = async (req, res) => {
     const params = [];
     let filtro = "";
     if (clientes.length) {
-      filtro = "WHERE v.id_cliente IN (?)";
-      params.push(clientes);
+      filtro = `WHERE v.id_cliente IN (${clientes.map(() => "?").join(", ")})`;
+      params.push(...clientes);
     }
 
-    const [rows] = await pool.query(
-      `SELECT vp.metodo_pago AS metodo,
+    const result = await db.execute({
+      sql: `SELECT vp.metodo_pago AS metodo,
               COUNT(*)              AS cantidad,
               COUNT(DISTINCT vp.id_venta) AS ventas,
               SUM(vp.monto_usd)        AS total_usd,
@@ -674,10 +667,10 @@ export const obtenerMetodosPago = async (req, res) => {
        ${filtro}
        GROUP BY vp.metodo_pago
        ORDER BY cantidad DESC`,
-      params,
-    );
+      args: params,
+    });
 
-    res.json({ success: true, data: rows });
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error("Error al obtener métodos de pago:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -688,7 +681,7 @@ export const obtenerMetodosPago = async (req, res) => {
 export const obtenerVentasHoy = async (req, res) => {
   const { id_sucursal } = req.user;
   try {
-    let query = `SELECT 
+    const query = `SELECT 
         v.id_venta,
         v.monto_total_usd,
         v.monto_total_bs,
@@ -703,13 +696,13 @@ export const obtenerVentasHoy = async (req, res) => {
         ) AS pizzas_vendidas
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-      WHERE DATE(v.fecha_hora) = CURDATE()
+      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
         AND v.estado = 'Completado'
         AND v.id_sucursal = ?
       ORDER BY v.fecha_hora DESC`;
 
-    let paraparamericano = [id_sucursal];
-    const [ventas] = await pool.query(query, paraparamericano);
+    const result = await db.execute({ sql: query, args: [id_sucursal] });
+    const ventas = result.rows;
 
     const totalRevenue = ventas.reduce(
       (s, v) => s + (v.monto_total_usd || 0),
@@ -741,7 +734,7 @@ export const obtenerVentasHoy = async (req, res) => {
 export const obtenerPedidosActivos = async (req, res) => {
   const { id_sucursal } = req.user;
   try {
-    let query = `SELECT DISTINCT
+    const query = `SELECT DISTINCT
         v.id_venta,
         v.fecha_hora,
         v.despacho,
@@ -754,8 +747,8 @@ export const obtenerPedidosActivos = async (req, res) => {
         c.telefono  AS telefono_cliente
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-      WHERE DATE(v.fecha_hora) = CURDATE()
-        AND id_sucursal = ?
+      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
+        AND v.id_sucursal = ?
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -764,13 +757,13 @@ export const obtenerPedidosActivos = async (req, res) => {
             AND vd.estado != 'Cancelado'
         )
       ORDER BY v.fecha_hora DESC`;
-    let params = [id_sucursal];
-    const [ventas] = await pool.query(query, params);
+    const result = await db.execute({ sql: query, args: [id_sucursal] });
+    const ventas = result.rows;
 
     const pedidos = await Promise.all(
       ventas.map(async (venta) => {
-        const [detalles] = await pool.query(
-          `SELECT 
+        const detallesResult = await db.execute({
+          sql: `SELECT 
             vd.id_detalle,
             vd.tipo_producto,
             vd.id_producto_origen,
@@ -785,19 +778,20 @@ export const obtenerPedidosActivos = async (req, res) => {
           LEFT JOIN bebidas   b  ON b.id_bebida     = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
           LEFT JOIN heladeria h  ON h.id_heladeria  = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
           WHERE vd.id_venta = ?`,
-          [venta.id_venta],
-        );
+          args: [venta.id_venta],
+        });
+        const detalles = detallesResult.rows;
 
         const detallesConExtras = await Promise.all(
           detalles.map(async (det) => {
-            const [extras] = await pool.query(
-              `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
+            const extrasResult = await db.execute({
+              sql: `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
                FROM detalle_venta_extras dve
                JOIN extras e ON e.id_extras = dve.id_extra
                WHERE dve.id_detalle = ?`,
-              [det.id_detalle],
-            );
-            return { ...det, extras };
+              args: [det.id_detalle],
+            });
+            return { ...det, extras: extrasResult.rows };
           }),
         );
 
@@ -830,34 +824,35 @@ export const obtenerTasaExterna = async () => {
 export const actualizarTasaDesdeApi = async () => {
   try {
     const tasaApi = await obtenerTasaExterna();
-    const [rows] = await pool.query(
-      "SELECT anclado, tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
-    );
+    const current = await db.execute({
+      sql: "SELECT anclado, tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
+    });
+    const rows = current.rows;
 
     if (!rows.length) {
-      await pool.query(
-        "INSERT INTO configuracion_tasa (id_config, tasa_api, tasa_sistema, anclado) VALUES (1, ?, ?, 0)",
-        [tasaApi, tasaApi],
-      );
+      await db.execute({
+        sql: "INSERT INTO configuracion_tasa (id_config, tasa_api, tasa_sistema, anclado) VALUES (1, ?, ?, 0)",
+        args: [tasaApi, tasaApi],
+      });
     } else if (rows[0].anclado) {
       const tasaSistemaActual = Number(rows[0].tasa_sistema);
 
       if (tasaApi > tasaSistemaActual) {
-        await pool.query(
-          "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
-          [tasaApi, tasaApi],
-        );
+        await db.execute({
+          sql: "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
+          args: [tasaApi, tasaApi],
+        });
       } else {
-        await pool.query(
-          "UPDATE configuracion_tasa SET tasa_api = ? WHERE id_config = 1",
-          [tasaApi],
-        );
+        await db.execute({
+          sql: "UPDATE configuracion_tasa SET tasa_api = ? WHERE id_config = 1",
+          args: [tasaApi],
+        });
       }
     } else {
-      await pool.query(
-        "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
-        [tasaApi, tasaApi],
-      );
+      await db.execute({
+        sql: "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
+        args: [tasaApi, tasaApi],
+      });
     }
 
     return tasaApi;
@@ -873,10 +868,10 @@ export const actualizarTasaDesdeApi = async () => {
 
 // ---- Obtener registro de la tasa desde la base de datos
 export const obtenerRegistro = async () => {
-  const [rows] = await pool.query(
-    "SELECT id_config, tasa_api, tasa_sistema, anclado, fecha_actualizacion FROM configuracion_tasa WHERE id_config = 1",
-  );
-  return rows[0];
+  const result = await db.execute({
+    sql: "SELECT id_config, tasa_api, tasa_sistema, anclado, fecha_actualizacion FROM configuracion_tasa WHERE id_config = 1",
+  });
+  return result.rows[0];
 };
 
 // ---- Obtener la tasa para las peticiones de las rutas
@@ -908,10 +903,10 @@ export const editarYAnclarTasa = async (req, res) => {
   }
 
   try {
-    await pool.query(
-      "UPDATE configuracion_tasa SET tasa_sistema = ?, anclado = 1 WHERE id_config = 1",
-      [tasaManual],
-    );
+    await db.execute({
+      sql: "UPDATE configuracion_tasa SET tasa_sistema = ?, anclado = 1 WHERE id_config = 1",
+      args: [tasaManual],
+    });
     return res.json({ success: true, data: await obtenerRegistro() });
   } catch (error) {
     console.error("Error anclando la tasa:", error);
@@ -922,9 +917,9 @@ export const editarYAnclarTasa = async (req, res) => {
 // ---- Desanclar tasa
 export const desanclarTasa = async (_req, res) => {
   try {
-    await pool.query(
-      "UPDATE configuracion_tasa SET tasa_sistema = tasa_api, anclado = 0 WHERE id_config = 1",
-    );
+    await db.execute({
+      sql: "UPDATE configuracion_tasa SET tasa_sistema = tasa_api, anclado = 0 WHERE id_config = 1",
+    });
     return res.json({ success: true, data: await obtenerRegistro() });
   } catch (error) {
     console.error("Error quitando el anclaje de la tasa:", error);

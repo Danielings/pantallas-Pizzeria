@@ -1,5 +1,4 @@
-import bcrypt from "bcrypt";
-import pool from "../config/bd.js";
+import db from "../config/turso.js";
 
 const sanitizePhone = (phone) => {
   const digits = String(phone || "").replace(/\D/g, "");
@@ -13,15 +12,16 @@ export const buscarClientes = async (req, res) => {
   const searchTerm = q ? q.trim() : "";
 
   try {
-    const [rows] = await pool.query(
-      `SELECT c.id_cliente as id, c.cedula, c.nombre as name, c.telefono as phone, 
+    const result = await db.execute({
+      sql: `SELECT c.id_cliente as id, c.cedula, c.nombre as name, c.telefono as phone,
               COUNT(v.id_venta) as orders
        FROM clientes c
        LEFT JOIN ventas v ON c.id_cliente = v.id_cliente
-      WHERE c.cedula = ? OR RIGHT(c.cedula, 4) = ? OR c.nombre LIKE ?
+      WHERE c.cedula = ? OR substr(CAST(c.cedula AS TEXT), -4) = ? OR c.nombre LIKE ?
        GROUP BY c.id_cliente`,
-      [searchTerm, searchTerm, `%${searchTerm}%`],
-    );
+      args: [searchTerm, searchTerm, `%${searchTerm}%`],
+    });
+    const rows = result.rows;
 
     if (rows.length > 0) {
       res.json({ success: true, cliente: rows[0] });
@@ -45,38 +45,39 @@ export const buscarORegistrarClienteDelivery = async (req, res) => {
   }
 
   try {
-    const [existing] = await pool.query(
-      `SELECT c.id_cliente AS id, c.cedula, c.nombre AS name, c.telefono AS phone,
+    const existingResult = await db.execute({
+      sql: `SELECT c.id_cliente AS id, c.cedula, c.nombre AS name, c.telefono AS phone,
               COUNT(v.id_venta) AS orders
        FROM clientes c
        LEFT JOIN ventas v ON c.id_cliente = v.id_cliente
-       WHERE RIGHT(CAST(c.telefono AS CHAR), 4) = ?
+       WHERE substr(CAST(c.telefono AS TEXT), -4) = ?
        GROUP BY c.id_cliente
        ORDER BY c.id_cliente ASC
        LIMIT 1`,
-      [digits],
-    );
+      args: [digits],
+    });
+    const existing = existingResult.rows;
 
     if (existing.length > 0) {
       return res.json({ success: true, cliente: existing[0], created: false });
     }
 
-    const [result] = await pool.query(
-      `INSERT INTO clientes (cedula, nombre, telefono, descripcion)
+    const result = await db.execute({
+      sql: `INSERT INTO clientes (cedula, nombre, telefono, descripcion)
        VALUES (?, ?, ?, ?)`,
-      [
+      args: [
         `Delivery-${digits}`,
         "Cliente Delivery",
         Number(digits),
         "eres el mas fuerte por ser satoru gojo o eres satoru gojo porque eres el mas fuerte.",
       ],
-    );
+    });
 
     return res.status(201).json({
       success: true,
       created: true,
       cliente: {
-        id: result.insertId,
+        id: Number(result.lastInsertRowid),
         cedula: `DELIVERY-${digits}`,
         name: "Cliente Delivery",
         phone: Number(digits),
@@ -101,12 +102,12 @@ export const actualizarAliasCliente = async (req, res) => {
   }
 
   try {
-    const [result] = await pool.query(
-      "UPDATE clientes SET nombre = ? WHERE id_cliente = ?",
-      [name, id],
-    );
+    const result = await db.execute({
+      sql: "UPDATE clientes SET nombre = ? WHERE id_cliente = ?",
+      args: [name, id],
+    });
 
-    if (result.affectedRows === 0) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         success: false,
         message: "Cliente no encontrado.",
@@ -125,8 +126,8 @@ export const actualizarAliasCliente = async (req, res) => {
 
 export const obtenerClientes = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT c.id_cliente AS id, c.cedula, c.nombre AS name, c.telefono AS phone, c.descripcion,
+    const result = await db.execute({
+      sql: `SELECT c.id_cliente AS id, c.cedula, c.nombre AS name, c.telefono AS phone, c.descripcion,
               COUNT(v.id_venta) AS orders,
               COALESCE(SUM(v.monto_total_usd), 0) AS total,
               MAX(v.fecha_hora) AS lastVisit
@@ -134,9 +135,9 @@ export const obtenerClientes = async (req, res) => {
        LEFT JOIN ventas v ON c.id_cliente = v.id_cliente
        GROUP BY c.id_cliente
        ORDER BY c.nombre ASC`,
-    );
+    });
 
-    res.json({ success: true, data: rows });
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error("Error obteniendo clientes:", error);
     res.status(500).json({ success: false, error: error.message });
@@ -155,10 +156,11 @@ export const registrarClientes = async (req, res) => {
   }
 
   try {
-    const [existing] = await pool.query(
-      `SELECT id_cliente FROM clientes WHERE cedula = ?`,
-      [cedulaTrim],
-    );
+    const existingResult = await db.execute({
+      sql: `SELECT id_cliente FROM clientes WHERE cedula = ?`,
+      args: [cedulaTrim],
+    });
+    const existing = existingResult.rows;
 
     if (existing.length > 0) {
       return res.status(400).json({
@@ -167,20 +169,20 @@ export const registrarClientes = async (req, res) => {
       });
     }
 
-    const [result] = await pool.query(
-      `INSERT INTO clientes (cedula, nombre, telefono, descripcion) VALUES (?, ?, ?, ?)`,
-      [
+    const result = await db.execute({
+      sql: `INSERT INTO clientes (cedula, nombre, telefono, descripcion) VALUES (?, ?, ?, ?)`,
+      args: [
         cedulaTrim,
         String(name).trim(),
         sanitizePhone(phone),
         descripcion || "",
       ],
-    );
+    });
 
     res.status(201).json({
       success: true,
       cliente: {
-        id: result.insertId,
+        id: Number(result.lastInsertRowid),
         cedula: cedulaTrim,
         name: String(name).trim(),
         phone: sanitizePhone(phone),
@@ -209,10 +211,11 @@ export const editarCliente = async (req, res) => {
   }
 
   try {
-    const [existing] = await pool.query(
-      `SELECT id_cliente FROM clientes WHERE cedula = ? AND id_cliente != ?`,
-      [cedulaTrim, id],
-    );
+    const existingResult = await db.execute({
+      sql: `SELECT id_cliente FROM clientes WHERE cedula = ? AND id_cliente != ?`,
+      args: [cedulaTrim, id],
+    });
+    const existing = existingResult.rows;
 
     if (existing.length > 0) {
       return res.status(400).json({
@@ -221,18 +224,18 @@ export const editarCliente = async (req, res) => {
       });
     }
 
-    const [result] = await pool.query(
-      `UPDATE clientes SET cedula = ?, nombre = ?, telefono = ?, descripcion = ? WHERE id_cliente = ?`,
-      [
+    const result = await db.execute({
+      sql: `UPDATE clientes SET cedula = ?, nombre = ?, telefono = ?, descripcion = ? WHERE id_cliente = ?`,
+      args: [
         cedulaTrim,
         String(name).trim(),
         sanitizePhone(phone),
         descripcion || "",
         id,
       ],
-    );
+    });
 
-    if (result.affectedRows === 0) {
+    if (result.rowsAffected === 0) {
       return res
         .status(404)
         .json({ success: false, message: "Cliente no encontrado" });
