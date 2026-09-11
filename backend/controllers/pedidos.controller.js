@@ -77,7 +77,7 @@ export const obtenerPedidosCocina = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
+      WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -135,7 +135,7 @@ export const obtenerPedidosHorno = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
+      WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -190,7 +190,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
+      WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -246,7 +246,7 @@ export const obtenerPedidosMesero = async (req, res) => {
         c.telefono AS telefono_cliente
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
+      WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -304,7 +304,7 @@ export const obtenerPedidosPendiente = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
+      WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -356,7 +356,7 @@ export const obtenerContadorCajero = async (req, res) => {
        FROM venta_detalle vd
        JOIN ventas v ON vd.id_venta = v.id_venta
        WHERE vd.estado != 'Completado' AND vd.estado != 'Cerrado' AND v.estado != 'Reembolsado'
-         AND DATE(v.fecha_hora) = DATE('now', 'localtime')
+         AND DATE(v.fecha_hora) = DATE('now', '-4 hours')
          AND v.id_sucursal = ?`;
     let paparemericano = [id_sucursal];
     const result = await queryRows(query, paparemericano);
@@ -461,7 +461,7 @@ export const obtenerEntregas = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE v.despacho IN ('Delivery', 'Pick Up', 'Local', 'Llevar')
-        AND DATE(v.fecha_hora) = DATE('now', 'localtime')
+        AND DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND v.estado != 'Reembolsado'
         AND v.id_sucursal = ?
       ORDER BY v.fecha_hora ASC`;

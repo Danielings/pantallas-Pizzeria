@@ -147,7 +147,7 @@ export const obtenerDashboardStats = async (req, res) => {
            SUM(CASE WHEN v.estado IN ('En preparación', 'En cocina', 'Cocinando') THEN 1 ELSE 0 END) AS en_cocina,
            SUM(CASE WHEN v.estado IN ('Listo', 'Completado') THEN 1 ELSE 0 END) AS completadas
          FROM ventas v
-         WHERE DATE(v.fecha_hora) = DATE('now', 'localtime') ${branchCondition}`,
+         WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours') ${branchCondition}`,
         [...branchParams],
       ),
     ]);

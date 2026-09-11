@@ -21,7 +21,7 @@ const consultarNotificacionesPendientesBD = async () => {
      LEFT JOIN bebidas b ON b.id_bebida = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
      LEFT JOIN heladeria h ON h.id_heladeria = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
      WHERE v.estado = 'Pendiente' AND n.estado = 'Pendiente'
-       AND DATE(n.fecha_hora) = DATE('now', 'localtime')
+      AND DATE(n.fecha_hora) = DATE('now', '-4 hours')
      GROUP BY n.id_notificacion, n.id_venta, n.id_cliente,
               n.monto_restante, n.fecha_hora, c.nombre, c.cedula,
               c.telefono, v.despacho, d.nombre, d.digitos
@@ -52,7 +52,7 @@ export const obtenerNotificacionPendiente = async (req, res) => {
        INNER JOIN ventas v ON v.id_venta = n.id_venta AND v.estado = 'Pendiente'
        LEFT JOIN clientes c ON c.id_cliente = n.id_cliente
        WHERE n.id_venta = ? AND n.estado = 'Pendiente'
-         AND DATE(n.fecha_hora) = DATE('now', 'localtime')`,
+         AND DATE(n.fecha_hora) = DATE('now', '-4 hours')`,
       args: [req.params.id_venta],
     });
     const ventas = ventasResult.rows;

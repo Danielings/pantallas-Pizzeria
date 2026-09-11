@@ -5,6 +5,137 @@ import { subscribeToPusher } from "../lib/pusherClient";
 
 const API_BASE = "http://localhost:3001/api";
 
+const kitchenQueryClients = new Map();
+let stopKitchenSubscriptions = null;
+let kitchenRefreshTimer = null;
+
+const scheduleKitchenRefresh = () => {
+  clearTimeout(kitchenRefreshTimer);
+  kitchenRefreshTimer = setTimeout(() => {
+    kitchenQueryClients.forEach((_count, queryClient) => {
+      queryClient.invalidateQueries({
+        queryKey: ["kitchenOrders"],
+        refetchType: "active",
+      });
+    });
+  }, 150);
+};
+
+const statusToUiStatus = {
+  Pendiente: "pending",
+  Horno: "preparing",
+  pDespacho: "ready",
+};
+
+const applyKitchenStatus = (payload) => {
+  const nextStatus = statusToUiStatus[payload?.estado];
+  if (
+    !payload?.id_venta ||
+    (!nextStatus && !["Despacho", "Completado"].includes(payload.estado))
+  ) {
+    return false;
+  }
+
+  kitchenQueryClients.forEach((_count, queryClient) => {
+    queryClient.setQueryData(["kitchenOrders"], (old = []) => {
+      if (payload.estado === "Completado") {
+        return old.filter(
+          (order) => Number(order.db_id) !== Number(payload.id_venta),
+        );
+      }
+
+      if (payload.estado === "Despacho") {
+        const matchingOrders = old.filter(
+          (order) => Number(order.db_id) === Number(payload.id_venta),
+        );
+        const remainingOrders = old.filter(
+          (order) => Number(order.db_id) !== Number(payload.id_venta),
+        );
+        const sourceOrder = matchingOrders[0];
+
+        if (!sourceOrder) return old;
+
+        const deliveredOrder = { ...sourceOrder, status: "delivered" };
+        if (sourceOrder.orderType === "Local") {
+          return [
+            ...remainingOrders,
+            deliveredOrder,
+            { ...deliveredOrder, status: "waiter_pending" },
+          ];
+        }
+
+        return [...remainingOrders, deliveredOrder];
+      }
+
+      return old.map((order) =>
+        Number(order.db_id) === Number(payload.id_venta)
+          ? { ...order, status: nextStatus }
+          : order,
+      );
+    });
+  });
+
+  return true;
+};
+
+const refreshNewKitchenOrder = async () => {
+  const pending = await fetchKitchen("obtener-pedidos-cocina", "pending");
+  kitchenQueryClients.forEach((_count, queryClient) => {
+    queryClient.setQueryData(["kitchenOrders"], (old = []) => {
+      const existingIds = new Set(old.map((order) => order.db_id));
+      return [
+        ...old,
+        ...pending.filter((order) => !existingIds.has(order.db_id)),
+      ];
+    });
+  });
+};
+
+const subscribeKitchenEvents = (queryClient) => {
+  kitchenQueryClients.set(
+    queryClient,
+    (kitchenQueryClients.get(queryClient) || 0) + 1,
+  );
+
+  if (stopKitchenSubscriptions) return;
+
+  const unsubscribeKitchen = subscribeToPusher({
+    channelName: "pizzeria-kitchen",
+    events: {
+      pedido_estado_cambiado: applyKitchenStatus,
+    },
+  });
+
+  const unsubscribeOrders = subscribeToPusher({
+    channelName: "pizzeria-orders",
+    events: {
+      pedido_actualizado: (payload) => {
+        if (!applyKitchenStatus(payload)) scheduleKitchenRefresh();
+      },
+      pedido_creado: refreshNewKitchenOrder,
+    },
+  });
+
+  stopKitchenSubscriptions = () => {
+    unsubscribeKitchen();
+    unsubscribeOrders();
+    stopKitchenSubscriptions = null;
+  };
+};
+
+const unsubscribeKitchenEvents = (queryClient) => {
+  const count = kitchenQueryClients.get(queryClient) || 0;
+  if (count > 1) {
+    kitchenQueryClients.set(queryClient, count - 1);
+  } else {
+    kitchenQueryClients.delete(queryClient);
+  }
+  if (kitchenQueryClients.size === 0 && stopKitchenSubscriptions) {
+    clearTimeout(kitchenRefreshTimer);
+    stopKitchenSubscriptions();
+  }
+};
+
 const adaptVenta = (venta, status) => ({
   id: venta.codigo_orden,
   db_id: venta.id_venta,
@@ -47,34 +178,9 @@ export function useKitchenOrders() {
   useEffect(() => {
     if (!currentUser) return undefined;
 
-    const unsubscribeKitchen = subscribeToPusher({
-      channelName: "pizzeria-kitchen",
-      events: {
-        pedido_estado_cambiado: () => {
-          queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
-        },
-        pedido_actualizado: () => {
-          queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
-        },
-      },
-    });
+    subscribeKitchenEvents(queryClient);
 
-    const unsubscribeOrders = subscribeToPusher({
-      channelName: "pizzeria-orders",
-      events: {
-        pedido_actualizado: () => {
-          queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
-        },
-        pedido_creado: () => {
-          queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
-        },
-      },
-    });
-
-    return () => {
-      unsubscribeKitchen();
-      unsubscribeOrders();
-    };
+    return () => unsubscribeKitchenEvents(queryClient);
   }, [currentUser, queryClient]);
 
   const query = useQuery({
@@ -122,11 +228,10 @@ export function useKitchenOrders() {
       }
       return { id, status };
     },
-    onSuccess: async ({ id, status }) => {
+    onSuccess: ({ id, status }) => {
       queryClient.setQueryData(["kitchenOrders"], (old = []) =>
         old.map((o) => (o.id === id ? { ...o, status } : o)),
       );
-      await queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
     },
   });
 
@@ -137,14 +242,12 @@ export function useKitchenOrders() {
     queryClient.setQueryData(["kitchenOrders"], (old = []) =>
       old.filter((o) => o.id !== id),
     );
-    await queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
   };
 
   const updateOrder = async (order) => {
     queryClient.setQueryData(["kitchenOrders"], (old = []) =>
       old.map((o) => (o.id === order.id ? { ...o, ...order } : o)),
     );
-    await queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
   };
 
   return {
