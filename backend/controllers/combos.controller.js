@@ -1,23 +1,30 @@
-import pool from "../config/bd.js";
+import db from "../config/turso.js";
 import { uploadImageToCloudinary } from "../utils/cloudinary.js";
+
+const queryRows = async (sql, args = []) => {
+  const result = await db.execute({ sql, args });
+  return result.rows;
+};
 
 // ---- Categorías de Pizza (para el filtro del selector de pizzas en combos)
 export const obtenerCategoriasPizza = async (req, res) => {
   try {
-    const [rows] = await pool.execute(
+    const rows = await queryRows(
       "SELECT id_categoria_pizza, categoria FROM categoria_pizza ORDER BY id_categoria_pizza ASC",
     );
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error("Error obteniendo categorías de pizza:", error);
-    res.status(500).json({ success: false, message: "Error interno del servidor" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error interno del servidor" });
   }
 };
 
 // ---- Pizzas activas (para el selector dentro del formulario de combo)
 export const obtenerPizzasActivas = async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
+    const rows = await queryRows(`
       SELECT p.id_pizza, p.nombre, p.precio, p.url, p.id_categoria_pizza,
             c.categoria AS categoria_nombre
       FROM pizza p
@@ -38,14 +45,16 @@ export const obtenerPizzasActivas = async (req, res) => {
     res.json({ success: true, data: pizzas });
   } catch (error) {
     console.error("Error obteniendo pizzas activas:", error);
-    res.status(500).json({ success: false, message: "Error interno del servidor" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error interno del servidor" });
   }
 };
 
 // ---- Bebidas activas (para el selector dentro del formulario de combo)
 export const obtenerBebidasActivas = async (req, res) => {
   try {
-    const [rows] = await pool.execute(
+    const rows = await queryRows(
       "SELECT id_bebida, nombre, precio, url FROM bebidas WHERE estado = 'Activo' ORDER BY nombre ASC",
     );
 
@@ -59,7 +68,9 @@ export const obtenerBebidasActivas = async (req, res) => {
     res.json({ success: true, data: bebidas });
   } catch (error) {
     console.error("Error obteniendo bebidas activas:", error);
-    res.status(500).json({ success: false, message: "Error interno del servidor" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error interno del servidor" });
   }
 };
 
@@ -67,7 +78,7 @@ export const obtenerBebidasActivas = async (req, res) => {
 export const obtenerCombos = async (req, res) => {
   try {
     // Traer todos los combos
-    const [combos] = await pool.execute(
+    const combos = await queryRows(
       "SELECT * FROM combos ORDER BY id_combo DESC",
     );
 
@@ -76,7 +87,7 @@ export const obtenerCombos = async (req, res) => {
     }
 
     // Traer todos los detalles de todos los combos en una sola query con JOIN
-    const [detalles] = await pool.execute(`
+    const detalles = await queryRows(`
         SELECT
           cd.id_combo_detalle,
           cd.id_combo,
@@ -123,12 +134,20 @@ export const obtenerCombos = async (req, res) => {
 
     res.json({ success: true, data: result });
   } catch (error) {
-    if (error.code === 'ER_NO_SUCH_TABLE') {
-      console.warn("Tabla 'combos' no encontrada en BD. Retornando lista vacía.");
+    if (
+      error.code === "ER_NO_SUCH_TABLE" ||
+      (error.code === "SQLITE_ERROR" &&
+        error.message?.includes("no such table"))
+    ) {
+      console.warn(
+        "Tabla 'combos' no encontrada en BD. Retornando lista vacía.",
+      );
       return res.json({ success: true, data: [] });
     }
     console.error("Error obteniendo combos:", error);
-    res.status(500).json({ success: false, message: "Error interno del servidor" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error interno del servidor" });
   }
 };
 
@@ -141,43 +160,55 @@ export const crearCombo = async (req, res) => {
   try {
     parsedItems = typeof items === "string" ? JSON.parse(items) : items || [];
   } catch {
-    return res.status(400).json({ success: false, message: "El campo 'items' tiene un formato inválido." });
+    return res.status(400).json({
+      success: false,
+      message: "El campo 'items' tiene un formato inválido.",
+    });
   }
 
   if (!nombre || !precio) {
-    return res.status(400).json({ success: false, message: "Nombre y precio son obligatorios." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Nombre y precio son obligatorios." });
   }
 
   if (!parsedItems || parsedItems.length === 0) {
-    return res.status(400).json({ success: false, message: "El combo debe tener al menos un ítem." });
+    return res.status(400).json({
+      success: false,
+      message: "El combo debe tener al menos un ítem.",
+    });
   }
 
-  const connection = await pool.getConnection();
+  let tx;
   try {
-    await connection.beginTransaction();
+    tx = await db.transaction("write");
 
     // 1. Subir imagen si existe
-    const imageUrl = req.file ? await uploadImageToCloudinary(req.file, "combos") : null;
+    const imageUrl = req.file
+      ? await uploadImageToCloudinary(req.file, "combos")
+      : null;
 
     // 2. Insertar en tabla combos
-    const [result] = await connection.query(
-      `INSERT INTO combos (nombre, descripcion, precio, estado, url) VALUES (?, ?, ?, 'Activo', ?)`,
-      [nombre, descripcion || "", parseFloat(precio), imageUrl],
-    );
+    const result = await tx.execute({
+      sql: `INSERT INTO combos (nombre, descripcion, precio, estado, url) VALUES (?, ?, ?, 'Activo', ?)`,
+      args: [nombre, descripcion || "", parseFloat(precio), imageUrl],
+    });
 
-    const id_combo = result.insertId;
+    const id_combo = Number(result.lastInsertRowid);
 
     // 3. Insertar cada ítem en combo_detalle
     for (const item of parsedItems) {
-        const id_pizza  = item.tipo_producto === "Pizza"  ? item.id_producto_origen : null;
-        const id_bebida = item.tipo_producto === "Bebida" ? item.id_producto_origen : null;
-        await connection.query(
-          `INSERT INTO combo_detalle (id_combo, cantidad, id_pizza, id_bebida) VALUES (?, ?, ?, ?)`,
-          [id_combo, item.cantidad || 1, id_pizza, id_bebida],
-        );
+      const id_pizza =
+        item.tipo_producto === "Pizza" ? item.id_producto_origen : null;
+      const id_bebida =
+        item.tipo_producto === "Bebida" ? item.id_producto_origen : null;
+      await tx.execute({
+        sql: `INSERT INTO combo_detalle (id_combo, cantidad, id_pizza, id_bebida) VALUES (?, ?, ?, ?)`,
+        args: [id_combo, item.cantidad || 1, id_pizza, id_bebida],
+      });
     }
 
-    await connection.commit();
+    await tx.commit();
 
     res.status(201).json({
       success: true,
@@ -186,37 +217,41 @@ export const crearCombo = async (req, res) => {
       url: imageUrl,
     });
   } catch (error) {
-    await connection.rollback();
+    if (tx) await tx.rollback();
     console.error("Error creando combo:", error);
     res.status(500).json({ success: false, message: error.message });
-  } finally {
-    connection.release();
   }
 };
 
 // ---- Eliminar un combo y su detalle
 export const eliminarCombo = async (req, res) => {
   const { id } = req.params;
-  const connection = await pool.getConnection();
+  let tx;
   try {
-    await connection.beginTransaction();
+    tx = await db.transaction("write");
     // Eliminar primero el detalle (FK)
-    await connection.query("DELETE FROM combo_detalle WHERE id_combo = ?", [id]);
+    await tx.execute({
+      sql: "DELETE FROM combo_detalle WHERE id_combo = ?",
+      args: [id],
+    });
     // Luego eliminar el combo
-    const [result] = await connection.query("DELETE FROM combos WHERE id_combo = ?", [id]);
-    await connection.commit();
+    const result = await tx.execute({
+      sql: "DELETE FROM combos WHERE id_combo = ?",
+      args: [id],
+    });
+    await tx.commit();
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Combo no encontrado." });
+    if (result.rowsAffected === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Combo no encontrado." });
     }
 
     res.json({ success: true, message: "Combo eliminado correctamente" });
   } catch (error) {
-    await connection.rollback();
+    if (tx) await tx.rollback();
     console.error("Error eliminando combo:", error);
     res.status(500).json({ success: false, message: error.message });
-  } finally {
-    connection.release();
   }
 };
 
@@ -229,58 +264,70 @@ export const actualizarCombo = async (req, res) => {
   try {
     parsedItems = typeof items === "string" ? JSON.parse(items) : items || [];
   } catch {
-    return res.status(400).json({ success: false, message: "El campo 'items' tiene un formato inválido." });
+    return res.status(400).json({
+      success: false,
+      message: "El campo 'items' tiene un formato inválido.",
+    });
   }
 
   if (!nombre || !precio) {
-    return res.status(400).json({ success: false, message: "Nombre y precio son obligatorios." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Nombre y precio son obligatorios." });
   }
 
   if (!parsedItems || parsedItems.length === 0) {
-    return res.status(400).json({ success: false, message: "El combo debe tener al menos un ítem." });
+    return res.status(400).json({
+      success: false,
+      message: "El combo debe tener al menos un ítem.",
+    });
   }
 
-  const connection = await pool.getConnection();
+  let tx;
   try {
-    await connection.beginTransaction();
+    tx = await db.transaction("write");
 
     // Obtener URL actual
-    const [existing] = await connection.query(
+    const existing = await queryRows(
       "SELECT url FROM combos WHERE id_combo = ?",
       [id],
     );
 
     if (existing.length === 0) {
       await connection.rollback();
-      return res.status(404).json({ success: false, message: "Combo no encontrado." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Combo no encontrado." });
     }
 
     let imageUrl = existing[0].url;
     if (req.file) imageUrl = await uploadImageToCloudinary(req.file, "combos");
 
     // 1. Actualizar registro principal del combo
-    await connection.query(
-      `UPDATE combos SET nombre = ?, descripcion = ?, precio = ?, url = ? WHERE id_combo = ?`,
-      [nombre, descripcion || "", parseFloat(precio), imageUrl, id],
-    );
+    await tx.execute({
+      sql: `UPDATE combos SET nombre = ?, descripcion = ?, precio = ?, url = ? WHERE id_combo = ?`,
+      args: [nombre, descripcion || "", parseFloat(precio), imageUrl, id],
+    });
 
     // 2. Eliminar los ítems del detalle anteriores
-    await connection.query(
-      "DELETE FROM combo_detalle WHERE id_combo = ?",
-      [id],
-    );
+    await tx.execute({
+      sql: "DELETE FROM combo_detalle WHERE id_combo = ?",
+      args: [id],
+    });
 
     // 3. Reinsertar los ítems actualizados
     for (const item of parsedItems) {
-        const id_pizza  = item.tipo_producto === "Pizza"  ? item.id_producto_origen : null;
-        const id_bebida = item.tipo_producto === "Bebida" ? item.id_producto_origen : null;
-        await connection.query(
-          `INSERT INTO combo_detalle (id_combo, cantidad, id_pizza, id_bebida) VALUES (?, ?, ?, ?)`,
-          [id, item.cantidad || 1, id_pizza, id_bebida],
-      );
+      const id_pizza =
+        item.tipo_producto === "Pizza" ? item.id_producto_origen : null;
+      const id_bebida =
+        item.tipo_producto === "Bebida" ? item.id_producto_origen : null;
+      await tx.execute({
+        sql: `INSERT INTO combo_detalle (id_combo, cantidad, id_pizza, id_bebida) VALUES (?, ?, ?, ?)`,
+        args: [id, item.cantidad || 1, id_pizza, id_bebida],
+      });
     }
 
-    await connection.commit();
+    await tx.commit();
 
     res.json({
       success: true,
@@ -288,10 +335,8 @@ export const actualizarCombo = async (req, res) => {
       url: imageUrl,
     });
   } catch (error) {
-    await connection.rollback();
+    if (tx) await tx.rollback();
     console.error("Error actualizando combo:", error);
     res.status(500).json({ success: false, message: error.message });
-  } finally {
-    connection.release();
   }
 };

@@ -1,4 +1,9 @@
-import pool from "../config/bd.js";
+import db from "../config/turso.js";
+
+const queryRows = async (sql, args = []) => {
+  const result = await db.execute({ sql, args });
+  return result.rows;
+};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -40,7 +45,7 @@ function buildDateRange(periodo, fecha) {
 // ─── Obtener sucursales activas ─────────────────────────────────────────────
 export const obtenerSucursalesReporte = async (req, res) => {
   try {
-    const [rows] = await pool.query(
+    const rows = await queryRows(
       `SELECT id_sucursal AS id, sucursal AS nombre, direccion
        FROM sucursal
        WHERE estado = 'Activo'
@@ -64,13 +69,13 @@ export const obtenerResumenReporte = async (req, res) => {
     const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
 
     // Tasa de cambio actual
-    const [tasaRows] = await pool.query(
+    const tasaRows = await queryRows(
       "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
     );
     const tasa = tasaRows.length > 0 ? Number(tasaRows[0].tasa_sistema) : 1;
 
     // Resumen desde ventas
-    const [ventasRows] = await pool.query(
+    const ventasRows = await queryRows(
       `SELECT
          COUNT(*) AS total_ordenes,
          IFNULL(SUM(v.monto_total_usd), 0) AS total_usd,
@@ -88,7 +93,7 @@ export const obtenerResumenReporte = async (req, res) => {
       moduloCondition = "AND vd.tipo_producto != 'Helado'";
     }
 
-    const [detallesVentas] = await pool.query(
+    const detallesVentas = await queryRows(
       `SELECT
          IFNULL(SUM(vd.monto_total), 0) AS total_modulo_usd,
          COUNT(DISTINCT v.id_venta)    AS total_modulo_ordenes,
@@ -136,7 +141,7 @@ export const obtenerPagosReporte = async (req, res) => {
     const branchVentas = id_sucursal ? `AND v.id_sucursal = ?` : "";
     const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
 
-    const [rows] = await pool.query(
+    const rows = await queryRows(
       `SELECT
          IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%efectivo%' AND UPPER(vp.referencia) != 'BS' THEN vp.monto_usd ELSE 0 END), 0) AS efectivo_usd,
          IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%efectivo%' AND UPPER(vp.referencia) = 'BS' THEN vp.monto_bs ELSE 0 END), 0) AS efectivo_bs,
@@ -148,7 +153,7 @@ export const obtenerPagosReporte = async (req, res) => {
       [...params, ...branchParams],
     );
 
-    const [tasaRows] = await pool.query(
+    const tasaRows = await queryRows(
       "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
     );
     const tasa = tasaRows.length > 0 ? Number(tasaRows[0].tasa_sistema) : 1;
@@ -214,9 +219,9 @@ export const obtenerTendenciaReporte = async (req, res) => {
         modulo === "heladeria"
           ? "AND vd.tipo_producto = 'Helado'"
           : "AND vd.tipo_producto != 'Helado'";
-      const [vRows] = await pool.query(
+      const vRows = await queryRows(
         `SELECT
-           DATE_FORMAT(v.fecha_hora, '%Y-%m-%d') AS fecha,
+           strftime('%Y-%m-%d', v.fecha_hora) AS fecha,
            IFNULL(SUM(vd.monto_total), 0)        AS total_usd,
            COUNT(DISTINCT v.id_venta)            AS ordenes
          FROM venta_detalle vd
@@ -228,9 +233,9 @@ export const obtenerTendenciaReporte = async (req, res) => {
       );
       rows = vRows;
     } else {
-      const [vRows] = await pool.query(
+      const vRows = await queryRows(
         `SELECT
-           DATE_FORMAT(v.fecha_hora, '%Y-%m-%d') AS fecha,
+           strftime('%Y-%m-%d', v.fecha_hora) AS fecha,
            IFNULL(SUM(v.monto_total_usd), 0) AS total_usd,
            COUNT(*) AS ordenes
          FROM ventas v
@@ -259,13 +264,13 @@ export const obtenerTendenciaReporte = async (req, res) => {
       const dayLabel =
         periodo === "semana"
           ? cur.toLocaleDateString("es-VE", {
-            weekday: "short",
-            day: "2-digit",
-          })
+              weekday: "short",
+              day: "2-digit",
+            })
           : cur.toLocaleDateString("es-VE", {
-            day: "2-digit",
-            month: "2-digit",
-          });
+              day: "2-digit",
+              month: "2-digit",
+            });
 
       series.push(
         dataMap[key] || {
@@ -298,7 +303,7 @@ export const obtenerTopProductosReporte = async (req, res) => {
     if (modulo === "heladeria") filter = "AND vd.tipo_producto = 'Helado'";
     if (modulo === "pizzeria") filter = "AND vd.tipo_producto != 'Helado'";
 
-    const [rows] = await pool.query(
+    const rows = await queryRows(
       `SELECT
          vd.tipo_producto,
          COALESCE(p.nombre, b.nombre, h.nombre, ex.nombre, 'Producto') AS producto_nombre,
