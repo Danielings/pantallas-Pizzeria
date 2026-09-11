@@ -44,7 +44,7 @@ export const procesarVenta = async (req, res) => {
     const resultVenta = await tx.execute({
       sql: `INSERT INTO ventas 
       (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, id_sucursal) 
-      VALUES (?, ?, ?, ?, 'Completado', datetime('now', 'localtime'), ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, 'Completado', datetime('now', '-4 hours'), ?, ?, ?, ?)`,
       args: [
         id_cliente,
         id_usuario,
@@ -181,7 +181,7 @@ export const registrarPedidoPendiente = async (req, res) => {
     const resultVenta = await tx.execute({
       sql: `INSERT INTO ventas
        (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, id_sucursal)
-       VALUES (?, ?, ?, ?, 'Pendiente', datetime('now', 'localtime'), ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, 'Pendiente', datetime('now', '-4 hours'), ?, ?, ?, ?)`,
       args: [
         id_cliente,
         id_usuario,
@@ -246,7 +246,7 @@ export const registrarPedidoPendiente = async (req, res) => {
     await tx.execute({
       sql: `INSERT INTO notificaciones
        (id_venta, id_cliente, id_usuario, monto_restante, fecha_hora, estado)
-      VALUES (?, ?, ?, ?, datetime('now', 'localtime'), ?)`,
+      VALUES (?, ?, ?, ?, datetime('now', '-4 hours'), ?)`,
       args: [
         id_venta,
         id_cliente,
@@ -696,7 +696,7 @@ export const obtenerVentasHoy = async (req, res) => {
         ) AS pizzas_vendidas
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
+      WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND v.estado = 'Completado'
         AND v.id_sucursal = ?
       ORDER BY v.fecha_hora DESC`;
@@ -747,7 +747,7 @@ export const obtenerPedidosActivos = async (req, res) => {
         c.telefono  AS telefono_cliente
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
+      WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND v.id_sucursal = ?
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd

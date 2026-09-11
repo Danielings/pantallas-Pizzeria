@@ -32,8 +32,8 @@ export const obtenerResumenDia = async (req, res) => {
   const { id_sucursal } = req.user;
   try {
     // 1. Verificar si hay ventas hoy.
-    // En SQLite usas DATE('now', 'localtime') en lugar de CURDATE()
-    let dateCondition = "DATE(fecha_hora) = DATE('now', 'localtime')";
+    // Turso is configured to return local Venezuela time.
+    let dateCondition = "DATE(fecha_hora) = DATE('now', '-4 hours')";
     let dateLabel = new Date().toLocaleDateString("es-ES", {
       year: "numeric",
       month: "2-digit",
@@ -41,7 +41,7 @@ export const obtenerResumenDia = async (req, res) => {
     });
 
     const result = await db.execute({
-      sql: `SELECT COUNT(*) AS c FROM ventas WHERE DATE(fecha_hora) = DATE('now', 'localtime') AND estado = 'Completado'`,
+      sql: `SELECT COUNT(*) AS c FROM ventas WHERE DATE(fecha_hora) = DATE('now', '-4 hours') AND estado = 'Completado'`,
     });
 
     // Accedemos mediante .rows[0]
@@ -266,7 +266,7 @@ export const cerrarCaja = async (req, res) => {
     const cierresHoy = await db.execute({
       sql: `SELECT COUNT(*) as totalCierres 
             FROM cierres_caja 
-            WHERE DATE(fecha_hora) = DATE('now', 'localtime')`,
+            WHERE DATE(fecha_hora) = DATE('now', '-4 hours')`,
     });
 
     const totalCierresRealizados = Number(cierresHoy.rows[0].totalCierres);
@@ -292,7 +292,7 @@ export const cerrarCaja = async (req, res) => {
               total_usdt,
               num_ordenes,
               id_sucursal
-            ) VALUES (?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, datetime('now', '-4 hours'), ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         usuarioEjecutor,
         Number(monto_efectivo_usd || 0),
@@ -355,7 +355,7 @@ export const obtenerHistorialCierres = async (req, res) => {
         IFNULL(SUM(total_usdt), 0) AS total_usd,
         IFNULL(AVG(total_usdt), 0) AS promedio_usd
        FROM cierres_caja 
-       WHERE strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now', 'localtime')`,
+       WHERE strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now', '-4 hours')`,
     });
 
     const cantidad_cierres = Number(mesMetrics.rows[0].cantidad_cierres);
@@ -367,7 +367,7 @@ export const obtenerHistorialCierres = async (req, res) => {
         strftime('%I:%M %p', fecha_hora) AS hora, 
         DATE(fecha_hora) AS fecha
        FROM cierres_caja 
-       WHERE DATE(fecha_hora) < DATE('now', 'localtime') 
+      WHERE DATE(fecha_hora) < DATE('now', '-4 hours')
        ORDER BY fecha_hora DESC 
        LIMIT 1`,
     });

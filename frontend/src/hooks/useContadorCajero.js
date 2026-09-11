@@ -26,10 +26,16 @@ export function useContadorCajero() {
       channelName: "pizzeria-orders",
       events: {
         pedido_actualizado: () => {
-          queryClient.invalidateQueries({ queryKey: ["contadorCajero"] });
+          queryClient.invalidateQueries({
+            queryKey: ["contadorCajero"],
+            refetchType: "active",
+          });
         },
-        nuevo_pedido: () => {
-          queryClient.invalidateQueries({ queryKey: ["contadorCajero"] });
+        pedido_creado: () => {
+          queryClient.invalidateQueries({
+            queryKey: ["contadorCajero"],
+            refetchType: "active",
+          });
         },
       },
     });
