@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { env } from "../config/env.js";
 import { sendPasswordResetEmail } from "../config/mailer.js";
+import db from "../config/turso.js";
 
 dotenv.config();
 const TOKEN_EXPIRY_MS = 15 * 60 * 1000;
@@ -172,8 +173,9 @@ export const login = async (req, res) => {
       FROM usuarios u
       LEFT JOIN sucursal s ON u.id_sucursal = s.id_sucursal
       WHERE u.email = ?`;
-    const [rows] = await pool.execute(query, [email]);
+    const results = await db.execute({ sql: query, args: [email] });
 
+    const rows = results.rows || [];
     // Usamos un mensaje genérico para seguridad
     if (rows.length === 0) {
       return res.status(401).json({ message: "Credenciales inválidas" });
