@@ -1,8 +1,15 @@
-import pool from "../config/bd.js";
+import db from "../config/turso.js";
 import { emitPusherEvent } from "../config/pusher.js";
 
+const queryRows = async (sql, args = []) => {
+  const result = await db.execute({ sql, args });
+  return result.rows;
+};
+
+const executeCommand = (sql, args = []) => db.execute({ sql, args });
+
 const obtenerDetallesCocina = async (idVenta, estado) => {
-  const [detalles] = await pool.query(
+  const detalles = await queryRows(
     `
       SELECT
         vd.id_detalle,
@@ -59,7 +66,7 @@ const obtenerDetallesCocina = async (idVenta, estado) => {
 
 export const obtenerPedidosCocina = async (req, res) => {
   try {
-    const [ventas] = await pool.query(
+    const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
         v.fecha_hora,
@@ -70,7 +77,7 @@ export const obtenerPedidosCocina = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-      WHERE DATE(v.fecha_hora) = CURDATE()
+      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -89,7 +96,7 @@ export const obtenerPedidosCocina = async (req, res) => {
 
         const detallesConExtras = await Promise.all(
           detalles.map(async (det) => {
-            const [extras] = await pool.query(
+            const extras = await queryRows(
               `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
                FROM detalle_venta_extras dve
                JOIN extras e ON e.id_extras = dve.id_extra
@@ -117,7 +124,7 @@ export const obtenerPedidosCocina = async (req, res) => {
 
 export const obtenerPedidosHorno = async (req, res) => {
   try {
-    const [ventas] = await pool.query(
+    const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
         v.fecha_hora,
@@ -128,7 +135,7 @@ export const obtenerPedidosHorno = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-      WHERE DATE(v.fecha_hora) = CURDATE()
+      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -144,7 +151,7 @@ export const obtenerPedidosHorno = async (req, res) => {
 
         const detallesConExtras = await Promise.all(
           detalles.map(async (det) => {
-            const [extras] = await pool.query(
+            const extras = await queryRows(
               `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
                FROM detalle_venta_extras dve
                JOIN extras e ON e.id_extras = dve.id_extra
@@ -172,7 +179,7 @@ export const obtenerPedidosHorno = async (req, res) => {
 
 export const obtenerPedidosDespacho = async (req, res) => {
   try {
-    const [ventas] = await pool.query(
+    const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
         v.fecha_hora,
@@ -183,7 +190,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-      WHERE DATE(v.fecha_hora) = CURDATE()
+      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -202,7 +209,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
 
         const detallesConExtras = await Promise.all(
           detalles.map(async (det) => {
-            const [extras] = await pool.query(
+            const extras = await queryRows(
               `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
                FROM detalle_venta_extras dve
                JOIN extras e ON e.id_extras = dve.id_extra
@@ -230,7 +237,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
 
 export const obtenerPedidosMesero = async (req, res) => {
   try {
-    const [ventas] = await pool.query(
+    const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
         v.fecha_hora,
@@ -239,7 +246,7 @@ export const obtenerPedidosMesero = async (req, res) => {
         c.telefono AS telefono_cliente
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-      WHERE DATE(v.fecha_hora) = CURDATE()
+      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -258,7 +265,7 @@ export const obtenerPedidosMesero = async (req, res) => {
 
         const detallesConExtras = await Promise.all(
           detalles.map(async (det) => {
-            const [extras] = await pool.query(
+            const extras = await queryRows(
               `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
                FROM detalle_venta_extras dve
                JOIN extras e ON e.id_extras = dve.id_extra
@@ -286,7 +293,7 @@ export const obtenerPedidosMesero = async (req, res) => {
 
 export const obtenerPedidosPendiente = async (req, res) => {
   try {
-    const [ventas] = await pool.query(
+    const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
         v.fecha_hora,
@@ -297,7 +304,7 @@ export const obtenerPedidosPendiente = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
-      WHERE DATE(v.fecha_hora) = CURDATE()
+      WHERE DATE(v.fecha_hora) = DATE('now', 'localtime')
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -316,7 +323,7 @@ export const obtenerPedidosPendiente = async (req, res) => {
 
         const detallesConExtras = await Promise.all(
           detalles.map(async (det) => {
-            const [extras] = await pool.query(
+            const extras = await queryRows(
               `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
                FROM detalle_venta_extras dve
                JOIN extras e ON e.id_extras = dve.id_extra
@@ -349,10 +356,10 @@ export const obtenerContadorCajero = async (req, res) => {
        FROM venta_detalle vd
        JOIN ventas v ON vd.id_venta = v.id_venta
        WHERE vd.estado != 'Completado' AND vd.estado != 'Cerrado' AND v.estado != 'Reembolsado'
-         AND DATE(v.fecha_hora) = CURDATE()
+         AND DATE(v.fecha_hora) = DATE('now', 'localtime')
          AND v.id_sucursal = ?`;
     let paparemericano = [id_sucursal];
-    const [result] = await pool.query(query, paparemericano);
+    const result = await queryRows(query, paparemericano);
 
     res.json({
       success: true,
@@ -398,15 +405,15 @@ export const actualizarEstadoPedido = async (req, res) => {
 
   try {
     // Se elimina el filtro estricto del estado anterior en el WHERE
-    const [result] = await pool.query(
-      `UPDATE venta_detalle 
+    const result = await executeCommand(
+      `UPDATE venta_detalle
        SET estado = ? 
        WHERE id_venta = ? 
          AND tipo_producto IN ('Pizza', 'Combo')`,
       [nuevoEstado, id_venta],
     );
 
-    if (result.affectedRows === 0) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         success: false,
         message: "No se encontraron pizzas para este pedido.",
@@ -454,18 +461,18 @@ export const obtenerEntregas = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE v.despacho IN ('Delivery', 'Pick Up', 'Local', 'Llevar')
-        AND DATE(v.fecha_hora) = CURDATE()
+        AND DATE(v.fecha_hora) = DATE('now', 'localtime')
         AND v.estado != 'Reembolsado'
         AND v.id_sucursal = ?
       ORDER BY v.fecha_hora ASC`;
 
     let paparamericano = [id_sucursal];
-    const [ventas] = await pool.query(query, paparamericano);
+    const ventas = await queryRows(query, paparamericano);
 
     const ordenes = await Promise.all(
       ventas.map(async (venta) => {
-        const [detalles] = await pool.query(
-          `SELECT 
+        const detalles = await queryRows(
+          `SELECT
             vd.id_detalle,
             vd.cantidad,
             vd.tipo_producto,
@@ -547,14 +554,14 @@ export const actualizarEntrega = async (req, res) => {
   const { id_venta } = req.params;
 
   try {
-    const [result] = await pool.query(
-      `UPDATE venta_detalle 
+    const result = await executeCommand(
+      `UPDATE venta_detalle
        SET estado = 'Completado' 
        WHERE id_venta = ?`,
       [id_venta],
     );
 
-    if (result.affectedRows === 0) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         success: false,
         message: "No se encontraron detalles para este pedido.",
