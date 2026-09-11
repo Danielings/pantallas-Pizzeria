@@ -1,16 +1,16 @@
-import pool from "../config/bd.js";
+import db from "../config/turso.js";
 
 const consultarNotificacionesPendientesBD = async () => {
-  const [rows] = await pool.query(
-    `SELECT n.id_notificacion, n.id_venta, n.id_cliente,
+  const result = await db.execute({
+    sql: `SELECT n.id_notificacion, n.id_venta, n.id_cliente,
             n.monto_restante, n.fecha_hora,
             c.nombre AS nombre_cliente, c.cedula AS cedula_cliente,
             c.telefono AS telefono_cliente,
             v.despacho, d.nombre AS nombre_delivery, d.digitos AS digitos_delivery,
             COALESCE(SUM(vd.cantidad), 0) AS cantidad_items,
             GROUP_CONCAT(
-              CONCAT(vd.cantidad, 'x ', COALESCE(p.nombre, b.nombre, h.nombre, vd.tipo_producto))
-              ORDER BY vd.id_detalle SEPARATOR ', '
+              vd.cantidad || 'x ' || COALESCE(p.nombre, b.nombre, h.nombre, vd.tipo_producto),
+              ', '
             ) AS resumen_items
      FROM notificaciones n
      INNER JOIN ventas v ON v.id_venta = n.id_venta
@@ -20,13 +20,14 @@ const consultarNotificacionesPendientesBD = async () => {
      LEFT JOIN pizza p ON p.id_pizza = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
      LEFT JOIN bebidas b ON b.id_bebida = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
      LEFT JOIN heladeria h ON h.id_heladeria = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
-     WHERE v.estado = 'Pendiente' AND n.estado = 'Pendiente' AND DATE(n.fecha_hora) = CURDATE()
+     WHERE v.estado = 'Pendiente' AND n.estado = 'Pendiente'
+       AND DATE(n.fecha_hora) = DATE('now', 'localtime')
      GROUP BY n.id_notificacion, n.id_venta, n.id_cliente,
               n.monto_restante, n.fecha_hora, c.nombre, c.cedula,
               c.telefono, v.despacho, d.nombre, d.digitos
-     ORDER BY n.fecha_hora DESC`,
-  );
-  return rows;
+      ORDER BY n.fecha_hora DESC`,
+  });
+  return result.rows;
 };
 
 export const obtenerNotificacionesPendientes = async (_req, res) => {
@@ -42,17 +43,19 @@ export const obtenerNotificacionesPendientes = async (_req, res) => {
 // ---- Obtener notificación pendiente individual
 export const obtenerNotificacionPendiente = async (req, res) => {
   try {
-    const [ventas] = await pool.query(
-      `SELECT n.id_notificacion, n.id_venta, n.id_cliente, n.monto_restante,
+    const ventasResult = await db.execute({
+      sql: `SELECT n.id_notificacion, n.id_venta, n.id_cliente, n.monto_restante,
               v.monto_total_usd, v.monto_total_bs, v.tasa_cambio, v.despacho,
               v.id_delivery, c.id_cliente AS cliente_id, c.nombre AS nombre_cliente,
               c.cedula AS cedula_cliente, c.telefono AS telefono_cliente
        FROM notificaciones n
        INNER JOIN ventas v ON v.id_venta = n.id_venta AND v.estado = 'Pendiente'
        LEFT JOIN clientes c ON c.id_cliente = n.id_cliente
-       WHERE n.id_venta = ? AND n.estado = 'Pendiente' AND DATE(n.fecha_hora) = CURDATE()`,
-      [req.params.id_venta],
-    );
+       WHERE n.id_venta = ? AND n.estado = 'Pendiente'
+         AND DATE(n.fecha_hora) = DATE('now', 'localtime')`,
+      args: [req.params.id_venta],
+    });
+    const ventas = ventasResult.rows;
 
     if (!ventas.length) {
       return res
@@ -60,8 +63,8 @@ export const obtenerNotificacionPendiente = async (req, res) => {
         .json({ success: false, message: "Notificación no encontrada." });
     }
 
-    const [detalles] = await pool.query(
-      `SELECT vd.id_detalle, vd.tipo_producto, vd.id_producto_origen,
+    const detallesResult = await db.execute({
+      sql: `SELECT vd.id_detalle, vd.tipo_producto, vd.id_producto_origen,
               vd.cantidad, vd.monto_total, vd.nota,
               COALESCE(p.nombre, b.nombre, h.nombre, vd.tipo_producto) AS nombre_producto,
               p.id_categoria_pizza
@@ -70,25 +73,27 @@ export const obtenerNotificacionPendiente = async (req, res) => {
        LEFT JOIN bebidas b ON b.id_bebida = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
        LEFT JOIN heladeria h ON h.id_heladeria = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
        WHERE vd.id_venta = ?`,
-      [req.params.id_venta],
-    );
+      args: [req.params.id_venta],
+    });
+    const detalles = detallesResult.rows;
 
-    const [pagos] = await pool.query(
-      `SELECT metodo_pago AS metodo, monto_usd, monto_bs, referencia
+    const pagosResult = await db.execute({
+      sql: `SELECT metodo_pago AS metodo, monto_usd, monto_bs, referencia
        FROM ventas_pagos WHERE id_venta = ? ORDER BY id_pago`,
-      [req.params.id_venta],
-    );
+      args: [req.params.id_venta],
+    });
+    const pagos = pagosResult.rows;
 
     const detallesConExtras = await Promise.all(
       detalles.map(async (detalle) => {
-        const [extras] = await pool.query(
-          `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
+        const extrasResult = await db.execute({
+          sql: `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
            FROM detalle_venta_extras dve
            INNER JOIN extras e ON e.id_extras = dve.id_extra
            WHERE dve.id_detalle = ?`,
-          [detalle.id_detalle],
-        );
-        return { ...detalle, extras };
+          args: [detalle.id_detalle],
+        });
+        return { ...detalle, extras: extrasResult.rows };
       }),
     );
 
