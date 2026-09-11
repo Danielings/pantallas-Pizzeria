@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import pool from "../config/bd.js";
+import db from "../config/turso.js";
 
 //----------------------Delivery
 
@@ -109,11 +110,11 @@ export const registrarUsuario = async (req, res) => {
       });
     }
 
-    const [existingUser] = await pool.query(
-      "SELECT u.id_usuario, s.id_sucursal FROM usuarios u LEFT JOIN sucursal s ON u.id_sucursal = s.id_sucursal WHERE u.email = ? AND s.id_sucursal = ? LIMIT 1",
-      [emailTrim, id_sucursal],
-    );
-
+    const results = await db.execute({
+      sql: "SELECT u.id_usuario, s.id_sucursal FROM usuarios u LEFT JOIN sucursal s ON u.id_sucursal = s.id_sucursal WHERE u.email = ? AND s.id_sucursal = ? LIMIT 1",
+      args: [emailTrim, id_sucursal],
+    });
+    const existingUser = results.rows || [];
     if (existingUser.length > 0) {
       return res.status(409).json({
         success: false,
@@ -124,9 +125,9 @@ export const registrarUsuario = async (req, res) => {
     const passwordHash = await bcrypt.hash(passwordTrim, 10);
 
     const estadoActivo = "Activo";
-    const [result] = await pool.query(
-      "INSERT INTO usuarios (nombre_completo, email, password, id_sucursal, rol, estado) VALUES (?, ?, ?, ?, ?, ?)",
-      [
+    const result = await db.execute({
+      sql: "INSERT INTO usuarios (nombre_completo, email, password, id_sucursal, rol, estado) VALUES (?, ?, ?, ?, ?, ?)",
+      args: [
         nameTrim,
         emailTrim,
         passwordHash,
@@ -134,7 +135,7 @@ export const registrarUsuario = async (req, res) => {
         rol,
         estadoActivo,
       ],
-    );
+    });
 
     res.status(201).json({
       success: true,
@@ -160,7 +161,8 @@ export const registrarUsuario = async (req, res) => {
 
 export const obtenerUsuarios = async (req, res) => {
   try {
-    const [rows] = await pool.query(`
+    const result = await db.execute({
+      sql: `
       SELECT 
         id_usuario AS id, 
         nombre_completo AS name, 
@@ -169,8 +171,9 @@ export const obtenerUsuarios = async (req, res) => {
         id_sucursal AS branchId,
         estado
       FROM usuarios
-    `);
-
+    `,
+    });
+    const rows = result.rows || [];
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error(error);
@@ -182,12 +185,12 @@ export const eliminarUsuario = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const [result] = await pool.query(
-      "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = ?",
-      [id],
-    );
+    const result = await db.execute({
+      sql: "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = ?",
+      args: [id],
+    });
 
-    if (result.affectedRows === 0) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         success: false,
         message: "Usuario no encontrado",
@@ -210,12 +213,12 @@ export const eliminarUsuario = async (req, res) => {
 export const activarUsuario = async (req, res) => {
   const { id } = req.params;
   try {
-    const [result] = await pool.query(
-      "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = ?",
-      [id],
-    );
+    const result = await db.execute({
+      sql: "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = ?",
+      args: [id],
+    });
 
-    if (result.affectedRows === 0) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         success: false,
         message: "Usuario no encontrado",
@@ -258,12 +261,12 @@ export const actualizarUsuario = async (req, res) => {
     }
 
     // Validar unicidad del correo electrónico
-    const [existingUser] = await pool.query(
-      "SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario != ? LIMIT 1",
-      [emailTrim, id],
-    );
+    const existingUser = await db.execute({
+      sql: "SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario != ? LIMIT 1",
+      args: [emailTrim, id],
+    });
 
-    if (existingUser.length > 0) {
+    if (existingUser.rows.length > 0) {
       return res.status(409).json({
         success: false,
         message: "Ya existe otro usuario con ese correo.",
@@ -291,9 +294,12 @@ export const actualizarUsuario = async (req, res) => {
     queryStr += " WHERE id_usuario = ?";
     queryParams.push(id);
 
-    const [result] = await pool.query(queryStr, queryParams);
+    const result = await db.execute({
+      sql: queryStr,
+      args: queryParams,
+    });
 
-    if (result.affectedRows === 0) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         success: false,
         message: "Usuario no encontrado.",
