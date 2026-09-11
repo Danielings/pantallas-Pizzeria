@@ -1,4 +1,9 @@
-import pool from "../config/bd.js";
+import db from "../config/turso.js";
+
+const queryRows = async (sql, args = []) => {
+  const result = await db.execute({ sql, args });
+  return result.rows;
+};
 
 // ─── Dashboard Completo Resumen Consolidado ──────────────────────────────────
 export const obtenerDashboardStats = async (req, res) => {
@@ -9,8 +14,8 @@ export const obtenerDashboardStats = async (req, res) => {
     const branchParams = id_sucursal ? [Number(id_sucursal)] : [];
 
     // Tasa de cambio del sistema
-    const [tasaRows] = await pool.query(
-      "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1"
+    const tasaRows = await queryRows(
+      "SELECT tasa_sistema FROM configuracion_tasa WHERE id_config = 1",
     );
     const tasa = tasaRows.length > 0 ? Number(tasaRows[0].tasa_sistema) : 1;
 
@@ -69,16 +74,16 @@ export const obtenerDashboardStats = async (req, res) => {
 
     // Ejecutar consultas en paralelo para máxima velocidad (<40ms)
     const [
-      [curVentasRows],
-      [prevVentasRows],
-      [curClientesRows],
-      [prevClientesRows],
-      [categoriasRows],
-      [tendenciaRows],
-      [statusRows],
+      curVentasRows,
+      prevVentasRows,
+      curClientesRows,
+      prevClientesRows,
+      categoriasRows,
+      tendenciaRows,
+      statusRows,
     ] = await Promise.all([
       // 1. Métricas período actual
-      pool.query(
+      queryRows(
         `SELECT 
            COUNT(*) AS total_ordenes,
            IFNULL(SUM(v.monto_total_usd), 0) AS total_usd,
@@ -86,31 +91,31 @@ export const obtenerDashboardStats = async (req, res) => {
            IFNULL(MAX(v.monto_total_usd), 0) AS pico_maximo_usd
          FROM ventas v
          WHERE v.fecha_hora BETWEEN ? AND ? ${branchCondition} AND v.estado != 'Reembolsado'`,
-        [startDate, endDate, ...branchParams]
+        [startDate, endDate, ...branchParams],
       ),
       // 2. Métricas período anterior (para % incremento)
-      pool.query(
+      queryRows(
         `SELECT 
            COUNT(*) AS total_ordenes,
            IFNULL(SUM(v.monto_total_usd), 0) AS total_usd
          FROM ventas v
          WHERE v.fecha_hora BETWEEN ? AND ? ${branchCondition} AND v.estado != 'Reembolsado'`,
-        [prevStartDate, prevEndDate, ...branchParams]
+        [prevStartDate, prevEndDate, ...branchParams],
       ),
       // 3. Clientes únicos período actual
-      pool.query(
+      queryRows(
         `SELECT COUNT(DISTINCT id_cliente) AS total_clientes FROM ventas v
          WHERE v.fecha_hora BETWEEN ? AND ? ${branchCondition}`,
-        [startDate, endDate, ...branchParams]
+        [startDate, endDate, ...branchParams],
       ),
       // 4. Clientes únicos período anterior
-      pool.query(
+      queryRows(
         `SELECT COUNT(DISTINCT id_cliente) AS total_clientes FROM ventas v
          WHERE v.fecha_hora BETWEEN ? AND ? ${branchCondition}`,
-        [prevStartDate, prevEndDate, ...branchParams]
+        [prevStartDate, prevEndDate, ...branchParams],
       ),
       // 5. Categorías de producto
-      pool.query(
+      queryRows(
         `SELECT 
            vd.tipo_producto AS categoria,
            IFNULL(SUM(vd.monto_total), 0) AS monto_usd,
@@ -120,30 +125,30 @@ export const obtenerDashboardStats = async (req, res) => {
          WHERE v.fecha_hora BETWEEN ? AND ? ${branchCondition} AND v.estado != 'Reembolsado'
          GROUP BY vd.tipo_producto
          ORDER BY monto_usd DESC`,
-        [startDate, endDate, ...branchParams]
+        [startDate, endDate, ...branchParams],
       ),
       // 6. Tendencia (Timeline)
-      pool.query(
+      queryRows(
         `SELECT 
-           DATE_FORMAT(v.fecha_hora, ${periodo === "ano" ? "'%b'" : "'%d %b'"}) AS label,
-           DATE_FORMAT(v.fecha_hora, '%Y-%m-%d') AS fecha_raw,
+           strftime(${periodo === "ano" ? "'%m'" : "'%d %m'"}, v.fecha_hora) AS label,
+           strftime('%Y-%m-%d', v.fecha_hora) AS fecha_raw,
            IFNULL(SUM(v.monto_total_usd), 0) AS total_usd,
            COUNT(*) AS ordenes
          FROM ventas v
          WHERE v.fecha_hora BETWEEN ? AND ? ${branchCondition} AND v.estado != 'Reembolsado'
-         GROUP BY ${periodo === "ano" ? "MONTH(v.fecha_hora)" : "DATE(v.fecha_hora)"}
+         GROUP BY ${periodo === "ano" ? "strftime('%m', v.fecha_hora)" : "DATE(v.fecha_hora)"}
          ORDER BY fecha_raw ASC`,
-        [startDate, endDate, ...branchParams]
+        [startDate, endDate, ...branchParams],
       ),
       // 7. Estado rápido de órdenes (Pendientes, En cocina, Listas hoy)
-      pool.query(
+      queryRows(
         `SELECT 
            SUM(CASE WHEN v.estado = 'Pendiente' THEN 1 ELSE 0 END) AS pendientes,
            SUM(CASE WHEN v.estado IN ('En preparación', 'En cocina', 'Cocinando') THEN 1 ELSE 0 END) AS en_cocina,
            SUM(CASE WHEN v.estado IN ('Listo', 'Completado') THEN 1 ELSE 0 END) AS completadas
          FROM ventas v
-         WHERE DATE(v.fecha_hora) = CURDATE() ${branchCondition}`,
-        [...branchParams]
+         WHERE DATE(v.fecha_hora) = DATE('now', 'localtime') ${branchCondition}`,
+        [...branchParams],
       ),
     ]);
 
@@ -174,17 +179,23 @@ export const obtenerDashboardStats = async (req, res) => {
     const growthProfit = calcPct(netProfit, prevNetProfit);
 
     const catColors = {
-      Pizza: "#EA2A33",  // Rojo Pizzería institucional
+      Pizza: "#EA2A33", // Rojo Pizzería institucional
       Bebida: "#3B82F6", // Azul módulo ventas
       Helado: "#F59E0B", // Ámbar módulo heladería
-      Extra: "#10B981",  // Verde módulo productos
-      Combo: "#8B5CF6",  // Púrpura módulo combos
+      Extra: "#10B981", // Verde módulo productos
+      Combo: "#8B5CF6", // Púrpura módulo combos
     };
 
-    const totalCatMonto = categoriasRows.reduce((sum, c) => sum + Number(c.monto_usd), 0);
+    const totalCatMonto = categoriasRows.reduce(
+      (sum, c) => sum + Number(c.monto_usd),
+      0,
+    );
     const categoriasFormatted = categoriasRows.map((cat) => {
       const monto = Number(cat.monto_usd);
-      const pct = totalCatMonto > 0 ? Number(((monto / totalCatMonto) * 100).toFixed(1)) : 0;
+      const pct =
+        totalCatMonto > 0
+          ? Number(((monto / totalCatMonto) * 100).toFixed(1))
+          : 0;
       return {
         nombre: cat.categoria || "Otros",
         monto_usd: monto,
@@ -224,6 +235,9 @@ export const obtenerDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error("Error en dashboard stats:", error);
-    return res.status(500).json({ success: false, mensaje: "Error al obtener datos del dashboard" });
+    return res.status(500).json({
+      success: false,
+      mensaje: "Error al obtener datos del dashboard",
+    });
   }
 };
