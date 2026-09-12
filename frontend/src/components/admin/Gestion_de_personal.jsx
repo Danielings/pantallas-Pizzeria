@@ -12,7 +12,7 @@ import {
   Trash2,
   Pencil,
   UserCircle,
-  UserCheck
+  UserCheck,
 } from "lucide-react";
 
 const ROLE_CONFIG = {
@@ -21,28 +21,28 @@ const ROLE_CONFIG = {
     color: "bg-blue-500/20 text-blue-600 border-blue-500/30",
     bgCard: "bg-blue-50/70 border-blue-100/80",
     iconBg: "bg-blue-500",
-    textColor: "text-blue-500"
+    textColor: "text-blue-500",
   },
   chef: {
     label: "Cocinero",
     color: "bg-orange-500/20 text-orange-800 border-orange-500/30",
     bgCard: "bg-orange-50/70 border-orange-100/80",
     iconBg: "bg-orange-500",
-    textColor: "text-orange-500"
+    textColor: "text-orange-500",
   },
   mesero: {
     label: "Mesero",
     color: "bg-green-500/20 text-green-600 border-green-500/30",
     bgCard: "bg-emerald-50/70 border-emerald-100/80",
     iconBg: "bg-emerald-500",
-    textColor: "text-emerald-500"
+    textColor: "text-emerald-500",
   },
   despachador: {
     label: "Despachador",
     color: "bg-yellow-500/20 text-amber-800 border-yellow-500/30",
     bgCard: "bg-amber-50/70 border-amber-100/80",
     iconBg: "bg-amber-500",
-    textColor: "text-amber-500"
+    textColor: "text-amber-500",
   },
 };
 
@@ -64,7 +64,7 @@ export default function StaffManagement() {
     email: "",
     role: "cashier",
     branchId: "",
-    password: ""
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -78,7 +78,9 @@ export default function StaffManagement() {
   const filteredStaff = useMemo(() => {
     let result = safeStaff;
     if (searchBranch) {
-      result = result.filter((s) => String(s.branchId) === String(searchBranch));
+      result = result.filter(
+        (s) => String(s.branchId) === String(searchBranch),
+      );
     }
     if (searchRole) {
       result = result.filter((s) => s.role === searchRole);
@@ -89,14 +91,16 @@ export default function StaffManagement() {
   const metrics = useMemo(() => {
     const counts = { cashier: 0, chef: 0, mesero: 0, despachador: 0 };
     // Only count active users in metrics
-    safeStaff.filter(s => s.estado === "Activo").forEach(s => {
-      if (counts[s.role] !== undefined) counts[s.role]++;
-    });
+    safeStaff
+      .filter((s) => s.estado === "Activo")
+      .forEach((s) => {
+        if (counts[s.role] !== undefined) counts[s.role]++;
+      });
     return counts;
   }, [safeStaff]);
 
   const getBranchName = (branchId) => {
-    const b = safeBranches.find(b => String(b.id) === String(branchId));
+    const b = safeBranches.find((b) => String(b.id) === String(branchId));
     return b ? b.name : "Sucursal Desconocida";
   };
 
@@ -107,7 +111,7 @@ export default function StaffManagement() {
       email: "",
       role: "cashier",
       branchId: safeBranches.length > 0 ? safeBranches[0].id : "",
-      password: ""
+      password: "",
     });
     setError("");
     setShowPassword(false);
@@ -121,7 +125,7 @@ export default function StaffManagement() {
       email: user.email,
       role: user.role,
       branchId: user.branchId,
-      password: "" // Empty for security, only typed if they want to change it
+      password: "", // Empty for security, only typed if they want to change it
     });
     setError("");
     setShowPassword(false);
@@ -147,11 +151,17 @@ export default function StaffManagement() {
     }
 
     if (!editingId && form.password.trim().length < 6) {
-      setError("La contraseña es obligatoria para nuevos usuarios y debe tener al menos 6 caracteres.");
+      setError(
+        "La contraseña es obligatoria para nuevos usuarios y debe tener al menos 6 caracteres.",
+      );
       return;
     }
 
-    if (editingId && form.password.trim() !== "" && form.password.trim().length < 6) {
+    if (
+      editingId &&
+      form.password.trim() !== "" &&
+      form.password.trim().length < 6
+    ) {
       setError("La nueva contraseña debe tener al menos 6 caracteres.");
       return;
     }
@@ -169,9 +179,9 @@ export default function StaffManagement() {
             email: form.email,
             rol: form.role,
             id_sucursal: form.branchId,
-            password: form.password
+            password: form.password,
           },
-          { withCredentials: true }
+          { withCredentials: true },
         );
       } else {
         response = await axios.post(
@@ -183,7 +193,7 @@ export default function StaffManagement() {
             id_sucursal: form.branchId,
             rol: form.role,
           },
-          { withCredentials: true }
+          { withCredentials: true },
         );
       }
 
@@ -193,7 +203,9 @@ export default function StaffManagement() {
         if (window.Toast) {
           window.Toast.fire({
             icon: "success",
-            title: editingId ? "¡Empleado actualizado exitosamente!" : "¡Empleado registrado exitosamente!",
+            title: editingId
+              ? "¡Empleado actualizado exitosamente!"
+              : "¡Empleado registrado exitosamente!",
           });
         }
       }
@@ -217,9 +229,9 @@ export default function StaffManagement() {
           const response = await axios.put(
             `http://localhost:3001/api/eliminar-usuario/${id}`,
             {},
-            { withCredentials: true }
+            { withCredentials: true },
           );
-  
+
           if (response.data.success) {
             queryClient.invalidateQueries({ queryKey: ["staff"] });
             if (window.Toast) {
@@ -244,12 +256,18 @@ export default function StaffManagement() {
     } else {
       if (window.confirm("¿Seguro que deseas eliminar este empleado?")) {
         setIsDeletingId(id);
-        axios.put(`http://localhost:3001/api/eliminar-usuario/${id}`, {}, { withCredentials: true })
-          .then(res => {
+        axios
+          .put(
+            `http://localhost:3001/api/eliminar-usuario/${id}`,
+            {},
+            { withCredentials: true },
+          )
+          .then((res) => {
             if (res.data.success) {
               queryClient.invalidateQueries({ queryKey: ["staff"] });
             }
-          }).finally(() => setIsDeletingId(null));
+          })
+          .finally(() => setIsDeletingId(null));
       }
     }
   };
@@ -259,18 +277,24 @@ export default function StaffManagement() {
       const response = await axios.put(
         `http://localhost:3001/api/activar-usuario/${id}`,
         {},
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (response.data.success) {
         queryClient.invalidateQueries({ queryKey: ["staff"] });
         if (window.Toast) {
-          window.Toast.fire({ icon: "success", title: "¡Empleado activado exitosamente!" });
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Empleado activado exitosamente!",
+          });
         }
       }
     } catch (error) {
       console.error("Error al activar empleado:", error);
       if (window.Toast) {
-        window.Toast.fire({ icon: "error", title: "Error al intentar activar el empleado" });
+        window.Toast.fire({
+          icon: "error",
+          title: "Error al intentar activar el empleado",
+        });
       }
     }
   };
@@ -308,13 +332,20 @@ export default function StaffManagement() {
         {ROLES.map((r) => {
           const cfg = ROLE_CONFIG[r];
           return (
-            <div key={r} className={`${cfg.bgCard} border rounded-2xl p-3 sm:p-4 flex w-full min-w-0 items-center justify-between shadow-sm hover:shadow-md transition-shadow`}>
+            <div
+              key={r}
+              className={`${cfg.bgCard} border rounded-2xl p-3 sm:p-4 flex w-full min-w-0 items-center justify-between shadow-sm hover:shadow-md transition-shadow`}
+            >
               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${cfg.iconBg} flex items-center justify-center text-white shrink-0 shadow-lg`}>
+                <div
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${cfg.iconBg} flex items-center justify-center text-white shrink-0 shadow-lg`}
+                >
                   <UserCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[8px] sm:text-[9px] font-extrabold ${cfg.textColor} uppercase tracking-wider whitespace-nowrap`}>
+                  <p
+                    className={`text-[8px] sm:text-[9px] font-extrabold ${cfg.textColor} uppercase tracking-wider whitespace-nowrap`}
+                  >
                     {cfg.label}s
                   </p>
                   <p className="text-slate-800 text-2xl font-black leading-none mt-1">
@@ -323,12 +354,12 @@ export default function StaffManagement() {
                 </div>
               </div>
             </div>
-          )
+          );
         })}
       </div>
 
       {/* Tabla y Filtros */}
-      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0 flex-1 flex flex-col min-h-0">
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0 flex-1 flex flex-col min-h-0 max-h-[calc(100vh-280px)]">
         <div className="px-4 sm:px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
             <h3 className="font-extrabold text-slate-800 text-base">
@@ -338,7 +369,7 @@ export default function StaffManagement() {
               Lista completa del personal asignado a sucursales
             </p>
           </div>
-          
+
           {/* Filtros */}
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             {/* Filtro por Sucursal */}
@@ -353,7 +384,9 @@ export default function StaffManagement() {
               >
                 <option value="">Todas las Sucursales</option>
                 {safeBranches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -370,15 +403,17 @@ export default function StaffManagement() {
               >
                 <option value="">Todos los Roles</option>
                 {ROLES.map((r) => (
-                  <option key={r} value={r}>{ROLE_CONFIG[r].label}</option>
+                  <option key={r} value={r}>
+                    {ROLE_CONFIG[r].label}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto flex-1 min-h-0">
-          <table className="w-full text-sm min-w-[860px]">
+        <div className="overflow-auto flex-1 min-h-0">
+          <table className="w-full text-sm min-w-[860px] hidden lg:table">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 font-bold text-xs uppercase tracking-wider text-left sticky top-0 animate-fade-in z-10">
                 <th className="px-5 py-3.5">N°</th>
@@ -401,33 +436,53 @@ export default function StaffManagement() {
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-slate-400">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="font-medium">No se encontraron empleados para los filtros seleccionados</p>
+                    <p className="font-medium">
+                      No se encontraron empleados para los filtros seleccionados
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filteredStaff.map((user, index) => {
-                  const cfg = ROLE_CONFIG[user.role] || { label: user.role, color: "bg-slate-100 text-slate-600 border-slate-200" };
+                  const cfg = ROLE_CONFIG[user.role] || {
+                    label: user.role,
+                    color: "bg-slate-100 text-slate-600 border-slate-200",
+                  };
                   const isActive = user.estado === "Activo";
                   return (
-                    <tr key={user.id} className={`hover:bg-slate-50/50 transition-colors group ${!isActive ? "opacity-60" : ""}`}>
+                    <tr
+                      key={user.id}
+                      className={`hover:bg-slate-50/50 transition-colors group ${!isActive ? "opacity-60" : ""}`}
+                    >
                       <td className="px-5 py-3.5 text-slate-400 text-xs font-bold">
                         {index + 1}
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 ${
-                            isActive ? "bg-slate-100 border-slate-200 text-slate-600" : "bg-slate-50 border-slate-100 text-slate-400"
-                          }`}>
+                          <div
+                            className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 ${
+                              isActive
+                                ? "bg-slate-100 border-slate-200 text-slate-600"
+                                : "bg-slate-50 border-slate-100 text-slate-400"
+                            }`}
+                          >
                             {user.name?.charAt(0) || "U"}
                           </div>
                           <div>
-                            <p className={`font-bold ${isActive ? "text-slate-800" : "text-slate-400 line-through"}`}>{user.name}</p>
-                            <p className="text-xs text-slate-500">{user.email}</p>
+                            <p
+                              className={`font-bold ${isActive ? "text-slate-800" : "text-slate-400 line-through"}`}
+                            >
+                              {user.name}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {user.email}
+                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cfg.color} ${!isActive ? "opacity-50" : ""}`}>
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cfg.color} ${!isActive ? "opacity-50" : ""}`}
+                        >
                           {cfg.label}
                         </span>
                       </td>
@@ -438,11 +493,13 @@ export default function StaffManagement() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
-                          isActive
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                            : "bg-red-50 text-red-500 border-red-200"
-                        }`}>
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                            isActive
+                              ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                              : "bg-red-50 text-red-500 border-red-200"
+                          }`}
+                        >
                           {isActive ? "Activo" : "Inactivo"}
                         </span>
                       </td>
@@ -467,7 +524,9 @@ export default function StaffManagement() {
                                 }`}
                                 title="Inactivar Empleado"
                               >
-                                <Trash2 className={`w-4 h-4 ${isDeletingId === user.id ? "animate-pulse" : ""}`} />
+                                <Trash2
+                                  className={`w-4 h-4 ${isDeletingId === user.id ? "animate-pulse" : ""}`}
+                                />
                               </button>
                             </>
                           ) : (
@@ -482,22 +541,152 @@ export default function StaffManagement() {
                         </div>
                       </td>
                     </tr>
-                  )
+                  );
                 })
               )}
             </tbody>
           </table>
         </div>
+        {/* Vista Móvil: Cards */}
+        <div className="lg:hidden flex flex-col gap-3 p-4 overflow-y-auto">
+          {staffLoading || branchesLoading ? (
+            <div className="text-center py-12 text-slate-400">
+              <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>
+              <p className="font-medium">Cargando personal...</p>
+            </div>
+          ) : filteredStaff.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">
+              <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p className="font-medium">
+                No se encontraron empleados para los filtros seleccionados
+              </p>
+            </div>
+          ) : (
+            filteredStaff.map((user, index) => {
+              const cfg = ROLE_CONFIG[user.role] || {
+                label: user.role,
+                color: "bg-slate-100 text-slate-600 border-slate-200",
+              };
+              const isActive = user.estado === "Activo";
+              return (
+                <div
+                  key={user.id}
+                  className={`bg-white border border-slate-200 rounded-2xl p-4 shadow-sm ${!isActive ? "opacity-60" : ""}`}
+                >
+                  {/* Header de la card */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-full border flex items-center justify-center text-sm font-bold shrink-0 ${
+                          isActive
+                            ? "bg-slate-100 border-slate-200 text-slate-600"
+                            : "bg-slate-50 border-slate-100 text-slate-400"
+                        }`}
+                      >
+                        {user.name?.charAt(0) || "U"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`font-bold text-slate-800 truncate ${!isActive ? "line-through text-slate-400" : ""}`}
+                        >
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+                        isActive
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                          : "bg-red-50 text-red-500 border-red-200"
+                      }`}
+                    >
+                      {isActive ? "Activo" : "Inactivo"}
+                    </span>
+                  </div>
+
+                  {/* Info de Rol y Sucursal */}
+                  <div className="space-y-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider w-16 shrink-0">
+                        Rol:
+                      </span>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cfg.color} ${!isActive ? "opacity-50" : ""}`}
+                      >
+                        {cfg.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 min-w-0">
+                        <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="truncate">
+                          {getBranchName(user.branchId)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                    {isActive ? (
+                      <>
+                        <button
+                          onClick={() => openEditModal(user)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
+                        >
+                          <Pencil className="w-4 h-4" />
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          disabled={isDeletingId === user.id}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl transition-all ${
+                            isDeletingId === user.id
+                              ? "text-slate-400 cursor-not-allowed bg-slate-50"
+                              : "text-red-600 hover:text-red-700 hover:bg-red-50"
+                          }`}
+                        >
+                          <Trash2
+                            className={`w-4 h-4 ${isDeletingId === user.id ? "animate-pulse" : ""}`}
+                          />
+                          {isDeletingId === user.id
+                            ? "Eliminando..."
+                            : "Inactivar"}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => handleActivate(user.id)}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        Reactivar Empleado
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
         <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/50 shrink-0 select-none">
           <p className="text-xs font-bold text-slate-500 text-center sm:text-left">
             Mostrando {filteredStaff.length} empleado(s)
+            <span className="hidden lg:inline"> en vista de tabla</span>
+            <span className="lg:hidden"> en vista de tarjetas</span>
           </p>
         </div>
       </div>
 
       {/* Modal de Creación / Edición */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4" onClick={closeModal}>
+        <div
+          className="fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4"
+          onClick={closeModal}
+        >
           <div
             className="w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-fade-in flex flex-col"
             onClick={(e) => e.stopPropagation()}
@@ -519,7 +708,9 @@ export default function StaffManagement() {
                 {editingId ? "Editar Empleado" : "Nuevo Empleado"}
               </h3>
               <p className="text-slate-400 text-sm">
-                {editingId ? "Modifica los datos del usuario en el sistema" : "Registra un nuevo usuario en el sistema"}
+                {editingId
+                  ? "Modifica los datos del usuario en el sistema"
+                  : "Registra un nuevo usuario en el sistema"}
               </p>
             </div>
 
@@ -538,7 +729,10 @@ export default function StaffManagement() {
                     setError("");
                   }}
                   className={`w-full bg-white border ${
-                    error && (error.includes("Nombre") || error.includes("nombre")) ? "border-pizza-red" : "border-slate-200 focus:border-pizza-red"
+                    error &&
+                    (error.includes("Nombre") || error.includes("nombre"))
+                      ? "border-pizza-red"
+                      : "border-slate-200 focus:border-pizza-red"
                   } text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-pizza-red transition-all shadow-sm`}
                   placeholder="Ej. Juan Pérez"
                   autoFocus
@@ -558,7 +752,10 @@ export default function StaffManagement() {
                     setError("");
                   }}
                   className={`w-full bg-white border ${
-                    error && (error.includes("email") || error.includes("correo")) ? "border-pizza-red" : "border-slate-200 focus:border-pizza-red"
+                    error &&
+                    (error.includes("email") || error.includes("correo"))
+                      ? "border-pizza-red"
+                      : "border-slate-200 focus:border-pizza-red"
                   } text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-pizza-red transition-all shadow-sm`}
                   placeholder="correo@pizzeria.com"
                 />
@@ -567,7 +764,12 @@ export default function StaffManagement() {
               {/* Campo Contraseña */}
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                  Contraseña {editingId ? "(Opcional)" : <span className="text-pizza-red">*</span>}
+                  Contraseña{" "}
+                  {editingId ? (
+                    "(Opcional)"
+                  ) : (
+                    <span className="text-pizza-red">*</span>
+                  )}
                 </label>
                 <div className="relative">
                   <input
@@ -578,16 +780,26 @@ export default function StaffManagement() {
                       setError("");
                     }}
                     className={`w-full bg-white border ${
-                      error && error.includes("contraseña") ? "border-pizza-red" : "border-slate-200 focus:border-pizza-red"
+                      error && error.includes("contraseña")
+                        ? "border-pizza-red"
+                        : "border-slate-200 focus:border-pizza-red"
                     } text-slate-800 rounded-xl pl-4 pr-10 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-pizza-red transition-all shadow-sm`}
-                    placeholder={editingId ? "Dejar en blanco para mantener actual" : "Mínimo 6 caracteres"}
+                    placeholder={
+                      editingId
+                        ? "Dejar en blanco para mantener actual"
+                        : "Mínimo 6 caracteres"
+                    }
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -605,9 +817,13 @@ export default function StaffManagement() {
                   }}
                   className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
                 >
-                  <option value="" disabled>Selecciona una sucursal</option>
+                  <option value="" disabled>
+                    Selecciona una sucursal
+                  </option>
                   {safeBranches.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -632,7 +848,7 @@ export default function StaffManagement() {
                       >
                         {cfg.label}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               </div>
@@ -662,7 +878,7 @@ export default function StaffManagement() {
                       Guardando...
                     </>
                   ) : (
-                    "Guardar Empleado"
+                    "Guardar"
                   )}
                 </button>
               </div>

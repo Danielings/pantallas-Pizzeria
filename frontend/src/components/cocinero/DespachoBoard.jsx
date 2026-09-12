@@ -187,6 +187,10 @@ export default function DespachoBoard() {
                       if (result.isConfirmed) {
                         try {
                           await updateOrderStatus(order.id, "pending");
+                          // Marcar visualmente como devuelto desde el horno
+                          if (updateOrder) {
+                            updateOrder({ id: order.id, returnedFromOven: true });
+                          }
                           Toast.fire({
                             icon: "success",
                             title: "El pedido ha sido devuelto a la cocina",
