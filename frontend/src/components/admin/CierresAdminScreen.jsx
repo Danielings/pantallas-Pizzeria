@@ -62,12 +62,12 @@ const getHeaderDate = () => {
 
 // Paleta de colores por sucursal (se rota por id_sucursal % paleta.length)
 export const SUCURSAL_PALETTES = [
-  { bg: [239, 68, 68],   light: [254, 226, 226], label: "red" },    // rojo
-  { bg: [59, 130, 246],  light: [219, 234, 254], label: "blue" },   // azul
-  { bg: [16, 185, 129],  light: [209, 250, 229], label: "green" },  // verde
-  { bg: [168, 85, 247],  light: [243, 232, 255], label: "purple" }, // violeta
-  { bg: [245, 158, 11],  light: [254, 243, 199], label: "amber" },  // ámbar
-  { bg: [20, 184, 166],  light: [204, 251, 241], label: "teal" },   // teal
+  { bg: [239, 68, 68], light: [254, 226, 226], label: "red" }, // rojo
+  { bg: [59, 130, 246], light: [219, 234, 254], label: "blue" }, // azul
+  { bg: [16, 185, 129], light: [209, 250, 229], label: "green" }, // verde
+  { bg: [168, 85, 247], light: [243, 232, 255], label: "purple" }, // violeta
+  { bg: [245, 158, 11], light: [254, 243, 199], label: "amber" }, // ámbar
+  { bg: [20, 184, 166], light: [204, 251, 241], label: "teal" }, // teal
 ];
 
 export const getSucursalPalette = (id_sucursal) => {
@@ -80,23 +80,26 @@ function SucursalBadge({ id, nombre }) {
   if (!nombre) return <span className="text-slate-400 text-xs">—</span>;
   const palette = getSucursalPalette(id);
   const tailwindColors = {
-    red:    "bg-red-100 text-red-700 border-red-200",
-    blue:   "bg-blue-100 text-blue-700 border-blue-200",
-    green:  "bg-emerald-100 text-emerald-700 border-emerald-200",
+    red: "bg-red-100 text-red-700 border-red-200",
+    blue: "bg-blue-100 text-blue-700 border-blue-200",
+    green: "bg-emerald-100 text-emerald-700 border-emerald-200",
     purple: "bg-purple-100 text-purple-700 border-purple-200",
-    amber:  "bg-amber-100 text-amber-700 border-amber-200",
-    teal:   "bg-teal-100 text-teal-700 border-teal-200",
+    amber: "bg-amber-100 text-amber-700 border-amber-200",
+    teal: "bg-teal-100 text-teal-700 border-teal-200",
   };
-  const cls = tailwindColors[palette.label] || "bg-slate-100 text-slate-700 border-slate-200";
+  const cls =
+    tailwindColors[palette.label] ||
+    "bg-slate-100 text-slate-700 border-slate-200";
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${cls} whitespace-nowrap`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${cls} whitespace-nowrap`}
+    >
       {nombre}
     </span>
   );
 }
 
 export default function CierresAdminScreen() {
-
   const [cierres, setCierres] = useState([]);
   const [metrics, setMetrics] = useState({
     mes: "",
@@ -189,7 +192,7 @@ export default function CierresAdminScreen() {
     // Filtrar por sucursal
     if (sucursalFilter) {
       result = result.filter(
-        (c) => String(c.id_sucursal) === String(sucursalFilter)
+        (c) => String(c.id_sucursal) === String(sucursalFilter),
       );
     }
 
@@ -230,10 +233,12 @@ export default function CierresAdminScreen() {
 
     // Validación local: el PIN no puede estar ya asignado a otro cajero
     const pinEnUso = cajeros.some(
-      (c) => String(c.id_usuario) !== String(id_usuario) && c.pin === newPin
+      (c) => String(c.id_usuario) !== String(id_usuario) && c.pin === newPin,
     );
     if (pinEnUso) {
-      setErrorMsg("Ese PIN ya está en uso por otro cajero. Elige uno diferente.");
+      setErrorMsg(
+        "Ese PIN ya está en uso por otro cajero. Elige uno diferente.",
+      );
       return;
     }
 
@@ -248,7 +253,7 @@ export default function CierresAdminScreen() {
         },
         {
           withCredentials: true,
-        }
+        },
       );
       if (response.data.success) {
         setSuccessMsg("PIN actualizado correctamente.");
@@ -267,7 +272,6 @@ export default function CierresAdminScreen() {
       );
     }
   };
-
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 hide-scrollbar flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300">
@@ -445,7 +449,7 @@ export default function CierresAdminScreen() {
         </div>
 
         <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-          <table className="w-full text-sm min-w-[860px]">
+          <table className="w-full text-sm min-w-[860px] hidden lg:table">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-slate-200 bg-white text-slate-400 font-bold text-xs uppercase tracking-wider text-left shadow-sm">
                 <th className="px-5 py-3.5">N°</th>
@@ -512,7 +516,10 @@ export default function CierresAdminScreen() {
                       {formatMoney(cierre.total_usdt)}
                     </td>
                     <td className="px-5 py-3.5 text-center">
-                      <SucursalBadge id={cierre.id_sucursal} nombre={cierre.sucursal} />
+                      <SucursalBadge
+                        id={cierre.id_sucursal}
+                        nombre={cierre.sucursal}
+                      />
                     </td>
                     <td className="px-5 py-3.5 text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -537,6 +544,100 @@ export default function CierresAdminScreen() {
               )}
             </tbody>
           </table>
+          {/* Vista Móvil: Cards */}
+          <div className="lg:hidden flex flex-col gap-3 p-4 overflow-y-auto">
+            {isLoading ? (
+              <div className="text-center py-12 text-slate-400">
+                <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>
+                <p className="font-medium">Cargando historial de cierres...</p>
+              </div>
+            ) : paginatedCierres.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <Calendar className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="font-medium">
+                  No se encontraron cierres para el filtro seleccionado
+                </p>
+              </div>
+            ) : (
+              paginatedCierres.map((cierre, index) => (
+                <div
+                  key={cierre.id_cierre}
+                  className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"
+                >
+                  {/* Header: Cajero, Fecha/Hora y Sucursal */}
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                        {cierre.usuario_nombre?.charAt(0) || "U"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-slate-800 truncate">
+                          {cierre.usuario_nombre || "Cajero Desconocido"}
+                        </p>
+                        <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <Calendar className="w-3 h-3 shrink-0" />
+                          <span className="truncate">
+                            {formatDate(cierre.fecha_hora)} •{" "}
+                            {formatTime(cierre.fecha_hora)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <SucursalBadge
+                      id={cierre.id_sucursal}
+                      nombre={cierre.sucursal}
+                    />
+                  </div>
+
+                  {/* Métricas Clave en Grid */}
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-center">
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                        Total
+                      </p>
+                      <p className="text-sm font-black text-emerald-700 truncate mt-0.5">
+                        {formatMoney(cierre.total_usdt)}
+                      </p>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-center">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Efectivo
+                      </p>
+                      <p className="text-sm font-bold text-slate-700 truncate mt-0.5">
+                        {formatMoney(cierre.monto_efectivo_usd)}
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 text-center">
+                      <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+                        Órdenes
+                      </p>
+                      <p className="text-sm font-black text-blue-700 mt-0.5">
+                        {cierre.num_ordenes}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => setSelectedCierre(cierre)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Ver Detalle
+                    </button>
+                    <button
+                      onClick={() => exportCierrePDF(cierre)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all border border-emerald-200"
+                    >
+                      <Download className="w-4 h-4" />
+                      Descargar PDF
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Controles de paginación */}

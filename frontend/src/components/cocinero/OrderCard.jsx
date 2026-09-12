@@ -173,8 +173,11 @@ export function OrderCard({
   //  Obtener información del cliente
   const customerInfo = getCustomerInfo(order);
 
+  const isReturnedFromOven = !!order.returnedFromOven;
+
   return (
     <div
+      style={isReturnedFromOven ? { borderLeftColor: "#ED4E09" } : undefined}
       className={`bg-white rounded-xl border border-pizza-gray-3 border-l-4 ${borderClass} p-4 3xl:p-6 flex flex-col gap-3 3xl:gap-5 animate-card-move shadow-card`}
     >
       {/* Header: ID + timer */}
@@ -186,6 +189,11 @@ export function OrderCard({
           <span className="text-pizza-dark font-bold text-sm 3xl:text-base">
             {order.id}
           </span>
+          {isReturnedFromOven && (
+            <span className="text-xs font-bold px-1.5 py-0.5 rounded-md border" style={{ color: "#ED4E09", backgroundColor: "#ED4E091A", borderColor: "#ED4E0940" }}>
+              ⚠️Pedido Devuelto
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 text-pizza-muted">
           <Clock className="w-3.5 h-3.5 3xl:w-5 3xl:h-5" />
@@ -325,9 +333,10 @@ export function OrderCard({
           <button
             onClick={onPrimary}
             disabled={!isFirst}
-            className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-200 active:scale-95 ${primaryBtnClass} ${
-              !isFirst ? "opacity-40 cursor-not-allowed" : ""
-            }`}
+            style={isReturnedFromOven ? { backgroundColor: "#ED4E09" } : undefined}
+            className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-200 active:scale-95 ${
+              isReturnedFromOven ? "text-white" : primaryBtnClass
+            } ${!isFirst ? "opacity-40 cursor-not-allowed" : ""}`}
           >
             {primaryBtnLabel}
           </button>

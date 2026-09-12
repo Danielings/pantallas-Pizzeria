@@ -8,7 +8,7 @@ export const verificarPedidosPendientes = async (req, res) => {
       sql: `
       SELECT COUNT(DISTINCT v.id_venta) AS total
       FROM ventas v
-      WHERE DATE(v.fecha_hora) = CURDATE()
+      WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND v.estado != 'Rechazado'
         AND EXISTS (
         SELECT 1 FROM venta_detalle vd

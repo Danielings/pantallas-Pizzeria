@@ -79,15 +79,10 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
       <div className="p-5 flex flex-col flex-1">
         {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-4">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-2xl ${theme.badge} flex items-center justify-center shrink-0 shadow-inner`}
-            >
-              <theme.Icon className={`w-6 h-6 ${theme.iconColor}`} />
-            </div>
-            <div>
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="font-black text-slate-800 text-lg">
+                <span className="font-black text-slate-800 text-lg whitespace-nowrap">
                   #{order.id}
                 </span>
               </div>
@@ -99,8 +94,8 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
               </p>
             </div>
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-base font-black text-slate-800 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+          <div className="text-right shrink-0 ml-2">
+            <p className="text-base font-black text-slate-800 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 whitespace-nowrap">
               ${Number(order.total || 0).toFixed(2)}
             </p>
           </div>
@@ -112,14 +107,14 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
             <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
               <Clock className="w-3 h-3 text-slate-400" />
             </div>
-            <span className="font-semibold text-slate-700">
+            <span className="font-semibold text-slate-700 whitespace-nowrap">
               Hace {getElapsed(order.orderedAt)}
             </span>
           </div>
 
           {/* Combined Phone & Verification */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs text-slate-600 truncate">
+            <div className="flex items-center gap-2 text-xs text-slate-600 truncate min-w-0 flex-1">
               <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
                 <Phone className="w-3 h-3 text-slate-400" />
               </div>

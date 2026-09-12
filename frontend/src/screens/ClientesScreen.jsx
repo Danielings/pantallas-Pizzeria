@@ -10,6 +10,8 @@ import {
   ShoppingBag,
   TrendingUp,
   UserPlus,
+  Phone,
+  Clock,
 } from "lucide-react";
 import ClienteForm from "../components/admin/clientes/ClienteForm";
 
@@ -35,7 +37,12 @@ const formatDate = (value) => {
 
 const getHeaderDate = () => {
   const date = new Date();
-  const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const options = {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  };
   const dateString = date.toLocaleDateString("es-ES", options);
   return dateString
     .split(" ")
@@ -87,8 +94,12 @@ export default function ClientesScreen() {
 
     let list = customers.filter(
       (c) =>
-        String(c.name || "").toLowerCase().includes(q) ||
-        String(c.cedula || "").toLowerCase().includes(q) ||
+        String(c.name || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(c.cedula || "")
+          .toLowerCase()
+          .includes(q) ||
         String(c.phone ?? "").includes(q),
     );
 
@@ -340,7 +351,7 @@ export default function ClientesScreen() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 min-h-0 flex flex-col">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 min-h-0 flex flex-col max-h-[calc(100vh-320px)]">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
           <div>
             <h2 className="font-bold text-slate-800 text-base">
@@ -375,8 +386,8 @@ export default function ClientesScreen() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0">
-          <table className="w-full text-sm min-w-[860px]">
+        <div className="flex-1 overflow-auto min-h-0">
+          <table className="w-full text-sm min-w-[860px] hidden lg:table">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -471,14 +482,86 @@ export default function ClientesScreen() {
               )}
             </tbody>
           </table>
+          {/* Vista Móvil: Cards */}
+          <div className="lg:hidden flex flex-col gap-3 p-4 overflow-y-auto">
+            {isLoading ? (
+              <div className="text-center py-12 text-slate-400">
+                <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>
+                <p className="font-medium">Cargando clientes...</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="font-medium">No se encontraron clientes</p>
+              </div>
+            ) : (
+              paginated.map((customer, index) => (
+                <div
+                  key={customer.id}
+                  className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                        {String(customer.name || "?")[0]?.toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-slate-800 truncate">
+                          {customer.name}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {customer.cedula || "Sin cédula"}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 whitespace-nowrap">
+                      {formatTotal(customer.total)}
+                    </span>
+                  </div>
+
+                  {/* Info */}
+                  <div className="space-y-2 mb-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="text-slate-600 font-mono text-xs">
+                        {customer.phone || "Sin teléfono"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <ShoppingBag className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="text-slate-700 font-bold">
+                        {customer.orders} orden
+                        {customer.orders !== 1 ? "es" : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="text-slate-500 text-xs">
+                        Última visita: {formatDate(customer.lastVisit)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Acción */}
+                  <button
+                    onClick={() => openEdit(customer)}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Editar Cliente
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Pie de tabla: paginación */}
         {!isLoading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex flex-wrap items-center justify-between gap-3 shrink-0">
             <div className="text-xs font-semibold text-slate-500">
-              Mostrando{" "}
-              <span className="text-slate-800">{pageFrom}</span> -{" "}
+              Mostrando <span className="text-slate-800">{pageFrom}</span> -{" "}
               <span className="text-slate-800">{pageTo}</span> de{" "}
               <span className="text-slate-800">{filtered.length}</span>{" "}
               cliente(s)
@@ -505,10 +588,11 @@ export default function ClientesScreen() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${p === safePage
+                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
+                      p === safePage
                         ? "bg-slate-800 text-white shadow-sm"
                         : "text-slate-500 hover:bg-slate-100 border border-transparent"
-                      }`}
+                    }`}
                   >
                     {p}
                   </button>

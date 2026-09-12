@@ -575,7 +575,7 @@ export default function ProductosScreen() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
+          <table className="w-full text-sm min-w-[720px] hidden lg:table">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="text-center px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider w-12">
@@ -699,6 +699,106 @@ export default function ProductosScreen() {
               )}
             </tbody>
           </table>
+          {/* Vista Móvil: Cards */}
+          <div className="lg:hidden flex flex-col gap-3 p-4 overflow-y-auto">
+            {isLoading ? (
+              <div className="text-center py-12 text-slate-400">
+                <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>
+                <p className="font-medium">Cargando productos...</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="font-medium">No se encontraron productos</p>
+              </div>
+            ) : (
+              filtered.map((product, index) => {
+                const categoryLabel =
+                  CATEGORY_TYPES.find((c) => c.id === product.category)
+                    ?.label || product.category;
+                const subCategory =
+                  product.category === "pizzas" || product.category === "extras"
+                    ? product.pizzaCategory || product.extraCategory
+                    : null;
+                const comboItems =
+                  product.category === "combos" && product.items?.length > 0
+                    ? product.items
+                        .map((i) => i.nombre_producto)
+                        .filter(Boolean)
+                        .join(", ")
+                    : null;
+
+                return (
+                  <div
+                    key={`${product.category}-${product.id}`}
+                    className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"
+                  >
+                    {/* Header: Imagen/Emoji, Nombre, Categoría y Precio */}
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl shrink-0 overflow-hidden border border-slate-200">
+                        {product.url ? (
+                          <img
+                            src={product.url}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>
+                            {product.emoji || getDefaultEmoji(product.category)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-slate-800 truncate">
+                          {product.name}
+                        </h4>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {categoryLabel}
+                          </span>
+                          {(subCategory || comboItems) && (
+                            <span className="text-[10px] font-semibold text-slate-400 truncate">
+                              • {subCategory || comboItems}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm font-extrabold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 whitespace-nowrap">
+                        ${Number(product.price).toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Body: Descripción */}
+                    {product.description && (
+                      <p className="text-xs text-slate-500 mb-4 line-clamp-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        {product.description}
+                      </p>
+                    )}
+
+                    {/* Footer: Acciones (Editar / Eliminar) */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => handleEditClick(product)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDelete(product.id, product.category)
+                        }
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-red-200"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
 
