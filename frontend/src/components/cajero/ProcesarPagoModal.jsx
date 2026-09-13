@@ -18,7 +18,7 @@ const PAYMENT_METHODS = [
     icon: Smartphone,
     color: "text-blue-400",
     bg: "bg-blue-400/10 border-blue-400/30 hover:border-blue-400",
-    reqRef: true,
+    reqRef: false,
   },
   {
     id: "cash",
@@ -266,10 +266,10 @@ export default function ProcesarPagoModal({
                         </p>
                         <p className="text-xs text-slate-500 mt-1">
                           {method.id === "pos"
-                            ? "No requiere referencia"
+                            ? "Punto de venta"
                             : method.id === "cash"
                               ? "Pago en efectivo"
-                              : "Pago con número de referencia"}
+                              : "Pago móvil rápido"}
                         </p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400" />
