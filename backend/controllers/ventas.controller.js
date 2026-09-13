@@ -116,6 +116,12 @@ export const procesarVenta = async (req, res) => {
       tipo_evento: "pedido_creado",
       timestamp: Date.now(),
     });
+    emitPusherEvent("pizzeria-sales", "venta_completada", {
+      id_venta,
+      sucursal_id: id_sucursal,
+      tipo_evento: "venta_completada",
+      timestamp: Date.now(),
+    });
 
     res.status(201).json({
       success: true,
@@ -258,6 +264,12 @@ export const registrarPedidoPendiente = async (req, res) => {
 
     await tx.commit();
 
+    emitPusherEvent("pizzeria-orders", "pedido_creado", {
+      id_venta,
+      sucursal_id: id_sucursal,
+      tipo_evento: "pedido_creado",
+      timestamp: Date.now(),
+    });
     emitPusherEvent("pizzeria-notifications", "notificacion_pendiente_creada", {
       id_venta,
       id_cliente,
