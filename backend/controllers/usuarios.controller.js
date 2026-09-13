@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import pool from "../config/bd.js";
+//import pool from "../config/bd.js";
 import db from "../config/turso.js";
 
 //----------------------Delivery
@@ -9,15 +9,15 @@ export const buscarDelivery = async (req, res) => {
   const searchTerm = q ? q.trim() : "";
 
   try {
-    const [rows] = await pool.query(
-      `SELECT id_delivery as id, nombre as name, digitos as phone 
+    const result = await db.execute({
+      sql: `SELECT id_delivery as id, nombre as name, digitos as phone 
        FROM delivery 
        WHERE digitos = ? OR nombre LIKE ?`,
-      [searchTerm, `%${searchTerm}%`],
-    );
+      args: [searchTerm, `%${searchTerm}%`],
+    });
 
-    if (rows.length > 0) {
-      res.json({ success: true, delivery: rows[0] });
+    if (result.rows.length > 0) {
+      res.json({ success: true, delivery: result.rows[0] });
     } else {
       res.json({ success: false, message: "Delivery no encontrado" });
     }
@@ -39,12 +39,12 @@ export const registrarDelivery = async (req, res) => {
       });
     }
 
-    const [existing] = await pool.query(
-      "SELECT id_delivery as id, nombre as name, digitos as phone FROM delivery WHERE digitos = ? LIMIT 1",
-      [digits],
-    );
+    const existing = await db.execute({
+      sql: "SELECT id_delivery as id, nombre as name, digitos as phone FROM delivery WHERE digitos = ? LIMIT 1",
+      args: [digits],
+    });
 
-    if (existing.length > 0) {
+    if (existing.rows.length > 0) {
       return res.json({
         success: true,
         created: false,
@@ -53,10 +53,10 @@ export const registrarDelivery = async (req, res) => {
     }
 
     const deliveryName = name || `Delivery-${digits}`;
-    const [result] = await pool.query(
-      "INSERT INTO delivery (digitos, nombre) VALUES (?, ?)",
-      [digits, deliveryName],
-    );
+    const result = await db.execute({
+      sql: "INSERT INTO delivery (digitos, nombre) VALUES (?, ?)",
+      args: [digits, deliveryName],
+    });
 
     res.status(201).json({
       success: true,

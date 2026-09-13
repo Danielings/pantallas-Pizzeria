@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import pool from "../config/bd.js";
+//import pool from "../config/bd.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";

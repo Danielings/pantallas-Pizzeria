@@ -7,7 +7,10 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useApp, AppProvider } from "./context/AppContext";
+import { subscribeToPusher } from "./lib/pusherClient";
 import NuevaOrdenScreen from "./screens/NuevaOrdenScreen";
 import ColaTrabajoScreen from "./screens/ColaTrabajoScreen";
 import ClientesScreen from "./screens/ClientesScreen";
@@ -57,8 +60,32 @@ function ProtectedRoute({ roles }) {
 
 function AuthenticatedLayout() {
   const { currentUser } = useApp();
+  const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const refreshOrderQueries = () => {
+      queryClient.refetchQueries({
+        queryKey: ["ventasHoy"],
+        type: "all",
+      });
+      queryClient.refetchQueries({
+        queryKey: ["pedidosActivos"],
+        type: "all",
+      });
+    };
+
+    const unsubscribe = subscribeToPusher({
+      channelName: "pizzeria-orders",
+      events: {
+        pedido_creado: refreshOrderQueries,
+        pedido_actualizado: refreshOrderQueries,
+      },
+    });
+
+    return () => unsubscribe();
+  }, [queryClient]);
 
   const activeView = location.pathname.slice(1) || "nueva-orden";
 
