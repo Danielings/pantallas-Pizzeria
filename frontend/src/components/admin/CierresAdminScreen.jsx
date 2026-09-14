@@ -126,47 +126,74 @@ export default function CierresAdminScreen() {
   const [selectedCajeroId, setSelectedCajeroId] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
     const fetchCierres = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${API_BASE}/cierre/historial`);
-        if (response.data.success) {
+        const response = await axios.get(`${API_BASE}/cierre/historial`, {
+          signal: controller.signal,
+        });
+        if (isMounted && response.data.success) {
           setCierres(response.data.cierres);
           setMetrics(response.data.metrics);
         }
       } catch (error) {
-        console.error("Error al cargar historial de cierres:", error);
+        if (!axios.isCancel(error)) {
+          console.error("Error al cargar historial de cierres:", error);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     fetchCierres();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, []);
 
   // Cargar cajeros para gestionar PINs
   useEffect(() => {
-    if (openPinModal) {
-      const fetchCajeros = async () => {
-        setLoadingCajeros(true);
-        setErrorMsg("");
-        setSuccessMsg("");
-        try {
-          const response = await axios.get(`${API_BASE}/cierre/cajeros`);
-          if (response.data.success) {
-            setCajeros(response.data.cajeros);
-            if (response.data.cajeros.length > 0) {
-              setSelectedCajeroId(String(response.data.cajeros[0].id_usuario));
-            }
+    if (!openPinModal) return;
+
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const fetchCajeros = async () => {
+      setLoadingCajeros(true);
+      setErrorMsg("");
+      setSuccessMsg("");
+      try {
+        const response = await axios.get(`${API_BASE}/cierre/cajeros`, {
+          signal: controller.signal,
+        });
+        if (isMounted && response.data.success) {
+          setCajeros(response.data.cajeros);
+          if (response.data.cajeros.length > 0) {
+            setSelectedCajeroId(String(response.data.cajeros[0].id_usuario));
           }
-        } catch (error) {
+        }
+      } catch (error) {
+        if (isMounted && !axios.isCancel(error)) {
           console.error("Error al obtener cajeros:", error);
           setErrorMsg("Error al cargar la lista de cajeros");
-        } finally {
+        }
+      } finally {
+        if (isMounted) {
           setLoadingCajeros(false);
         }
-      };
-      fetchCajeros();
-    }
+      }
+    };
+    fetchCajeros();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [openPinModal]);
 
   // Obtener lista única de sucursales de los cierres cargados
@@ -293,7 +320,7 @@ export default function CierresAdminScreen() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setOpenPinModal(true)}
-            className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all shrink-0 active:scale-[0.98] cursor-pointer"
+            className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-[background-color,transform] shrink-0 active:scale-[0.98] cursor-pointer"
             title="Administrar PINs de cierres para cajeros"
           >
             <Key className="w-4 h-4" />
@@ -405,7 +432,7 @@ export default function CierresAdminScreen() {
             <select
               value={sucursalFilter}
               onChange={(e) => setSucursalFilter(e.target.value)}
-              className="bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
+              className="bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-colors shadow-sm"
             >
               <option value="">Todas las Sucursales</option>
               {sucursalesUnicas.map((s) => (
@@ -424,7 +451,7 @@ export default function CierresAdminScreen() {
                 type="date"
                 value={searchDate}
                 onChange={(e) => setSearchDate(e.target.value)}
-                className="bg-white border border-slate-200 text-slate-800 rounded-xl pl-12 pr-8 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all shadow-sm"
+                className="bg-white border border-slate-200 text-slate-800 rounded-xl pl-12 pr-8 py-2 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-colors shadow-sm"
               />
               {searchDate && (
                 <button
@@ -439,7 +466,7 @@ export default function CierresAdminScreen() {
             {/* Botón orden */}
             <button
               onClick={toggleSortOrder}
-              className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 text-sm font-semibold rounded-xl hover:bg-slate-50 shadow-sm transition-all shrink-0"
+              className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 text-sm font-semibold rounded-xl hover:bg-slate-50 shadow-sm transition-colors shrink-0"
               title="Cambiar orden por fecha"
             >
               <ArrowUpDown className="w-4 h-4 text-slate-500" />
@@ -525,14 +552,14 @@ export default function CierresAdminScreen() {
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => setSelectedCierre(cierre)}
-                          className="p-1 text-slate-400 hover:text-pizza-red hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 duration-150"
+                          className="p-1 text-slate-400 hover:text-pizza-red hover:bg-red-50 rounded-lg transition-[background-color,color,opacity] opacity-0 group-hover:opacity-100 duration-150"
                           title="Ver desglose detallado"
                         >
                           <Eye className="w-4.5 h-4.5" />
                         </button>
                         <button
                           onClick={() => exportCierrePDF(cierre)}
-                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 duration-150"
+                          className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-[background-color,color,opacity] opacity-0 group-hover:opacity-100 duration-150"
                           title="Descargar PDF"
                         >
                           <Download className="w-4.5 h-4.5" />
@@ -621,14 +648,14 @@ export default function CierresAdminScreen() {
                   <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
                     <button
                       onClick={() => setSelectedCierre(cierre)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors border border-slate-200"
                     >
                       <Eye className="w-4 h-4" />
                       Ver Detalle
                     </button>
                     <button
                       onClick={() => exportCierrePDF(cierre)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all border border-emerald-200"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors border border-emerald-200"
                     >
                       <Download className="w-4 h-4" />
                       Descargar PDF
@@ -646,7 +673,7 @@ export default function CierresAdminScreen() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3.5 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1"
+              className="px-3.5 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-1"
             >
               Anterior
             </button>
@@ -658,7 +685,7 @@ export default function CierresAdminScreen() {
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages}
-              className="px-3.5 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1"
+              className="px-3.5 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-1"
             >
               Siguiente
             </button>
@@ -674,7 +701,7 @@ export default function CierresAdminScreen() {
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 text-white relative">
               <button
                 onClick={() => setSelectedCierre(null)}
-                className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-300 hover:text-white transition-all duration-300 hover:rotate-90"
+                className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-300 hover:text-white transition-[background-color,color,transform] duration-300 hover:rotate-90"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -798,14 +825,14 @@ export default function CierresAdminScreen() {
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center gap-3">
               <button
                 onClick={() => exportCierrePDF(selectedCierre)}
-                className="flex-1 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-2.5 px-4 rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                className="flex-1 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-2.5 px-4 rounded-xl text-sm font-bold shadow-md transition-[background-color,box-shadow,transform] flex items-center justify-center gap-2 active:scale-[0.98]"
               >
                 <Download className="w-4 h-4" />
                 Descargar PDF
               </button>
               <button
                 onClick={() => setSelectedCierre(null)}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-[background-color,border-color,transform] flex items-center justify-center gap-2"
               >
                 Cerrar Detalle
               </button>
@@ -826,7 +853,7 @@ export default function CierresAdminScreen() {
                   setEditingCajero(null);
                   setNewPin("");
                 }}
-                className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-300 hover:text-white transition-all duration-300 hover:rotate-90"
+                className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-slate-300 hover:text-white transition-[background-color,color,transform] duration-300 hover:rotate-90"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -870,10 +897,14 @@ export default function CierresAdminScreen() {
                 <div className="flex flex-col gap-4">
                   {/* Selector de Cajero */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                    <label
+                      className="text-xs font-black text-slate-500 uppercase tracking-wider"
+                      htmlFor="select-cajero"
+                    >
                       Seleccionar Cajero
                     </label>
                     <select
+                      id="select-cajero"
                       value={selectedCajeroId}
                       onChange={(e) => {
                         setSelectedCajeroId(e.target.value);
@@ -882,7 +913,7 @@ export default function CierresAdminScreen() {
                         setErrorMsg("");
                         setSuccessMsg("");
                       }}
-                      className="bg-white border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all w-full shadow-sm font-semibold"
+                      className="bg-white border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-colors w-full shadow-sm font-semibold"
                     >
                       {cajeros.map((c) => (
                         <option key={c.id_usuario} value={c.id_usuario}>
@@ -952,7 +983,7 @@ export default function CierresAdminScreen() {
                                     ); // solo números
                                     setNewPin(val);
                                   }}
-                                  className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all w-28 text-center font-mono font-black tracking-[0.3em] shadow-inner"
+                                  className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-colors w-28 text-center font-mono font-black tracking-[0.3em] shadow-inner"
                                   autoFocus
                                 />
                                 <div className="flex items-center gap-2 flex-1 justify-end">
@@ -960,7 +991,7 @@ export default function CierresAdminScreen() {
                                     onClick={() =>
                                       handleSavePin(activeCajero.id_usuario)
                                     }
-                                    className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-2.5 px-4 rounded-xl text-xs font-bold shadow-md transition-all flex-1 max-w-[100px] text-center active:scale-[0.98]"
+                                    className="bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-slate-950 hover:shadow-lg text-white py-2.5 px-4 rounded-xl text-xs font-bold shadow-md transition-[background-color,box-shadow,transform] flex-1 max-w-[100px] text-center active:scale-[0.98]"
                                   >
                                     Guardar
                                   </button>
@@ -970,7 +1001,7 @@ export default function CierresAdminScreen() {
                                       setNewPin("");
                                       setErrorMsg("");
                                     }}
-                                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all flex-1 max-w-[100px] text-center"
+                                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-[background-color,border-color,transform] flex-1 max-w-[100px] text-center"
                                   >
                                     Cancelar
                                   </button>
@@ -991,7 +1022,7 @@ export default function CierresAdminScreen() {
                                   setErrorMsg("");
                                   setSuccessMsg("");
                                 }}
-                                className="text-xs font-bold text-pizza-red bg-red-50 hover:bg-pizza-red hover:text-white border border-pizza-red/10 px-4 py-2 rounded-xl transition-all shadow-sm shrink-0"
+                                className="text-xs font-bold text-pizza-red bg-red-50 hover:bg-pizza-red hover:text-white border border-pizza-red/10 px-4 py-2 rounded-xl transition-colors shadow-sm shrink-0"
                               >
                                 {activeCajero.pin
                                   ? "Cambiar PIN"
@@ -1015,7 +1046,7 @@ export default function CierresAdminScreen() {
                   setEditingCajero(null);
                   setNewPin("");
                 }}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all"
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-[background-color,border-color,transform]"
               >
                 Cerrar Ventana
               </button>

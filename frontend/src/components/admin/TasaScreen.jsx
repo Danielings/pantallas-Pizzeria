@@ -1,13 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { LockKeyhole, RefreshCw, UnlockKeyhole, DollarSign } from "lucide-react";
+import {
+  LockKeyhole,
+  RefreshCw,
+  UnlockKeyhole,
+  DollarSign,
+} from "lucide-react";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 
 const API_BASE = "http://localhost:3001/api";
 
 const getHeaderDate = () => {
   const date = new Date();
-  const options = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const options = {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  };
   const dateString = date.toLocaleDateString("es-ES", options);
   return dateString
     .split(" ")
@@ -21,7 +31,7 @@ export default function TasaScreen() {
   const [manualRate, setManualRate] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const messageRef = useRef({ type: "", text: "" });
 
   const loadRate = async () => {
     setLoading(true);
@@ -32,10 +42,10 @@ export default function TasaScreen() {
       setManualRate(String(data.data.tasa_sistema));
       updateExchangeRate(data.data.tasa_sistema);
     } catch (error) {
-      setMessage({
+      messageRef.current = {
         type: "error",
         text: error.response?.data?.message || "No se pudo cargar la tasa.",
-      });
+      };
     } finally {
       setLoading(false);
     }
@@ -49,17 +59,28 @@ export default function TasaScreen() {
     event.preventDefault();
     const value = Number(manualRate);
     if (!Number.isFinite(value) || value <= 0) {
-      window.Toast.fire({ icon: "error", title: "Ingresa una tasa mayor que cero." });
+      window.Toast.fire({
+        icon: "error",
+        title: "Ingresa una tasa mayor que cero.",
+      });
       return;
     }
     setSaving(true);
     try {
-      const { data } = await axios.put(`${API_BASE}/tasa/anclar`, { tasa_manual: value });
+      const { data } = await axios.put(`${API_BASE}/tasa/anclar`, {
+        tasa_manual: value,
+      });
       setRate(data.data);
       updateExchangeRate(data.data.tasa_sistema);
-      window.Toast.fire({ icon: "success", title: "Tasa fijada y anclada correctamente." });
+      window.Toast.fire({
+        icon: "success",
+        title: "Tasa fijada y anclada correctamente.",
+      });
     } catch (error) {
-      window.Toast.fire({ icon: "error", title: error.response?.data?.message || "No se pudo anclar la tasa." });
+      window.Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "No se pudo anclar la tasa.",
+      });
     } finally {
       setSaving(false);
     }
@@ -72,9 +93,15 @@ export default function TasaScreen() {
       setRate(data.data);
       setManualRate(String(data.data.tasa_sistema));
       updateExchangeRate(data.data.tasa_sistema);
-      window.Toast.fire({ icon: "success", title: "Anclaje retirado. Se usa el precio del día." });
+      window.Toast.fire({
+        icon: "success",
+        title: "Anclaje retirado. Se usa el precio del día.",
+      });
     } catch (error) {
-      window.Toast.fire({ icon: "error", title: error.response?.data?.message || "No se pudo quitar el anclaje." });
+      window.Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "No se pudo quitar el anclaje.",
+      });
     } finally {
       setSaving(false);
     }
@@ -103,7 +130,9 @@ export default function TasaScreen() {
           disabled={loading || saving}
           className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm active:scale-[0.98]"
         >
-          <RefreshCw className={`h-4 w-4 text-slate-500 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 text-slate-500 ${loading ? "animate-spin" : ""}`}
+          />
           Actualizar
         </button>
       </header>
@@ -117,42 +146,63 @@ export default function TasaScreen() {
           {/* Panel de valores */}
           <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0">
             <div className="px-5 py-4 border-b border-slate-100">
-              <h3 className="font-extrabold text-slate-800 text-base">Valores Actuales</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Tasas registradas en el sistema</p>
+              <h3 className="font-extrabold text-slate-800 text-base">
+                Valores Actuales
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Tasas registradas en el sistema
+              </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
               {/* Tasa del Sistema */}
               <div className="p-6">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tasa del Sistema</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Tasa del Sistema
+                </p>
                 <p className="mt-3 text-3xl font-extrabold text-slate-800">
                   Bs. {Number(rate.tasa_sistema).toFixed(2)}
                 </p>
-                <p className="mt-2 text-xs text-slate-400">Valor usado por caja</p>
+                <p className="mt-2 text-xs text-slate-400">
+                  Valor usado por caja
+                </p>
               </div>
 
               {/* Tasa del BCV */}
               <div className="p-6">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tasa del BCV</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Tasa del BCV
+                </p>
                 <p className="mt-3 text-3xl font-extrabold text-slate-800">
                   Bs. {Number(rate.tasa_api).toFixed(2)}
                 </p>
-                <p className="mt-2 text-xs text-slate-400">Último valor consultado</p>
+                <p className="mt-2 text-xs text-slate-400">
+                  Último valor consultado
+                </p>
               </div>
 
               {/* Estado */}
-              <div className={`p-6 ${rate.anclado ? "bg-amber-50/60" : "bg-emerald-50/60"}`}>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Estado</p>
+              <div
+                className={`p-6 ${rate.anclado ? "bg-amber-50/60" : "bg-emerald-50/60"}`}
+              >
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Estado
+                </p>
                 <div className="mt-3 flex items-center gap-2">
-                  {rate.anclado
-                    ? <LockKeyhole className="h-6 w-6 text-amber-500 shrink-0" />
-                    : <UnlockKeyhole className="h-6 w-6 text-emerald-500 shrink-0" />
-                  }
-                  <span className={`text-2xl font-extrabold ${rate.anclado ? "text-amber-700" : "text-emerald-700"}`}>
+                  {rate.anclado ? (
+                    <LockKeyhole className="h-6 w-6 text-amber-500 shrink-0" />
+                  ) : (
+                    <UnlockKeyhole className="h-6 w-6 text-emerald-500 shrink-0" />
+                  )}
+                  <span
+                    className={`text-2xl font-extrabold ${rate.anclado ? "text-amber-700" : "text-emerald-700"}`}
+                  >
                     {rate.anclado ? "Anclada" : "Automática"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-slate-400">
-                  {rate.anclado ? "Tasa fijada manualmente" : "Usando precio del BCV"}
+                  {rate.anclado
+                    ? "Tasa fijada manualmente"
+                    : "Usando precio del BCV"}
                 </p>
               </div>
             </div>
@@ -161,7 +211,9 @@ export default function TasaScreen() {
           {/* Control operativo */}
           <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0">
             <div className="px-5 py-4 border-b border-slate-100">
-              <h3 className="font-extrabold text-slate-800 text-base">Control Operativo</h3>
+              <h3 className="font-extrabold text-slate-800 text-base">
+                Control Operativo
+              </h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 Fija una tasa manual o vuelve al precio actualizado del BCV
               </p>
