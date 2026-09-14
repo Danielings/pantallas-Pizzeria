@@ -15,7 +15,6 @@ import {
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 import { useProducts, useExtras } from "../../hooks/useProducts";
 
-// ── IMPORTANTE: Ajusta esta ruta según donde tengas tu modal de pagos real ──
 import ProcesarPagoModal from "./ProcesarPagoModal";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -53,15 +52,6 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
   const { exchangeRate } = useExchangeRate();
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
-
-  if (!safePedido || !safePedido.id_venta) {
-    return null;
-  }
-
-  // ── Despacho ─────────────────────────────────────────────────────────────
-  const [localDespacho, setLocalDespacho] = useState(
-    safePedido.despacho ?? "Local",
-  );
 
   const mapPaymentMethodToApi = (method) => {
     switch (method) {
@@ -198,11 +188,20 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
     })),
   }));
 
+  // ── NUEVO: Lógica de Guardado e Intercepción de Pago ──────────────────────
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // ── Despacho ─────────────────────────────────────────────────────────────
+  const [localDespacho, setLocalDespacho] = useState(
+    safePedido.despacho ?? "Local",
+  );
+
   const DespachoIcon = DESPACHO_ICON[localDespacho] ?? Truck;
   const nextDespacho = DESPACHO_NEXT[localDespacho];
 
-  // ── NUEVO: Lógica de Guardado e Intercepción de Pago ──────────────────────
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  if (!safePedido || !safePedido.id_venta) {
+    return null;
+  }
 
   const handleIntentarGuardar = () => {
     if (diff > 0) {

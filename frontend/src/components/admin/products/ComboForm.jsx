@@ -71,21 +71,20 @@ function ItemTypeModal({ onSelect, onClose }) {
 function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
   const [catFilter, setCatFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState({}); // { id: cantidad }
   const { data: products, isLoading: productsLoading } = useProducts();
   const pizzas = products?.pizzas || [];
   const categorias = products?.categoriesPizza || [];
 
   // Pre-cargar las pizzas ya elegidas
-  useEffect(() => {
+  const [selected, setSelected] = useState(() => {
     const preselected = {};
     currentItems
       .filter((i) => i.tipo_producto === "Pizza")
       .forEach((i) => {
         preselected[i.id_producto_origen] = i.cantidad;
       });
-    setSelected(preselected);
-  }, [currentItems]);
+    return preselected;
+  });
 
   const filtered = pizzas.filter((p) => {
     const selectedCategory = categorias.find(
@@ -292,20 +291,19 @@ function PizzaPickerModal({ currentItems, onConfirm, onClose }) {
 // ─── Sub-modal: Selector de Bebidas ─────────────────────────────────────────
 function BebidaPickerModal({ currentItems, onConfirm, onClose }) {
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState({}); // { id: cantidad }
   const { data: products, isLoading: productsLoading } = useProducts();
   const bebidas = products?.drinks || [];
 
   // Pre-cargar las bebidas ya elegidas
-  useEffect(() => {
+  const [selected, setSelected] = useState(() => {
     const preselected = {};
     currentItems
       .filter((i) => i.tipo_producto === "Bebida")
       .forEach((i) => {
         preselected[i.id_producto_origen] = i.cantidad;
       });
-    setSelected(preselected);
-  }, [currentItems]);
+    return preselected;
+  });
 
   const filtered = bebidas.filter((b) =>
     b.name.toLowerCase().includes(search.toLowerCase()),

@@ -47,6 +47,7 @@ const ROLE_CONFIG = {
 };
 
 const ROLES = ["cashier", "chef", "mesero", "despachador"];
+const EMPTY_ARRAY = [];
 
 export default function StaffManagement() {
   const { data: branches, isLoading: branchesLoading } = useBranches();
@@ -72,8 +73,8 @@ export default function StaffManagement() {
   const [isDeletingId, setIsDeletingId] = useState(null);
 
   // Derived state
-  const safeStaff = staff || [];
-  const safeBranches = branches || [];
+  const safeStaff = staff || EMPTY_ARRAY;
+  const safeBranches = branches || EMPTY_ARRAY;
 
   const filteredStaff = useMemo(() => {
     let result = safeStaff;
