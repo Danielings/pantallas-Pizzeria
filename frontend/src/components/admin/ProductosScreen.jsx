@@ -365,7 +365,11 @@ export default function ProductosScreen() {
       if (category === "combos") endpoint = "http://localhost:3001/api/combos";
 
       try {
-        await axios.delete(`${endpoint}/${id}`, { withCredentials: true });
+        await axios.put(
+          `${endpoint}/${id}/eliminar`,
+          {},
+          { withCredentials: true },
+        );
         setProducts((prev) => prev.filter((p) => p.id !== id));
         window.Toast.fire({
           icon: "success",

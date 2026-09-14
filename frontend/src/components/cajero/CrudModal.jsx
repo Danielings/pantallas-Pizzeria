@@ -75,8 +75,8 @@ function ProductForm({ initial, category, onSave, onCancel }) {
     "🦐",
     "💧",
     "🍋",
-    "🧋",
     "🍨",
+    "🥛",
   ];
 
   return (

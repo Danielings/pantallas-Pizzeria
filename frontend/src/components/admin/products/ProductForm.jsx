@@ -12,9 +12,9 @@ const EMOJIS = [
   "🦐",
   "💧",
   "🍋",
-  "🧋",
   "🍨",
   "🧀",
+  "🥛",
 ];
 
 // Configuración de textos e iconos predeterminados según la categoría

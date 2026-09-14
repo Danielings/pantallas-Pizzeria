@@ -4,15 +4,19 @@ import {
   obtenerPizzas,
   crearPizza,
   actualizarPizza,
+  eliminarPizza,
   obtenerBebidas,
   crearBebida,
   actualizarBebida,
+  eliminarBebida,
   obtenerHelados,
   crearHelado,
   actualizarHelado,
+  eliminarHelado,
   obtenerExtras,
   crearExtra,
   actualizarExtra,
+  eliminarExtra,
 } from "../controllers/productos.controller.js";
 import verificarToken from "../middleware/verificarToken.js";
 import esAdmin from "../middleware/esAdmin.js";
@@ -35,6 +39,7 @@ router.put(
   esAdmin,
   actualizarPizza,
 );
+router.put("/pizzas/:id/eliminar", verificarToken, esAdmin, eliminarPizza);
 
 // Rutas de Bebidas
 router.get("/bebidas", obtenerBebidas);
@@ -52,6 +57,7 @@ router.put(
   esAdmin,
   actualizarBebida,
 );
+router.put("/bebidas/:id/eliminar", verificarToken, esAdmin, eliminarBebida);
 
 // Rutas de Heladería
 router.get("/heladeria", obtenerHelados);
@@ -63,6 +69,7 @@ router.put(
   esAdmin,
   actualizarHelado,
 );
+router.put("/heladeria/:id/eliminar", verificarToken, esAdmin, eliminarHelado);
 
 // Rutas de Extras
 router.get("/extras", obtenerExtras);
@@ -74,5 +81,6 @@ router.put(
   esAdmin,
   actualizarExtra,
 );
+router.put("/extras/:id/eliminar", verificarToken, esAdmin, eliminarExtra);
 
 export default router;
