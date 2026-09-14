@@ -8,7 +8,9 @@ export const obtenerPizzas = async (req, res) => {
       sql: `SELECT p.*, c.categoria AS categoria_nombre
       FROM pizza p 
       LEFT JOIN categoria_pizza c ON p.id_categoria_pizza = c.id_categoria_pizza
+      WHERE p.estado = ?
     `,
+      args: ["Activo"],
     });
     const rows = result.rows;
 
@@ -82,6 +84,19 @@ export const actualizarPizza = async (req, res) => {
       message: "Pizza actualizada correctamente",
       url: imageUrl,
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const eliminarPizza = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.execute({
+      sql: "UPDATE pizza SET estado = 'Inactivo' WHERE id_pizza = ?",
+      args: [id],
+    });
+    res.json({ success: true, message: "Pizza eliminada correctamente" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -163,11 +178,27 @@ export const actualizarBebida = async (req, res) => {
   }
 };
 
+export const eliminarBebida = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.execute({
+      sql: "UPDATE bebidas SET estado = 'Inactivo' WHERE id_bebida = ?",
+      args: [id],
+    });
+    res.json({ success: true, message: "Bebida eliminada correctamente" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // -----helados
 
 export const obtenerHelados = async (req, res) => {
   try {
-    const result = await db.execute({ sql: "SELECT * FROM heladeria" });
+    const result = await db.execute({
+      sql: "SELECT * FROM heladeria WHERE estado = ?",
+      args: ["Activo"],
+    });
     const rows = result.rows;
 
     const helados = rows.map((helado) => ({
@@ -235,6 +266,19 @@ export const actualizarHelado = async (req, res) => {
   }
 };
 
+export const eliminarHelado = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.execute({
+      sql: "UPDATE heladeria SET estado = 'Inactivo' WHERE id_heladeria = ?",
+      args: [id],
+    });
+    res.json({ success: true, message: "Helado eliminado correctamente" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // -----extras
 
 export const obtenerExtras = async (req, res) => {
@@ -243,7 +287,9 @@ export const obtenerExtras = async (req, res) => {
       sql: `SELECT e.*, c.categoria AS categoria_nombre
       FROM extras e
       LEFT JOIN categoria_pizza c ON e.id_categoria_pizza = c.id_categoria_pizza
+      WHERE e.estado = ?
     `,
+      args: ["Activo"],
     });
     const rows = result.rows;
 
@@ -297,6 +343,19 @@ export const actualizarExtra = async (req, res) => {
       args: [name, price, id_categoria_pizza, id],
     });
     res.status(200).json({ success: true, message: "Extra actualizado" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const eliminarExtra = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.execute({
+      sql: "UPDATE extras SET estado = 'Inactivo' WHERE id_extras = ?",
+      args: [id],
+    });
+    res.json({ success: true, message: "Extra eliminado correctamente" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
