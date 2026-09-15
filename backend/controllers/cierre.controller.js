@@ -28,39 +28,54 @@ export const verificarPedidosPendientes = async (req, res) => {
   }
 };
 
+// Verificar si existe un cierre pendiente de un "día lógico" anterior
+// El día lógico corta a las 5:00 AM local (UTC-4) => fecha_hora se ajusta con '-9 hours'
+// Consulta ultra-ligera con LIMIT 1: solo comprueba la existencia de al menos 1 venta.
+export const verificarCierrePendiente = async (req, res) => {
+  const { id_sucursal } = req.user;
+  try {
+    const results = await db.execute({
+      sql: `
+        SELECT 1
+        FROM ventas
+        WHERE estado = 'Completado'
+          AND DATE(fecha_hora, '-9 hours') < DATE('now', '-9 hours')
+          AND id_sucursal = ?
+        LIMIT 1`,
+      args: [id_sucursal],
+    });
+    return res.status(200).json({ pendiente: results.rows.length > 0 });
+  } catch (error) {
+    console.error("Error al verificar cierre pendiente:", error);
+    return res.status(500).json({ mensaje: "Error interno del servidor" });
+  }
+};
+
 export const obtenerResumenDia = async (req, res) => {
   const { id_sucursal } = req.user;
   try {
-    // 1. Verificar si hay ventas hoy.
-    // Turso is configured to return local Venezuela time.
-    let dateCondition = "DATE(fecha_hora) = DATE('now', '-4 hours')";
-    let dateLabel = new Date().toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
+    // 1. Determinar el día lógico a mostrar: si hay un cierre pendiente de un
+    //    día anterior se muestra ESE día; si no, el día lógico actual.
+    //    Día lógico: corte 5:00 AM local (UTC-4) => aplicar '-9 hours' sobre UTC.
+    const diaRow = await db.execute({
+      sql: `
+        SELECT COALESCE(
+          (SELECT DATE(MIN(fecha_hora), '-9 hours')
+             FROM ventas
+            WHERE estado = 'Completado'
+              AND DATE(fecha_hora, '-9 hours') < DATE('now', '-9 hours')
+              AND id_sucursal = ?),
+          DATE('now', '-9 hours')
+        ) AS fecha_meta`,
+      args: [id_sucursal],
     });
 
-    const result = await db.execute({
-      sql: `SELECT COUNT(*) AS c FROM ventas WHERE DATE(fecha_hora) = DATE('now', '-4 hours') AND estado = 'Completado'`,
-    });
+    const fechaMeta = String(diaRow.rows[0].fecha_meta);
+    const [anioMeta, mesMeta, diaMeta] = fechaMeta.split("-");
+    const dateLabel = `${diaMeta}/${mesMeta}/${anioMeta}`;
 
-    // Accedemos mediante .rows[0]
-    if (result.rows[0].c === 0) {
-      const lastDateRow = await db.execute({
-        sql: `SELECT DATE(fecha_hora) AS last_date FROM ventas WHERE estado = 'Completado' ORDER BY fecha_hora DESC LIMIT 1`,
-      });
-
-      if (lastDateRow.rows.length > 0) {
-        const lastDate = lastDateRow.rows[0].last_date;
-        const formattedDate = new Date(lastDate).toISOString().split("T")[0];
-        dateCondition = `DATE(fecha_hora) = '${formattedDate}'`;
-        dateLabel = new Date(lastDate).toLocaleDateString("es-ES", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        });
-      }
-    }
+    // Filtro común: todas las consultas usan el MISMO día lógico (-9 hours).
+    const conDia = "DATE(fecha_hora, '-9 hours') = ?";
 
     // 2. Obtener total ventas y cantidad de órdenes
     const ventasHoy = await db.execute({
@@ -68,8 +83,8 @@ export const obtenerResumenDia = async (req, res) => {
         COUNT(*) AS total_ordenes,
         IFNULL(SUM(monto_total_usd), 0) AS ventas_totales
        FROM ventas 
-       WHERE ${dateCondition} AND estado = 'Completado' AND id_sucursal = ?`,
-      args: [id_sucursal],
+       WHERE ${conDia} AND estado = 'Completado' AND id_sucursal = ?`,
+      args: [fechaMeta, id_sucursal],
     });
 
     const total_ordenes = Number(ventasHoy.rows[0].total_ordenes);
@@ -83,8 +98,8 @@ export const obtenerResumenDia = async (req, res) => {
     const anulacionesHoy = await db.execute({
       sql: `SELECT IFNULL(SUM(monto_total_usd), 0) AS total_anulaciones
        FROM ventas
-       WHERE ${dateCondition} AND estado = 'Rechazado' AND id_sucursal = ?`,
-      args: [id_sucursal],
+       WHERE ${conDia} AND estado = 'Rechazado' AND id_sucursal = ?`,
+      args: [fechaMeta, id_sucursal],
     });
     const anulaciones = Number(anulacionesHoy.rows[0].total_anulaciones);
 
@@ -96,12 +111,15 @@ export const obtenerResumenDia = async (req, res) => {
         IFNULL(SUM(vp.monto_bs), 0) AS total_bs
        FROM ventas_pagos vp
        INNER JOIN ventas v ON v.id_venta = vp.id_venta
-       WHERE DATE(v.fecha_hora) = (SELECT DATE(v2.fecha_hora) FROM ventas v2 WHERE ${dateCondition} LIMIT 1) 
+       WHERE DATE(v.fecha_hora, '-9 hours') = ?
          AND v.estado = 'Completado'
          AND v.id_sucursal = ?
        GROUP BY vp.metodo_pago, vp.referencia`;
 
-    const pagosHoy = await db.execute({ sql: queryPagos, args: [id_sucursal] });
+    const pagosHoy = await db.execute({
+      sql: queryPagos,
+      args: [fechaMeta, id_sucursal],
+    });
 
     let efectivo_usd = 0;
     let efectivo_bs = 0;
@@ -176,11 +194,11 @@ export const obtenerResumenDia = async (req, res) => {
         ) AS pagos
        FROM ventas v
        LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-       WHERE DATE(v.fecha_hora) = (SELECT DATE(v2.fecha_hora) FROM ventas v2 WHERE ${dateCondition} LIMIT 1)
+       WHERE DATE(v.fecha_hora, '-9 hours') = ?
          AND v.estado = 'Completado'
          AND v.id_sucursal = ?
        ORDER BY v.fecha_hora DESC`,
-      args: [id_sucursal],
+      args: [fechaMeta, id_sucursal],
     });
 
     const transaccionesProcesadas = transacciones.rows.map((t) => {

@@ -199,6 +199,8 @@ export default function CierreScreen() {
       clearCart();
       queryClient.invalidateQueries({ queryKey: ["kitchenOrders"] });
       queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
+      // Si el bloqueo estaba activo, verifica de nuevo para desbloquear el sistema.
+      queryClient.invalidateQueries({ queryKey: ["verificarCierrePendiente"] });
       await fetchResumenDia();
 
       window.Toast.fire({

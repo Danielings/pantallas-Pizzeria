@@ -4,6 +4,9 @@ import { MOCK_SALES } from "../data/mockData";
 const AppContext = createContext(null);
 
 export const KITCHEN_CATEGORIES = ["pizzas", "combos"];
+export const BOX_PRICE = 1;
+
+const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
 
 const initialState = {
   // Authentication
@@ -14,6 +17,7 @@ const initialState = {
     items: [],
     payments: [],
     orderType: null, // 'local' | 'takeaway' | 'delivery' | 'pickup'
+    includesBox: false,
     paymentStatus: null, // 'paid' | 'partial' | 'pending'  (only for delivery/pickup)
     advanceAmount: 0, // monto abonado si paymentStatus === 'partial'
     advancePaymentMethod: null, // método usado para el abono
@@ -216,6 +220,7 @@ function reducer(state, action) {
           items: [],
           payments: [],
           orderType: null,
+          includesBox: false,
           paymentStatus: null,
           advanceAmount: 0,
           advancePaymentMethod: null,
@@ -252,9 +257,19 @@ function reducer(state, action) {
           customer: customer || null,
           phoneLastDigits: phoneLastDigits || "",
           deliveryId: deliveryId || null,
+          includesBox: Boolean(action.payload.includesBox),
         },
       };
     }
+
+    case "SET_INCLUDES_BOX":
+      return {
+        ...state,
+        currentOrder: {
+          ...state.currentOrder,
+          includesBox: Boolean(action.payload),
+        },
+      };
 
     case "LOAD_PENDING_ORDER": {
       return {
@@ -328,7 +343,10 @@ export function AppProvider({ children }) {
     0,
   );
   const tax = 0; // IVA eliminado
-  const total = subtotal; // total = subtotal, sin impuestos
+  const hasBoxCharge =
+    state.currentOrder.includesBox &&
+    BOX_ORDER_TYPES.has(state.currentOrder.orderType);
+  const total = subtotal + (hasBoxCharge ? BOX_PRICE : 0); // total = subtotal + caja, sin impuestos
   const amountPaid = state.currentOrder.payments.reduce(
     (sum, p) => sum + p.amount,
     0,
@@ -362,6 +380,11 @@ export function AppProvider({ children }) {
     [],
   );
   const clearCart = useCallback(() => dispatch({ type: "CLEAR_CART" }), []);
+  const setIncludesBox = useCallback(
+    (includesBox) =>
+      dispatch({ type: "SET_INCLUDES_BOX", payload: includesBox }),
+    [],
+  );
   const setOrderType = useCallback(
     (
       orderType,
@@ -372,6 +395,7 @@ export function AppProvider({ children }) {
       deliveryId,
       advancePaymentMethod,
       advanceCurrency,
+      includesBox,
     ) =>
       dispatch({
         type: "SET_ORDER_TYPE",
@@ -384,6 +408,7 @@ export function AppProvider({ children }) {
           deliveryId,
           advancePaymentMethod,
           advanceCurrency,
+          includesBox,
         },
       }),
     [],
@@ -478,6 +503,7 @@ export function AppProvider({ children }) {
         updateItemNote,
         removeItem,
         clearCart,
+        setIncludesBox,
         setOrderType,
         addPayment,
         loadPendingOrder,

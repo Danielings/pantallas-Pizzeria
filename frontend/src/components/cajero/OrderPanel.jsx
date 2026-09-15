@@ -1,9 +1,9 @@
-import { useApp } from '../../context/AppContext';
-import OrderItem from './OrderItem';
-import { ShoppingCart, Trash2 } from 'lucide-react';
+import { useApp } from "../../context/AppContext";
+import OrderItem from "./OrderItem";
+import { ShoppingCart, Trash2 } from "lucide-react";
 
 export default function OrderPanel({ onPay }) {
-  const { currentOrder, subtotal, tax, total, clearCart } = useApp();
+  const { currentOrder, total, clearCart } = useApp();
   const { items } = currentOrder;
 
   return (
@@ -14,7 +14,9 @@ export default function OrderPanel({ onPay }) {
           <ShoppingCart className="w-5 h-5 text-pizza-red" />
           <h2 className="text-pizza-dark font-bold text-base">Orden Actual</h2>
           {items.length > 0 && (
-            <span className="badge bg-pizza-red text-white">{items.length}</span>
+            <span className="badge bg-pizza-red text-white">
+              {items.length}
+            </span>
           )}
         </div>
         {items.length > 0 && (
@@ -36,11 +38,13 @@ export default function OrderPanel({ onPay }) {
               <ShoppingCart className="w-8 h-8" />
             </div>
             <p className="text-sm text-center">
-              Agrega productos<br />del catálogo
+              Agrega productos
+              <br />
+              del catálogo
             </p>
           </div>
         ) : (
-          items.map(item => <OrderItem key={item.id} item={item} />)
+          items.map((item) => <OrderItem key={item.id} item={item} />)
         )}
       </div>
 
@@ -50,7 +54,9 @@ export default function OrderPanel({ onPay }) {
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center pt-2 border-t border-pizza-gray-3 mt-1">
               <span className="text-pizza-dark font-bold text-base">Total</span>
-              <span className="text-pizza-red font-extrabold text-xl">${total.toFixed(2)}</span>
+              <span className="text-pizza-red font-extrabold text-xl">
+                ${total.toFixed(2)}
+              </span>
             </div>
           </div>
 

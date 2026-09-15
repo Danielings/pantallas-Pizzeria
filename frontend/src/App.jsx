@@ -24,6 +24,7 @@ import AdminScreen from "./screens/AdminScreen";
 import LoginScreen from "./screens/LoginScreen";
 import Sidebar from "./components/layout/Sidebar";
 import MeseroScreen from "./screens/MeseroScrenn";
+import ModalBloqueoCierre from "./components/cajero/ModalBloqueoCierre";
 import NuevaPasswordScreen from "./screens/NuevaPasswordScreen";
 import RecuperarPasswordScreen from "./screens/RecuperarPasswordScrenn";
 import { Toaster } from "react-hot-toast";
@@ -104,6 +105,8 @@ function AuthenticatedLayout() {
       <main className="flex-1 overflow-hidden relative flex flex-col">
         <Outlet />
       </main>
+
+      <ModalBloqueoCierre />
     </div>
   );
 }

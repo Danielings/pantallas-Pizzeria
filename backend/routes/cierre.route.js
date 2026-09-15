@@ -3,6 +3,7 @@ import {
   cerrarCaja,
   obtenerResumenDia,
   verificarPedidosPendientes,
+  verificarCierrePendiente,
   obtenerHistorialCierres,
   obtenerCajeros,
   actualizarPinCajero,
@@ -19,6 +20,7 @@ router.get(
   verificarToken,
   verificarPedidosPendientes,
 );
+router.get("/cierre/pendiente", verificarToken, verificarCierrePendiente);
 router.get("/cierre/historial", obtenerHistorialCierres);
 router.get("/cierre/cajeros", obtenerCajeros);
 router.put("/cierre/cajero-pin", verificarToken, esAdmin, actualizarPinCajero);
