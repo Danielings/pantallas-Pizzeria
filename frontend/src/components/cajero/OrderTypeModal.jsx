@@ -357,10 +357,11 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
 
   const registerPendingOrder = async (finalCustomer, finalDelivery) => {
     const despacho = mapOrderTypeToApiValue(selectedType);
-    const total = getPendingDetails().reduce(
+    const productsTotal = getPendingDetails().reduce(
       (sum, detail) => sum + detail.monto_total,
       0,
     );
+    const total = productsTotal;
     const isPartial = paymentStatus === "partial";
     const paymentMethod = mapPaymentMethodToApi(advancePaymentMethod?.id);
     const paymentAmountBs = advanceUSD * (exchangeRate || 0);
@@ -712,6 +713,8 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
                     );
                   })}
                 </div>
+
+                
 
                 {/* Datos del Delivery o Pickup (Últimos 4 dígitos) */}
                 {needsDeliveryDigits && (
