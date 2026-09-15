@@ -100,6 +100,61 @@ export default function ProductosScreen() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Estados para el precio de la caja (empaque)
+  const [boxPrice, setBoxPrice] = useState(null);
+  const [boxPriceInput, setBoxPriceInput] = useState("");
+  const [savingBox, setSavingBox] = useState(false);
+
+  useEffect(() => {
+    const loadBox = async () => {
+      try {
+        const { data } = await axios.get("http://localhost:3001/api/caja", {
+          withCredentials: true,
+        });
+        if (data.success && data.caja) {
+          setBoxPrice(Number(data.caja.precio_caja));
+          setBoxPriceInput(String(data.caja.precio_caja));
+        }
+      } catch (error) {
+        console.error("Error cargando precio de caja:", error);
+      }
+    };
+    loadBox();
+  }, []);
+
+  const handleSaveBoxPrice = async () => {
+    const value = Number(boxPriceInput);
+    if (isNaN(value) || value < 0) {
+      window.Toast.fire({
+        icon: "error",
+        title: "Ingresa un precio válido",
+      });
+      return;
+    }
+    setSavingBox(true);
+    try {
+      const { data } = await axios.put(
+        "http://localhost:3001/api/caja",
+        { precio_caja: value },
+        { withCredentials: true },
+      );
+      if (data.success) {
+        setBoxPrice(value);
+        window.Toast.fire({
+          icon: "success",
+          title: "Precio de caja actualizado",
+        });
+      }
+    } catch (error) {
+      window.Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "Error al actualizar el precio",
+      });
+    } finally {
+      setSavingBox(false);
+    }
+  };
+
   useEffect(() => {
     if (!catalog) return;
 
@@ -523,6 +578,46 @@ export default function ProductosScreen() {
             Postres
           </span>
         </div>
+      </div>
+
+      {/* Configuración: Precio de la Caja */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-pizza-red/10 flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-pizza-red" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm">
+              Precio de la Caja
+            </h3>
+            <p className="text-xs text-slate-500">
+              Se cobra en pedidos Para Llevar, Delivery y Pickup.
+            </p>
+          </div>
+        </div>
+        {boxPrice !== null && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-bold text-slate-500">
+              Actual: ${boxPrice.toFixed(2)}
+            </span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={boxPriceInput}
+              onChange={(e) => setBoxPriceInput(e.target.value)}
+              className="w-28 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all"
+              placeholder="0.00"
+            />
+            <button
+              onClick={handleSaveBoxPrice}
+              disabled={savingBox}
+              className="bg-slate-900 hover:bg-black disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+            >
+              {savingBox ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col">

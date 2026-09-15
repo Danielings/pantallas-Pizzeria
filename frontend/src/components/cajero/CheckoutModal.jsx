@@ -40,7 +40,14 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutModal({ onClose }) {
-  const { total, currentOrder, confirmSale, clearCart, currentUser, setIncludesBox } = useApp();
+  const {
+    total,
+    currentOrder,
+    confirmSale,
+    clearCart,
+    currentUser,
+    boxPrice,
+  } = useApp();
   const { exchangeRate } = useExchangeRate();
   const queryClient = useQueryClient();
 
@@ -557,28 +564,7 @@ export default function CheckoutModal({ onClose }) {
                     </span>
                   </p>
 
-                  {["takeaway", "pickup", "PickUp", "delivery"].includes(
-                    orderType,
-                  ) && (
-                    <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 cursor-pointer mt-2">
-                      <span className="font-semibold">
-                        Agregar caja{" "}
-                        <span className="font-normal text-slate-500">
-                          ($1.00)
-                        </span>
-                      </span>
-                      <input
-                        type="checkbox"
-                        checked={currentOrder.includesBox}
-                        onChange={(event) =>
-                          setIncludesBox(event.target.checked)
-                        }
-                        className="h-4 w-4 accent-pizza-red"
-                      />
-                    </label>
-                  )}
-
-                  <p className="text-slate-600 font-medium text-sm mt-2">
+                  <p className="text-slate-600 font-medium text-sm">
                     Selecciona el método de pago:
                   </p>
                   <div className="flex flex-col gap-3">
@@ -710,8 +696,8 @@ export default function CheckoutModal({ onClose }) {
                       <span>1x Caja</span>
                       <span>
                         {currency === "Bs"
-                          ? `Bs. ${(1 * (exchangeRate || 0)).toFixed(2)}`
-                          : "$1.00"}
+                          ? `Bs. ${(boxPrice * (exchangeRate || 0)).toFixed(2)}`
+                          : `$${boxPrice.toFixed(2)}`}
                       </span>
                     </div>
                   )}
