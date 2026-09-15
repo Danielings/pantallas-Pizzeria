@@ -17,6 +17,8 @@ import {
   crearExtra,
   actualizarExtra,
   eliminarExtra,
+  obtenerCaja,
+  actualizarCaja,
 } from "../controllers/productos.controller.js";
 import verificarToken from "../middleware/verificarToken.js";
 import esAdmin from "../middleware/esAdmin.js";
@@ -82,5 +84,9 @@ router.put(
   actualizarExtra,
 );
 router.put("/extras/:id/eliminar", verificarToken, esAdmin, eliminarExtra);
+
+// Rutas de Caja (empaque)
+router.get("/caja", verificarToken, obtenerCaja);
+router.put("/caja", verificarToken, esAdmin, actualizarCaja);
 
 export default router;

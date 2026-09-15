@@ -1,17 +1,12 @@
 import { useApp } from "../../context/AppContext";
 import OrderItem from "./OrderItem";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Package, Trash2 } from "lucide-react";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 
-// const ORDER_TYPE_CONFIG = {
-//   local: { label: 'Local', icon: UtensilsCrossed, color: 'bg-blue-100 text-blue-700 border-blue-200' },
-//   takeaway: { label: 'Para Llevar', icon: ShoppingBag, color: 'bg-amber-100 text-amber-700 border-amber-200' },
-//   delivery: { label: 'Delivery', icon: Bike, color: 'bg-red-100 text-red-700 border-red-200' },
-//   pickup: { label: 'Pickup', icon: Store, color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-// };
+const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
 
 export default function OrderTicket({ onCheckout }) {
-  const { currentOrder, total } = useApp();
+  const { currentOrder, total, boxPrice, setIncludesBox } = useApp();
   const { exchangeRate } = useExchangeRate();
   const { items, pendingRemaining } = currentOrder;
   const addedTotal = items
@@ -20,8 +15,13 @@ export default function OrderTicket({ onCheckout }) {
       (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
       0,
     );
+  const canAddBox = BOX_ORDER_TYPES.has(currentOrder.orderType);
+  const includesBox = Boolean(currentOrder.includesBox);
+  const boxCharge = canAddBox && includesBox ? Number(boxPrice) || 0 : 0;
   const displayTotal =
-    pendingRemaining != null ? pendingRemaining + addedTotal : total;
+    pendingRemaining != null
+      ? pendingRemaining + addedTotal + boxCharge
+      : total;
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-slate-50">
@@ -46,6 +46,43 @@ export default function OrderTicket({ onCheckout }) {
       {items.length > 0 && (
         <div className="bg-white border-t border-slate-100 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
           <div className="space-y-1.5 text-sm">
+            {canAddBox && !includesBox && (
+              <button
+                onClick={() => setIncludesBox(true)}
+                className="w-full flex items-center justify-between gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-left cursor-pointer select-none hover:border-slate-400 transition-colors"
+              >
+                <span className="flex items-center gap-2 text-slate-700 font-semibold">
+                  <Package className="w-4 h-4 text-pizza-red" />
+                  Agregar caja
+                  <span className="text-xs font-normal text-slate-500">
+                    ${boxPrice.toFixed(2)}
+                  </span>
+                </span>
+                <span className="text-slate-400 text-xs font-semibold">
+                  Añadir
+                </span>
+              </button>
+            )}
+
+            {canAddBox && includesBox && (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <span className="flex items-center gap-2 text-slate-800 font-semibold">
+                  <Package className="w-4 h-4 text-pizza-red" />
+                  Caja
+                  <span className="text-xs font-normal text-slate-500">
+                    1 × ${boxPrice.toFixed(2)}
+                  </span>
+                </span>
+                <button
+                  onClick={() => setIncludesBox(false)}
+                  title="Quitar caja"
+                  className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             <div className="flex justify-between items-center pt-1">
               <span className="text-slate-800 font-bold">Total</span>
               <div className="text-right">

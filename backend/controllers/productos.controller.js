@@ -1,6 +1,62 @@
 import db from "../config/turso.js";
 import { uploadImageToCloudinary } from "../utils/cloudinary.js";
 
+// ── Caja (precio del empaque) ─────────────────────────────────────
+export const obtenerCaja = async (req, res) => {
+  try {
+    const result = await db.execute({
+      sql: `SELECT id_caja, precio_caja FROM caja LIMIT 1`,
+    });
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No hay registro de caja" });
+    }
+    return res.json({ success: true, caja: result.rows[0] });
+  } catch (error) {
+    console.error("Error obteniendo caja:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Error interno del servidor" });
+  }
+};
+
+export const actualizarCaja = async (req, res) => {
+  const precio_caja = Number(req.body.precio_caja);
+  if (!Number.isFinite(precio_caja) || precio_caja < 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: "precio_caja inválido" });
+  }
+  try {
+    const result = await db.execute({
+      sql: `SELECT id_caja FROM caja LIMIT 1`,
+    });
+    const row = result.rows[0];
+    if (!row) {
+      await db.execute({
+        sql: `INSERT INTO caja (precio_caja) VALUES (?)`,
+        args: [precio_caja],
+      });
+    } else {
+      await db.execute({
+        sql: `UPDATE caja SET precio_caja = ? WHERE id_caja = ?`,
+        args: [precio_caja, row.id_caja],
+      });
+    }
+    return res.json({
+      success: true,
+      message: "Precio de caja actualizado",
+      precio_caja,
+    });
+  } catch (error) {
+    console.error("Error actualizando caja:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Error interno del servidor" });
+  }
+};
+
 // ----pizzas
 export const obtenerPizzas = async (req, res) => {
   try {

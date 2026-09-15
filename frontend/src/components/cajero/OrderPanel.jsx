@@ -1,10 +1,15 @@
 import { useApp } from "../../context/AppContext";
 import OrderItem from "./OrderItem";
-import { ShoppingCart, Trash2 } from "lucide-react";
+import { ShoppingCart, Trash2, Package } from "lucide-react";
+
+const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
 
 export default function OrderPanel({ onPay }) {
-  const { currentOrder, total, clearCart } = useApp();
+  const { currentOrder, subtotal, total, clearCart, boxPrice, setIncludesBox } =
+    useApp();
   const { items } = currentOrder;
+  const canAddBox = BOX_ORDER_TYPES.has(currentOrder.orderType);
+  const includesBox = Boolean(currentOrder.includesBox);
 
   return (
     <div className="flex flex-col h-full bg-pizza-gray border-l border-pizza-gray-3">
@@ -52,6 +57,31 @@ export default function OrderPanel({ onPay }) {
       {items.length > 0 && (
         <div className="border-t border-pizza-gray-3 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
           <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-pizza-muted font-medium">Subtotal</span>
+              <span className="text-pizza-dark font-semibold">
+                ${subtotal.toFixed(2)}
+              </span>
+            </div>
+
+            {canAddBox && (
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-pizza-gray-3 bg-pizza-gray-2 px-3 py-2.5 cursor-pointer select-none mt-0.5">
+                <span className="flex items-center gap-2 text-sm font-semibold text-pizza-dark">
+                  <Package className="w-4 h-4 text-pizza-red" />
+                  Caja
+                  <span className="text-xs font-normal text-pizza-muted">
+                    ${boxPrice.toFixed(2)}
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={includesBox}
+                  onChange={(e) => setIncludesBox(e.target.checked)}
+                  className="h-4 w-4 accent-pizza-red"
+                />
+              </label>
+            )}
+
             <div className="flex justify-between items-center pt-2 border-t border-pizza-gray-3 mt-1">
               <span className="text-pizza-dark font-bold text-base">Total</span>
               <span className="text-pizza-red font-extrabold text-xl">

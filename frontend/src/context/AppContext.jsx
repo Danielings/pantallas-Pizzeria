@@ -4,19 +4,23 @@ import {
   useReducer,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
 import { MOCK_SALES } from "../data/mockData";
 
 const AppContext = createContext(null);
 
 export const KITCHEN_CATEGORIES = ["pizzas", "combos"];
-export const BOX_PRICE = 1;
 
+const DEFAULT_BOX_PRICE = 1;
 const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
 
 const initialState = {
   // Authentication
   currentUser: null,
+
+  // Precio dinámico de la caja (cargado desde la tabla `caja`)
+  boxPrice: DEFAULT_BOX_PRICE,
 
   // Current cashier order (cart)
   currentOrder: {
@@ -277,6 +281,12 @@ function reducer(state, action) {
         },
       };
 
+    case "SET_BOX_PRICE":
+      return {
+        ...state,
+        boxPrice: Number(action.payload) || DEFAULT_BOX_PRICE,
+      };
+
     case "LOAD_PENDING_ORDER": {
       return {
         ...state,
@@ -352,7 +362,7 @@ export function AppProvider({ children }) {
   const hasBoxCharge =
     state.currentOrder.includesBox &&
     BOX_ORDER_TYPES.has(state.currentOrder.orderType);
-  const total = subtotal + (hasBoxCharge ? BOX_PRICE : 0); // total = subtotal + caja, sin impuestos
+  const total = subtotal + (hasBoxCharge ? state.boxPrice : 0); // total = subtotal + caja, sin impuestos
   const amountPaid = state.currentOrder.payments.reduce(
     (sum, p) => sum + p.amount,
     0,
@@ -391,6 +401,34 @@ export function AppProvider({ children }) {
       dispatch({ type: "SET_INCLUDES_BOX", payload: includesBox }),
     [],
   );
+  const setBoxPrice = useCallback(
+    (precio) => dispatch({ type: "SET_BOX_PRICE", payload: precio }),
+    [],
+  );
+
+  // Cargar el precio de la caja desde la DB cuando hay sesión activa
+  useEffect(() => {
+    if (!state.currentUser) return;
+    let activo = true;
+    const cargarCaja = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/caja", {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (activo && data.success && data.caja) {
+          dispatch({ type: "SET_BOX_PRICE", payload: data.caja.precio_caja });
+        }
+      } catch (error) {
+        console.error("Error cargando precio de caja:", error);
+      }
+    };
+    cargarCaja();
+    return () => {
+      activo = false;
+    };
+  }, [state.currentUser]);
   const setOrderType = useCallback(
     (
       orderType,
@@ -501,6 +539,7 @@ export function AppProvider({ children }) {
       remaining,
       TAX_RATE,
       KITCHEN_CATEGORIES,
+      setBoxPrice,
       addToCart,
       updateItemQty,
       updateItemSize,
@@ -508,6 +547,7 @@ export function AppProvider({ children }) {
       updateItemNote,
       removeItem,
       clearCart,
+      setIncludesBox,
       setOrderType,
       addPayment,
       loadPendingOrder,
@@ -523,6 +563,7 @@ export function AppProvider({ children }) {
       total,
       amountPaid,
       remaining,
+      setBoxPrice,
       addToCart,
       updateItemQty,
       updateItemSize,
@@ -530,6 +571,7 @@ export function AppProvider({ children }) {
       updateItemNote,
       removeItem,
       clearCart,
+      setIncludesBox,
       setOrderType,
       addPayment,
       loadPendingOrder,
