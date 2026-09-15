@@ -18,7 +18,7 @@ function ExtrasModal({ item, onClose, onSave }) {
 
   // Usamos id para inicializar los seleccionados correctamente
   const [selected, setSelected] = useState(
-    item.extras.map((e) => e.id || e.id),
+    () => new Set(item.extras.map((e) => e.id)),
   );
 
   useEffect(() => {
@@ -54,15 +54,19 @@ function ExtrasModal({ item, onClose, onSave }) {
 
   const toggle = (extra) => {
     const extraId = extra.id; // Usamos el campo real de tu BD
-    setSelected((prev) =>
-      prev.includes(extraId)
-        ? prev.filter((id) => id !== extraId)
-        : [...prev, extraId],
-    );
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(extraId)) {
+        next.delete(extraId);
+      } else {
+        next.add(extraId);
+      }
+      return next;
+    });
   };
 
   const handleSave = () => {
-    const chosenExtras = apiExtras.filter((e) => selected.includes(e.id));
+    const chosenExtras = apiExtras.filter((e) => selected.has(e.id));
     onSave(item.id, chosenExtras);
     onClose();
   };
@@ -89,7 +93,7 @@ function ExtrasModal({ item, onClose, onSave }) {
             </div>
           ) : (
             apiExtras.map((extra) => {
-              const isSelected = selected.includes(extra.id);
+              const isSelected = selected.has(extra.id);
               return (
                 <button
                   key={extra.id}

@@ -254,7 +254,10 @@ export default function OrderPaymentAdjustmentModal({
                             type="number"
                             value={item.qty}
                             onChange={(e) =>
-                              updateQty(item.id, parseInt(e.target.value, 10))
+                              updateQty(
+                                item.id,
+                                parseInt(e.target.value, 10) || 1,
+                              )
                             }
                             className="input-field w-full mt-1"
                             min={1}

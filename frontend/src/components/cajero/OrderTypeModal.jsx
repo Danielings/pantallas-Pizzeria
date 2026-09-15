@@ -132,6 +132,8 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
   const [advancePaymentMethod, setAdvancePaymentMethod] = useState(null);
   const [showAdvancePaymentEntry, setShowAdvancePaymentEntry] = useState(false);
   const [isRegisteringPending, setIsRegisteringPending] = useState(false);
+  const [isSearchingDelivery, setIsSearchingDelivery] = useState(false);
+  const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
 
   // Estados para el flujo de Delivery y Pickup (solo registro directo)
   const [deliveryName, setDeliveryName] = useState("");
@@ -170,9 +172,13 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
 
   // Focus en la búsqueda al ir al paso 2
   useEffect(() => {
+    let timeoutId;
+
     if (step === 2) {
-      setTimeout(() => searchRef.current?.focus(), 80);
+      timeoutId = setTimeout(() => searchRef.current?.focus(), 80);
     }
+
+    return () => clearTimeout(timeoutId);
   }, [step]);
 
   // Resetear campos dependientes cuando cambia el tipo en Paso 1
@@ -195,9 +201,11 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
   };
 
   const handleDeliverySearch = async () => {
+    if (isSearchingDelivery) return;
     const digits = deliveryDigits.trim();
     if (digits.length !== 4) return;
 
+    setIsSearchingDelivery(true);
     try {
       const { data } = await axios.get(
         `http://localhost:3001/api/buscar-delivery?q=${digits}`,
@@ -218,14 +226,18 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
     } catch (error) {
       console.error("Error buscando el delivery:", error);
       setDeliveryLookupDone(false);
+    } finally {
+      setIsSearchingDelivery(false);
     }
   };
 
   // ── Buscar Cliente (Refactorizado a Axios) ──
   const handleSearch = async () => {
+    if (isSearchingCustomer) return;
     const q = searchQuery.trim();
     if (!q) return;
 
+    setIsSearchingCustomer(true);
     try {
       if (selectedType === "delivery" || selectedType === "pickup") {
         const { data } = await axios.post(
@@ -261,6 +273,8 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
       }
     } catch (error) {
       console.error("Error en la búsqueda del cliente:", error);
+    } finally {
+      setIsSearchingCustomer(false);
     }
   };
 
@@ -401,10 +415,12 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
 
   // ── Confirmar y Guardar ──
   const handleConfirm = async () => {
+    if (isRegisteringPending) return;
+
     const shouldRegisterPending =
       needsPaymentInfo && ["partial", "pending"].includes(paymentStatus);
 
-    if (shouldRegisterPending) setIsRegisteringPending(true);
+    setIsRegisteringPending(true);
 
     // 1. Determinar y registrar el Delivery (siempre se registra para delivery o pickup)
     let finalDelivery = null;

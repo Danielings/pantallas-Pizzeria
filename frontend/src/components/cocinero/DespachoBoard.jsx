@@ -169,7 +169,6 @@ export default function DespachoBoard() {
                 }
               }}
               secondaryBtnLabel={!isSwapping ? "Devolver" : null}
-              secondaryBtnLabel={!isSwapping ? "Devolver" : null}
               onSecondary={
                 !isSwapping
                   ? async () => {
@@ -189,7 +188,10 @@ export default function DespachoBoard() {
                           await updateOrderStatus(order.id, "pending");
                           // Marcar visualmente como devuelto desde el horno
                           if (updateOrder) {
-                            updateOrder({ id: order.id, returnedFromOven: true });
+                            updateOrder({
+                              id: order.id,
+                              returnedFromOven: true,
+                            });
                           }
                           Toast.fire({
                             icon: "success",

@@ -1,4 +1,10 @@
-import { createContext, useContext, useReducer, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+  useMemo,
+} from "react";
 import { MOCK_SALES } from "../data/mockData";
 
 const AppContext = createContext(null);
@@ -485,36 +491,57 @@ export function AppProvider({ children }) {
     localStorage.removeItem("authToken");
   }, []);
 
+  const contextValue = useMemo(
+    () => ({
+      ...state,
+      subtotal,
+      tax,
+      total,
+      amountPaid,
+      remaining,
+      TAX_RATE,
+      KITCHEN_CATEGORIES,
+      addToCart,
+      updateItemQty,
+      updateItemSize,
+      updateItemExtras,
+      updateItemNote,
+      removeItem,
+      clearCart,
+      setOrderType,
+      addPayment,
+      loadPendingOrder,
+      confirmSale,
+      addCustomer,
+      login,
+      logout,
+    }),
+    [
+      state,
+      subtotal,
+      tax,
+      total,
+      amountPaid,
+      remaining,
+      addToCart,
+      updateItemQty,
+      updateItemSize,
+      updateItemExtras,
+      updateItemNote,
+      removeItem,
+      clearCart,
+      setOrderType,
+      addPayment,
+      loadPendingOrder,
+      confirmSale,
+      addCustomer,
+      login,
+      logout,
+    ],
+  );
+
   return (
-    <AppContext.Provider
-      value={{
-        ...state,
-        subtotal,
-        tax,
-        total,
-        amountPaid,
-        remaining,
-        TAX_RATE,
-        KITCHEN_CATEGORIES,
-        addToCart,
-        updateItemQty,
-        updateItemSize,
-        updateItemExtras,
-        updateItemNote,
-        removeItem,
-        clearCart,
-        setIncludesBox,
-        setOrderType,
-        addPayment,
-        loadPendingOrder,
-        confirmSale,
-        addCustomer,
-        login,
-        logout,
-      }}
-    >
-      {children}
-    </AppContext.Provider>
+    <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
   );
 }
 
