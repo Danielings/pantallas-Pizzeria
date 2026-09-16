@@ -43,6 +43,10 @@ export default function PaymentEntryModal({
     !isNaN(amountUSD) &&
     amountUSD > 0 &&
     (remainingUSD == null || amountUSD <= remainingUSD + 0.001);
+  const exceedsMax =
+    remainingUSD != null &&
+    !isNaN(amountUSD) &&
+    amountUSD > remainingUSD + 0.001;
 
   // Equivalencia en tiempo real para la otra moneda
   const equivalent =
@@ -145,11 +149,18 @@ export default function PaymentEntryModal({
             </button>
           )}
 
-          {/* Error */}
-          {error && (
+          {/* Error en vivo: supera el máximo permitido */}
+          {exceedsMax ? (
             <div className="flex items-center gap-2 text-pizza-red text-sm bg-red-50 rounded-lg px-3 py-2">
-              <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+              <AlertCircle className="w-4 h-4 shrink-0" />{" "}
+              {`El monto no puede exceder ${currency === "Bs" ? `Bs. ${displayRemaining}` : `$${displayRemaining}`}`}
             </div>
+          ) : (
+            error && (
+              <div className="flex items-center gap-2 text-pizza-red text-sm bg-red-50 rounded-lg px-3 py-2">
+                <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+              </div>
+            )
           )}
 
           {/* Botones */}
