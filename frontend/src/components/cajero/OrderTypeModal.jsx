@@ -117,8 +117,14 @@ const PAYMENT_METHODS = [
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
-  const { setOrderType, addCustomer, currentOrder, clearCart, currentUser } =
-    useApp();
+  const {
+    setOrderType,
+    addCustomer,
+    currentOrder,
+    clearCart,
+    currentUser,
+    total,
+  } = useApp();
   const { exchangeRate } = useExchangeRate();
 
   // ── Pasos: 1 = Tipo y Estado Pago, 2 = Cliente ──
@@ -158,6 +164,17 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
     advanceCurrency === "Bs" && exchangeRate > 0
       ? advanceRaw / exchangeRate
       : advanceRaw;
+
+  const pendingTotal = pendingProduct?.product
+    ? Number(pendingProduct.product.price || 0) *
+      (pendingProduct.size === "Mediana"
+        ? 1.3
+        : pendingProduct.size === "Familiar"
+          ? 1.6
+          : 1)
+    : 0;
+  const orderMaxUSD = Number(total) + pendingTotal;
+  const maxAbonoUSD = Math.max(0, orderMaxUSD - 0.01);
 
   // Paso 2 - Cliente
   const [searchQuery, setSearchQuery] = useState("");
@@ -568,7 +585,9 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
       const isPaymentStatusSelected = paymentStatus !== null;
       const isAbonoValid =
         paymentStatus !== "partial" ||
-        (advancePaymentMethod !== null && parseFloat(advanceAmount) > 0);
+        (advancePaymentMethod !== null &&
+          parseFloat(advanceAmount) > 0 &&
+          advanceUSD <= maxAbonoUSD + 0.001);
 
       const isDeliveryValid =
         !needsDeliveryDigits ||
@@ -713,8 +732,6 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
                     );
                   })}
                 </div>
-
-                
 
                 {/* Datos del Delivery o Pickup (Últimos 4 dígitos) */}
                 {needsDeliveryDigits && (
@@ -1106,7 +1123,7 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
               method={advancePaymentMethod}
               currency={advanceCurrency}
               exchangeRate={exchangeRate}
-              remainingUSD={null}
+              remainingUSD={maxAbonoUSD}
               onAdd={(amountUSD) => {
                 const amountInSelectedCurrency =
                   advanceCurrency === "Bs"
