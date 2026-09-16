@@ -41,11 +41,11 @@ export const exportCierrePDF = async (cierre) => {
 
   // --- DYNAMIC BRANCH COLOR PALETTE ---
   const palette = getSucursalPalette(cierre.id_sucursal);
-  const ACCENT = palette.bg;         // e.g. [239, 68, 68]
-  const ACCENT_LIGHT = palette.light;      // e.g. [254, 226, 226]
+  const ACCENT = palette.bg; // e.g. [239, 68, 68]
+  const ACCENT_LIGHT = palette.light; // e.g. [254, 226, 226]
 
   // Static colors
-  const TEXT_DARK = [30, 41, 59];    // slate-800
+  const TEXT_DARK = [30, 41, 59]; // slate-800
   const TEXT_MUTED = [148, 163, 184]; // slate-400
   const SLATE_600 = [71, 85, 105];
   const BG_LIGHT = [248, 250, 252]; // slate-50
@@ -61,20 +61,19 @@ export const exportCierrePDF = async (cierre) => {
 
   const formattedDate = cierre.fecha_hora
     ? new Date(cierre.fecha_hora).toLocaleDateString("es-VE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
     : "—";
 
   const formattedTime = cierre.fecha_hora
     ? new Date(cierre.fecha_hora).toLocaleTimeString("es-VE", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    })
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
     : "—";
-
 
   // ═══════════════════════════════════════════════════════
   // HEADER — Logo + Company info
@@ -108,7 +107,9 @@ export const exportCierrePDF = async (cierre) => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...TEXT_MUTED);
-  doc.text("Sistema de Control Interno y Caja", 196, sucursalDir ? 36 : 31, { align: "right" });
+  doc.text("Sistema de Control Interno y Caja", 196, sucursalDir ? 36 : 31, {
+    align: "right",
+  });
 
   // Divider line (accent colored)
   doc.setDrawColor(...ACCENT);
@@ -255,7 +256,12 @@ export const exportCierrePDF = async (cierre) => {
       0: { fontStyle: "bold", cellWidth: 72 },
       1: { halign: "center", cellWidth: 24 },
       2: { halign: "right", cellWidth: 48 },
-      3: { halign: "right", cellWidth: 38, fontStyle: "bold", textColor: ACCENT },
+      3: {
+        halign: "right",
+        cellWidth: 38,
+        fontStyle: "bold",
+        textColor: ACCENT,
+      },
     },
     styles: {
       fontSize: 9,
@@ -269,6 +275,70 @@ export const exportCierrePDF = async (cierre) => {
     theme: "striped",
   });
 
+  const reembolsos = cierre.reembolsos;
+  if (reembolsos && reembolsos.productos && reembolsos.productos.length > 0) {
+    const lastY = doc.lastAutoTable?.finalY || 178;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...TEXT_DARK);
+    doc.text("REEMBOLSOS DEL DÍA", 14, lastY + 12);
+
+    // Mini-caja de estadísticas
+    const statsY = lastY + 16;
+    doc.setFillColor(...ACCENT_LIGHT);
+    doc.roundedRect(14, statsY, 182, 13, 3, 3, "F");
+    doc.setFontSize(9);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text("Pizzas devueltas:", 20, statsY + 5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...ACCENT);
+    doc.text(String(reembolsos.total_pizzas_devueltas || 0), 48, statsY + 5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text("Total reembolsado (USD):", 20, statsY + 10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...ACCENT);
+    doc.text(fmtMoneyUSD(reembolsos.total_usd), 55, statsY + 10);
+
+    autoTable(doc, {
+      startY: statsY + 18,
+      head: [["Producto / Pizza Devuelta", "Cantidad", "Monto Reembolsado"]],
+      body: reembolsos.productos.map((p) => [
+        p.nombre,
+        String(p.cantidad),
+        fmtMoneyUSD(p.monto),
+      ]),
+      headStyles: {
+        fillColor: ACCENT,
+        textColor: WHITE,
+        fontStyle: "bold",
+        fontSize: 9,
+      },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 120 },
+        1: { halign: "center", cellWidth: 30 },
+        2: {
+          halign: "right",
+          cellWidth: 32,
+          fontStyle: "bold",
+          textColor: ACCENT,
+        },
+      },
+      styles: {
+        fontSize: 9,
+        cellPadding: 4,
+        valign: "middle",
+      },
+      alternateRowStyles: {
+        fillColor: ACCENT_LIGHT,
+      },
+      margin: { left: 14, right: 14 },
+      theme: "striped",
+    });
+  }
+
   // ═══════════════════════════════════════════════════════
   // FOOTER
   // ═══════════════════════════════════════════════════════
@@ -278,12 +348,12 @@ export const exportCierrePDF = async (cierre) => {
   doc.text(
     `Documento generado el ${new Date().toLocaleString("es-VE")} · ${sucursalNombre}`,
     14,
-    285
+    285,
   );
   doc.text("Pág 1 de 1", 196, 285, { align: "right" });
 
   // Save
   doc.save(
-    `Cierre_${sucursalNombre.replace(/\s+/g, "_")}_#${cierre.id_cierre || "N_A"}_${formattedDate.replace(/\//g, "-")}.pdf`
+    `Cierre_${sucursalNombre.replace(/\s+/g, "_")}_#${cierre.id_cierre || "N_A"}_${formattedDate.replace(/\//g, "-")}.pdf`,
   );
 };
