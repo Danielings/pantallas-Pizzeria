@@ -48,7 +48,6 @@ app.use("/api", reportes);
 app.use("/api", combos);
 app.use("/api", dashboardRoutes);
 
-
 cron.schedule("*/30 * * * *", async () => {
   try {
     await actualizarTasaDesdeApi();
@@ -56,8 +55,4 @@ cron.schedule("*/30 * * * *", async () => {
   } catch (error) {
     console.error("Error actualizando la tasa automáticamente:", error);
   }
-});
-
-app.listen(3001, () => {
-  console.log("Escuchandoo, oh oh");
 });

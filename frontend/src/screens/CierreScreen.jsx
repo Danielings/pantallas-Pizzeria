@@ -15,6 +15,7 @@ import {
   Smartphone,
   ShoppingBag,
   RefreshCw,
+  Undo2,
 } from "lucide-react";
 import { exportCierrePDF } from "../utils/pdfCierre";
 
@@ -188,7 +189,8 @@ export default function CierreScreen() {
           monto_pago_movil_bs: Number(desglose_pagos.transferencia_bs || 0),
           total_usdt: Number(total_divisa || 0),
           num_ordenes: Number(total_ordenes || 0),
-          tasa_cambio: Number(tasa || 1)
+          tasa_cambio: Number(tasa || 1),
+          reembolsos: data.reembolsos || null,
         });
       } catch (pdfError) {
         console.error("Error al generar PDF del cierre:", pdfError);
@@ -268,6 +270,7 @@ export default function CierreScreen() {
     propinas,
     desglose_pagos,
     transacciones,
+    reembolsos,
   } = data;
 
   // El donut usa los montos en Bs. para Punto/Transf y USD para Efectivo — comparamos en Bs convertido
@@ -575,6 +578,52 @@ export default function CierreScreen() {
           );
         })}
       </section>
+
+      {/* ── REEMBOLSOS DEL DÍA ── */}
+      {reembolsos?.productos?.length > 0 && (
+        <section className="bg-white border border-red-100 rounded-[32px] p-6 shadow-sm flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shrink-0">
+                <Undo2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-800">
+                  Reembolsos del Día
+                </h3>
+                <p className="text-xs font-semibold text-slate-400">
+                  {reembolsos.cantidad_reembolsos} reembolso
+                  {reembolsos.cantidad_reembolsos !== 1 ? "s" : ""} •{" "}
+                  {reembolsos.total_pizzas_devueltas} pizza
+                  {reembolsos.total_pizzas_devueltas !== 1 ? "s" : ""} devuelta
+                  {reembolsos.total_pizzas_devueltas !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Total reembolsado
+              </p>
+              <p className="text-2xl font-black text-red-500">
+                ${Number(reembolsos.total_usd || 0).toFixed(2)}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {reembolsos.productos.map((p) => (
+              <span
+                key={p.nombre}
+                className="inline-flex items-center gap-2 text-xs bg-red-50 border border-red-100 text-red-700 px-3 py-1.5 rounded-full font-bold"
+              >
+                {p.cantidad}x {p.nombre}
+                <span className="text-red-400 font-semibold">
+                  ${Number(p.monto || 0).toFixed(2)}
+                </span>
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── MODAL DETALLE TRANSACCIONES POR MÉTODO ── */}
       {selectedMethodForModal && (

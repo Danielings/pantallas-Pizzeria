@@ -29,7 +29,7 @@ router.post(
 
 router.post("/completar-venta-pendiente/:id_venta", completarVentaPendiente);
 router.put("/editar-venta", editarVenta);
-router.put("/reembolsar-venta", reembolsarVenta);
+router.put("/reembolsar-venta", verificarToken, reembolsarVenta);
 router.get("/metodos-pagos", obtenerMetodosPago);
 
 router.get("/obtener-ventas-hoy", verificarToken, obtenerVentasHoy);

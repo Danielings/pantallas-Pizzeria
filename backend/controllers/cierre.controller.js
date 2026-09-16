@@ -213,6 +213,67 @@ export const obtenerResumenDia = async (req, res) => {
       return { ...t, pagos };
     });
 
+    // 7. Reembolsos del día (snapshot capturado en reembolsarVenta)
+    const reembolsosHoy = await db.execute({
+      sql: `SELECT monto_total_usd, monto_total_bs, detalles_json
+       FROM reembolsos
+       WHERE DATE(fecha_hora, '-9 hours') = ?
+         AND id_sucursal = ?`,
+      args: [fechaMeta, id_sucursal],
+    });
+
+    let total_reembolsado_usd = 0;
+    let total_reembolsado_bs = 0;
+    let total_pizzas_devueltas = 0;
+    const productosReembolso = new Map();
+
+    for (const row of reembolsosHoy.rows) {
+      total_reembolsado_usd += Number(row.monto_total_usd || 0);
+      total_reembolsado_bs += Number(row.monto_total_bs || 0);
+
+      let detalles = [];
+      try {
+        detalles =
+          typeof row.detalles_json === "string"
+            ? JSON.parse(row.detalles_json)
+            : row.detalles_json || [];
+      } catch (e) {
+        console.error("Error al parsear detalles del reembolso:", e);
+      }
+
+      for (const d of detalles) {
+        const nombre = d.nombre_producto || d.tipo_producto || "Producto";
+        const cantidad = Number(d.cantidad || 0);
+        const monto = Number(d.monto_total || 0);
+        const actual = productosReembolso.get(nombre) || {
+          nombre,
+          cantidad: 0,
+          monto: 0,
+        };
+        actual.cantidad += cantidad;
+        actual.monto += monto;
+        productosReembolso.set(nombre, actual);
+
+        if (d.tipo_producto === "Pizza") {
+          total_pizzas_devueltas += cantidad;
+        }
+      }
+    }
+
+    const reembolsos = {
+      total_usd: Number(total_reembolsado_usd.toFixed(2)),
+      total_bs: Number(total_reembolsado_bs.toFixed(2)),
+      total_pizzas_devueltas,
+      cantidad_reembolsos: reembolsosHoy.rows.length,
+      productos: Array.from(productosReembolso.values())
+        .sort((a, b) => b.cantidad - a.cantidad)
+        .map((p) => ({
+          nombre: p.nombre,
+          cantidad: p.cantidad,
+          monto: Number(p.monto.toFixed(2)),
+        })),
+    };
+
     const resumen = {
       fecha_consulta: dateLabel,
       tasa_cambio,
@@ -230,6 +291,7 @@ export const obtenerResumenDia = async (req, res) => {
       },
       salidas_efectivo,
       transacciones: transaccionesProcesadas,
+      reembolsos,
     };
 
     return res.status(200).json(resumen);

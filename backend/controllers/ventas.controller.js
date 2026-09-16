@@ -596,6 +596,8 @@ export const editarVenta = async (req, res) => {
 //-----Reembolsar venta
 export const reembolsarVenta = async (req, res) => {
   const { id_venta } = req.body;
+  const id_usuario = Number(req.user?.id) || null;
+  const id_sucursal = Number(req.user?.id_sucursal) || null;
 
   if (!id_venta) {
     return res.status(400).json({
@@ -608,6 +610,66 @@ export const reembolsarVenta = async (req, res) => {
   try {
     tx = await db.transaction("write");
 
+    // 1. Snapshot del reembolso ANTES de anular los montos (para el cierre del día)
+    const ventaRows = await tx.execute({
+      sql: `SELECT monto_total_usd, monto_total_bs, tasa_cambio
+            FROM ventas
+            WHERE id_venta = ? AND estado != 'Reembolsado'`,
+      args: [id_venta],
+    });
+
+    if (ventaRows.rows.length === 0) {
+      await tx.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Venta no encontrada o ya fue reembolsada.",
+      });
+    }
+
+    const venta = ventaRows.rows[0];
+
+    const detallesRows = await tx.execute({
+      sql: `SELECT
+              vd.tipo_producto,
+              vd.cantidad,
+              vd.monto_total,
+              COALESCE(p.nombre, b.nombre, h.nombre) AS nombre_producto
+            FROM venta_detalle vd
+            LEFT JOIN pizza      p ON p.id_pizza      = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
+            LEFT JOIN bebidas    b ON b.id_bebida     = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
+            LEFT JOIN heladeria  h ON h.id_heladeria  = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
+            WHERE vd.id_venta = ?`,
+      args: [id_venta],
+    });
+
+    const detallesSnapshot = detallesRows.rows.map((d) => ({
+      tipo_producto: d.tipo_producto,
+      nombre_producto: d.nombre_producto || d.tipo_producto,
+      cantidad: Number(d.cantidad || 0),
+      precio_unitario:
+        Number(d.cantidad || 0) > 0
+          ? Number(d.monto_total || 0) / Number(d.cantidad)
+          : 0,
+      monto_total: Number(d.monto_total || 0),
+    }));
+
+    await tx.execute({
+      sql: `INSERT INTO reembolsos (
+              id_venta, id_usuario, id_sucursal, fecha_hora,
+              tasa_cambio, monto_total_usd, monto_total_bs, detalles_json
+            ) VALUES (?, ?, ?, datetime('now', '-4 hours'), ?, ?, ?, ?)`,
+      args: [
+        Number(id_venta),
+        id_usuario,
+        id_sucursal,
+        Number(venta.tasa_cambio) || null,
+        Number(venta.monto_total_usd || 0),
+        Number(venta.monto_total_bs || 0),
+        JSON.stringify(detallesSnapshot),
+      ],
+    });
+
+    // 2. Anular la venta en el sistema (como antes)
     await tx.execute({
       sql: `UPDATE ventas 
        SET estado = 'Reembolsado', monto_total_usd = 0, monto_total_bs = 0 

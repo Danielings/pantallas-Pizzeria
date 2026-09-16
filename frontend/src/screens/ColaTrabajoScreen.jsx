@@ -14,7 +14,7 @@ import {
   ChevronRight,
   MessageSquare,
   EllipsisVertical,
-  Undo2
+  Undo2,
 } from "lucide-react";
 import OrderEditModal from "../components/cajero/OrderEditModal";
 import ReembolsoModal from "../components/cajero/ReembolsoModal";
@@ -99,9 +99,7 @@ function KpiCard({
   return (
     <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
       <div className="min-w-0">
-        <p className="text-slate-400 font-medium text-sm mb-2">
-          {label}
-        </p>
+        <p className="text-slate-400 font-medium text-sm mb-2">{label}</p>
         <div className="flex items-end gap-2">
           {loading ? (
             <div className="h-9 w-24 bg-slate-100 rounded-md animate-pulse" />
@@ -355,12 +353,13 @@ export default function ColaTrabajoScreen() {
                         (d) => d.nota && d.nota.trim(),
                       )?.nota;
 
-                      const isReembolsable = estadoObj === ESTADO_BADGES.Pendiente;
+                      const isReembolsable =
+                        estadoObj === ESTADO_BADGES.Pendiente;
 
                       return (
                         <tr
                           key={pedido.id_venta}
-                          className={`hover:bg-slate-50/80 transition-colors relative ${openMenuId === pedido.id_venta ? 'z-50' : 'z-0'}`}
+                          className={`hover:bg-slate-50/80 transition-colors relative ${openMenuId === pedido.id_venta ? "z-50" : "z-0"}`}
                         >
                           {/* Pedido # + Tiempo */}
                           <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5 whitespace-nowrap">
@@ -443,53 +442,63 @@ export default function ColaTrabajoScreen() {
 
                           {/* Acciones */}
                           <td className="py-4 px-6 text-center whitespace-nowrap relative">
-                            <div className="relative inline-block text-left" ref={menuRef}>
-                            <button
-                              onClick={() => setOpenMenuId(openMenuId === pedido.id_venta ? null : pedido.id_venta)}
-                              className="p-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-all cursor-pointer shadow-sm"
+                            <div
+                              className="relative inline-block text-left"
+                              ref={menuRef}
                             >
-                              <EllipsisVertical className="w-4 h-4" />
-                            </button>
+                              <button
+                                onClick={() =>
+                                  setOpenMenuId(
+                                    openMenuId === pedido.id_venta
+                                      ? null
+                                      : pedido.id_venta,
+                                  )
+                                }
+                                className="p-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-all cursor-pointer shadow-sm"
+                              >
+                                <EllipsisVertical className="w-4 h-4" />
+                              </button>
 
-                            {/* Dropdown Menu */}
-                            {openMenuId === pedido.id_venta && (
-                              <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95">
-                                <div className="py-1">
-                                  <button
-                                    onClick={() => {
-                                      setEditState({ pedido: JSON.parse(JSON.stringify(pedido)), displayNum: num });
-                                      setOpenMenuId(null);
-                                    }}  
-                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
-                                  >
-                                    <Edit3 className="w-4 h-4 text-slate-400" />
-                                    Editar Pedido
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      if (!isReembolsable) return; // Bloquea la acción
-                                      setReembolsoState({ pedido: JSON.parse(JSON.stringify(pedido)), displayNum: num });
-                                      setOpenMenuId(null);
+                              {/* Dropdown Menu */}
+                              {openMenuId === pedido.id_venta && (
+                                <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95">
+                                  <div className="py-1">
+                                    <button
+                                      onClick={() => {
+                                        setEditState({
+                                          pedido: JSON.parse(
+                                            JSON.stringify(pedido),
+                                          ),
+                                          displayNum: num,
+                                        });
+                                        setOpenMenuId(null);
                                       }}
-                                      disabled={!isReembolsable}
-                                      title={
-                                      isReembolsable
-                                      ? "Procesar reembolso de este pedido"
-                                      : `No disponible: el pedido está en estado "${estadoObj.label.trim()}"`
-                                      }
-                                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors border-t border-slate-100 ${
-                                      isReembolsable
-                                      ? "text-red-600 hover:bg-red-50 cursor-pointer"
-                                      : "text-slate-300 cursor-not-allowed opacity-50"
-                                      }`}
+                                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                                     >
-                                    <Undo2 className={`w-4 h-4 ${isReembolsable ? "text-red-400" : "text-slate-300"}`} />
-                                    <span>Reembolso</span>
-                                  </button>
+                                      <Edit3 className="w-4 h-4 text-slate-400" />
+                                      Editar Pedido
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        setReembolsoState({
+                                          pedido: JSON.parse(
+                                            JSON.stringify(pedido),
+                                          ),
+                                          displayNum: num,
+                                        });
+                                        setOpenMenuId(null);
+                                      }}
+                                      title="Procesar reembolso de este pedido"
+                                      className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors border-t border-slate-100 text-red-600 hover:bg-red-50 cursor-pointer"
+                                    >
+                                      <Undo2 className="w-4 h-4 text-red-400" />
+                                      <span>Reembolso</span>
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

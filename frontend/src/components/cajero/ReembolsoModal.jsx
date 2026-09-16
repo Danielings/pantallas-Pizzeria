@@ -15,6 +15,7 @@ export default function ReembolsoModal({ pedido = {}, displayNum, onClose }) {
       const res = await fetch("http://localhost:3001/api/reembolsar-venta", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ id_venta: safePedido.id_venta }),
       });
 
