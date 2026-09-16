@@ -56,3 +56,7 @@ cron.schedule("*/30 * * * *", async () => {
     console.error("Error actualizando la tasa automáticamente:", error);
   }
 });
+
+app.listen(3001, () => {
+  console.log("Escuchandoo, oh oh");
+});
