@@ -7,6 +7,7 @@ import {
   useEffect,
 } from "react";
 import { MOCK_SALES } from "../data/mockData";
+import { tieneExtrasGratis } from "../utils/extrasPrecio";
 
 const AppContext = createContext(null);
 
@@ -97,11 +98,13 @@ const normalizeRole = (role) => {
   return roleMap[normalized] || normalized;
 };
 
-const calculateItemPrice = (basePrice, size, extras = []) => {
+const calculateItemPrice = (basePrice, size, extras = [], nombreProducto = "") => {
   let multiplier = 1;
   if (size === "Mediana") multiplier = 1.3;
   if (size === "Familiar") multiplier = 1.6;
-  const extrasCost = extras.reduce((sum, e) => sum + e.price, 0);
+  const extrasCost = tieneExtrasGratis(nombreProducto)
+    ? 0
+    : extras.reduce((sum, e) => sum + e.price, 0);
   return basePrice * multiplier + extrasCost;
 };
 
@@ -132,7 +135,7 @@ function reducer(state, action) {
           product.id ?? product.id_helado ?? product.id_heladeria,
         name: product.name,
         basePrice: product.price,
-        price: calculateItemPrice(product.price, size || null, []),
+        price: calculateItemPrice(product.price, size || null, [], product.name),
         size: size || null,
         qty: 1,
         extras: [],
@@ -168,6 +171,7 @@ function reducer(state, action) {
             item.basePrice,
             action.payload.size,
             item.extras,
+            item.name,
           ),
         };
       });
@@ -187,7 +191,7 @@ function reducer(state, action) {
           id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           qty: 1,
           extras,
-          price: calculateItemPrice(item.basePrice, item.size, extras),
+          price: calculateItemPrice(item.basePrice, item.size, extras, item.name),
         };
         const newItems = [...state.currentOrder.items];
         newItems.splice(itemIndex, 1, originalItem, newItem);
@@ -201,7 +205,7 @@ function reducer(state, action) {
           return {
             ...i,
             extras,
-            price: calculateItemPrice(i.basePrice, i.size, extras),
+            price: calculateItemPrice(i.basePrice, i.size, extras, i.name),
           };
         });
         return { ...state, currentOrder: { ...state.currentOrder, items } };
