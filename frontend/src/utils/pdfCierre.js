@@ -3,14 +3,33 @@ import autoTable from "jspdf-autotable";
 import logoImg from "../assets/login/logo.png";
 import { getSucursalPalette } from "../components/admin/CierresAdminScreen";
 
-// Helper to load image as a Promise
-const loadImage = (src) => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
+const MAX_LOGO_PX = 220;
+
+const loadImageDownscaled = async (src) => {
+  const img = await new Promise((resolve) => {
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = () => resolve(null);
+    im.src = src;
   });
+  if (!img) return null;
+  try {
+    const scale = Math.min(
+      MAX_LOGO_PX / (img.naturalWidth || 1),
+      MAX_LOGO_PX / (img.naturalHeight || 1),
+      1,
+    );
+    const w = Math.max(1, Math.round((img.naturalWidth || 1) * scale));
+    const h = Math.max(1, Math.round((img.naturalHeight || 1) * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
 };
 
 export const exportCierrePDF = async (cierre) => {
@@ -20,8 +39,8 @@ export const exportCierrePDF = async (cierre) => {
     format: "a4",
   });
 
-  // Load the logo image
-  const img = await loadImage(logoImg);
+  // Load & downscale the logo image
+  const logoDataUrl = await loadImageDownscaled(logoImg);
 
   // Deduce or fallback rate
   let tasa = cierre.tasa_cambio;
@@ -78,8 +97,8 @@ export const exportCierrePDF = async (cierre) => {
   // ═══════════════════════════════════════════════════════
   // HEADER — Logo + Company info
   // ═══════════════════════════════════════════════════════
-  if (img) {
-    doc.addImage(img, "PNG", 14, 13, 30, 30);
+  if (logoDataUrl) {
+    doc.addImage(logoDataUrl, "PNG", 14, 13, 30, 30);
   }
 
   // Company name
