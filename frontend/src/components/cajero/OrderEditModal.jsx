@@ -11,9 +11,12 @@ import {
   MapPin,
   ChevronRight,
   ArrowLeftRight,
+  Package,
+  Trash2,
 } from "lucide-react";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 import { useProducts, useExtras } from "../../hooks/useProducts";
+import { useApp } from "../../context/AppContext";
 
 import ProcesarPagoModal from "./ProcesarPagoModal";
 
@@ -50,6 +53,7 @@ const SIZE_TO_CATEGORY = {
 export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
   const safePedido = pedido ?? {};
   const { exchangeRate } = useExchangeRate();
+  const { boxPrice } = useApp();
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -119,6 +123,28 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
     () => safePedidoDetalles.find((d) => d.nota?.trim())?.nota ?? "",
   );
 
+  // ── Estado de Cajas ──────────────────────────────────────────────────────
+  const [cantidadCajasAñadir, setCantidadCajasAñadir] = useState(1);
+
+  // Detección inteligente: si el pedido original era para Llevar o Delivery,
+  // calcular cajas preexistentes comparando monto_total_usd con la suma de detalles
+  const [cajasAgregadas, setCajasAgregadas] = useState(() => {
+    const despachoOriginal = safePedido.despacho ?? "Local";
+    if (despachoOriginal === "Llevar" || despachoOriginal === "Delivery") {
+      const baseDetallesTotal = safePedidoDetalles.reduce(
+        (s, d) => s + (parseFloat(d.monto_total) || 0),
+        0,
+      );
+      const origTotal = parseFloat(safePedido.monto_total_usd) || 0;
+      const safeBoxPrice = boxPrice || 1;
+      return Math.max(
+        0,
+        Math.round((origTotal - baseDetallesTotal) / safeBoxPrice),
+      );
+    }
+    return 0;
+  });
+
   const recalcTotal = (item, unitPrice, extras) => {
     const safeExtras = extras || [];
     const eSum = safeExtras.reduce((s, e) => s + (e.price ?? e.precio ?? 0), 0);
@@ -166,12 +192,22 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
     );
   };
 
+  // ── Despacho ─────────────────────────────────────────────────────────────
+  const [localDespacho, setLocalDespacho] = useState(
+    safePedido.despacho ?? "Local",
+  );
+
+  const DespachoIcon = DESPACHO_ICON[localDespacho] ?? Truck;
+  const nextDespacho = DESPACHO_NEXT[localDespacho];
+
   // ── Totales ───────────────────────────────────────────────────────────────
   const originalTotal = safePedido.monto_total_usd ?? 0;
-  const newTotal = useMemo(
+  const totalDetalles = useMemo(
     () => localDetalles.reduce((s, d) => s + (d.monto_total || 0), 0),
     [localDetalles],
   );
+  const totalCajas = localDespacho === "Llevar" ? cajasAgregadas * boxPrice : 0;
+  const newTotal = totalDetalles + totalCajas;
   const diff = newTotal - originalTotal;
 
   const paymentItems = (localDetalles || []).map((item) => ({
@@ -191,14 +227,6 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
   // ── NUEVO: Lógica de Guardado e Intercepción de Pago ──────────────────────
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // ── Despacho ─────────────────────────────────────────────────────────────
-  const [localDespacho, setLocalDespacho] = useState(
-    safePedido.despacho ?? "Local",
-  );
-
-  const DespachoIcon = DESPACHO_ICON[localDespacho] ?? Truck;
-  const nextDespacho = DESPACHO_NEXT[localDespacho];
-
   if (!safePedido || !safePedido.id_venta) {
     return null;
   }
@@ -216,17 +244,38 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
   const ejecutarGuardadoBD = async (datosPago = null) => {
     setIsSaving(true);
     try {
-      const detallesParaBackend = (localDetalles || []).map((item, index) => ({
-        id_detalle: item.id_detalle,
-        tipo_producto: item.tipo_producto,
-        id_producto_origen: item.id_producto_origen,
-        cantidad: item.cantidad,
-        monto_total: Number((item.monto_total || 0).toFixed(2)),
-        nota: index === 0 ? observacion : item.nota || "",
-        extras: (item.extras || []).map((extra) =>
-          Number(extra.id_extras ?? extra.id ?? 0),
-        ),
-      }));
+      // Solo enviar productos válidos (Pizza, Bebida, Helado) para evitar errores 400
+      const tiposValidos = new Set(["Pizza", "Bebida", "Helado"]);
+
+      // Construir nota con info de cajas si aplica
+      let notaFinal = observacion;
+      if (localDespacho === "Llevar" && cajasAgregadas > 0) {
+        const cajaNota = `[+${cajasAgregadas} Caja(s) para llevar]`;
+        // Evitar duplicar la nota de cajas si ya existe
+        const notaSinCajas = notaFinal
+          .replace(/\s*\[\+\d+ Caja\(s\) para llevar\]/g, "")
+          .trim();
+        notaFinal = notaSinCajas ? `${notaSinCajas} ${cajaNota}` : cajaNota;
+      } else {
+        // Limpiar nota de cajas si ya no aplica
+        notaFinal = notaFinal
+          .replace(/\s*\[\+\d+ Caja\(s\) para llevar\]/g, "")
+          .trim();
+      }
+
+      const detallesParaBackend = (localDetalles || [])
+        .filter((item) => tiposValidos.has(item.tipo_producto))
+        .map((item, index) => ({
+          id_detalle: item.id_detalle,
+          tipo_producto: item.tipo_producto,
+          id_producto_origen: item.id_producto_origen,
+          cantidad: item.cantidad,
+          monto_total: Number((item.monto_total || 0).toFixed(2)),
+          nota: index === 0 ? notaFinal : item.nota || "",
+          extras: (item.extras || []).map((extra) =>
+            Number(extra.id_extras ?? extra.id ?? 0),
+          ),
+        }));
 
       const payload = {
         id_venta: safePedido.id_venta,
@@ -693,6 +742,90 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
                       </div>
                     );
                   })}
+
+                  {/* ── BLOQUE DE COBRO DE CAJAS ─────────────────────────────── */}
+                  <div
+                    className={`rounded-2xl border-2 border-dashed p-4 transition-all ${
+                      localDespacho === "Llevar"
+                        ? "border-slate-300 bg-white"
+                        : "border-slate-200 bg-slate-50 opacity-50 pointer-events-none select-none"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      {/* Icono + Texto */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-pizza-red/10 flex items-center justify-center shrink-0">
+                          <Package className="w-5 h-5 text-pizza-red" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-800 text-sm">
+                            Agregar caja
+                          </span>
+                          <span className="text-slate-400 text-xs font-semibold ml-2">
+                            ${Number(boxPrice || 0).toFixed(2)}
+                          </span>
+                          {cajasAgregadas > 0 && (
+                            <span className="ml-2 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              {cajasAgregadas} cajas
+                              {/* {cajasAgregadas > 1 ? "s" : ""} */}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Control + Botón */}
+                      <div className="flex items-center gap-3 ml-auto">
+                        {/* Incrementador */}
+                        <div className="flex items-center bg-slate-100 rounded-xl overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCantidadCajasAñadir((v) => Math.max(1, v - 1))
+                            }
+                            className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-200 font-black transition-colors cursor-pointer text-lg leading-none"
+                          >
+                            −
+                          </button>
+                          <span className="w-8 text-center text-sm font-black text-slate-800">
+                            {cantidadCajasAñadir}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCantidadCajasAñadir((v) => v + 1)}
+                            className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-200 font-black transition-colors cursor-pointer text-lg leading-none"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        {/* Botón Eliminar cajas (solo si hay cajas añadidas) */}
+                        {cajasAgregadas > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setCajasAgregadas(0)}
+                            title="Eliminar cajas añadidas"
+                            className="w-8 h-8 flex items-center justify-center rounded-xl text-red-400 hover:text-white hover:bg-red-500 border-2 border-red-200 hover:border-red-500 transition-all cursor-pointer shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* Botón Añadir */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCajasAgregadas(
+                              (prev) => prev + cantidadCajasAñadir,
+                            );
+                            setCantidadCajasAñadir(1);
+                          }}
+                          className="text-sm font-extrabold text-pizza-red hover:text-white hover:bg-pizza-red border-2 border-pizza-red/30 hover:border-pizza-red px-4 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                        >
+                          Añadir
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
