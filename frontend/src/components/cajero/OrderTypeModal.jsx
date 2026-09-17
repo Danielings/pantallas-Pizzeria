@@ -620,10 +620,7 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div
           className="bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto"
@@ -1145,6 +1142,15 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
               >
                 <ChevronLeft className="w-5 h-5" />
                 Atrás
+              </button>
+            )}
+
+            {step === 1 && (
+              <button
+                onClick={onClose}
+                className="px-5 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+              >
+                Cancelar
               </button>
             )}
 

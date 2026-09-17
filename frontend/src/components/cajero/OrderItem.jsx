@@ -76,10 +76,7 @@ function ExtrasModal({ item, onClose, onSave }) {
   const extrasIncluidos = tieneExtrasGratis(item.name);
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-white/70 backdrop-blur-sm"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-white/70 backdrop-blur-sm">
       <div
         className="modal-content p-6 w-full max-w-md flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
