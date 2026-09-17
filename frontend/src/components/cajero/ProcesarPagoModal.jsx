@@ -5,6 +5,7 @@ import {
   Smartphone,
   Banknote,
   CreditCard,
+  Coins,
   CheckCircle2,
   ChevronRight,
   AlertCircle,
@@ -34,6 +35,14 @@ const PAYMENT_METHODS = [
     icon: CreditCard,
     color: "text-purple-400",
     bg: "bg-purple-400/10 border-purple-400/30 hover:border-purple-400",
+    reqRef: false,
+  },
+  {
+    id: "binance",
+    label: "Binance/Zelle",
+    icon: Coins,
+    color: "text-amber-400",
+    bg: "bg-amber-400/10 border-amber-400/30 hover:border-amber-400",
     reqRef: false,
   },
 ];
@@ -269,7 +278,9 @@ export default function ProcesarPagoModal({
                             ? "Punto de venta"
                             : method.id === "cash"
                               ? "Pago en efectivo"
-                              : "Pago móvil rápido"}
+                              : method.id === "binance"
+                                ? "Binance / Zelle"
+                                : "Pago móvil rápido"}
                         </p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-400" />

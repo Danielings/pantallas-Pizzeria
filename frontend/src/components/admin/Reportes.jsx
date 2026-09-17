@@ -26,6 +26,7 @@ import {
   AlertCircle,
   Banknote,
   Smartphone,
+  Coins,
   Wallet,
   Pizza,
   IceCream,
@@ -176,6 +177,10 @@ const PAGO_ICONS = {
   "Pago Móvil": {
     icon: Smartphone,
     cls: "text-violet-600 bg-violet-50 border-violet-100",
+  },
+  "Binance/Zelle": {
+    icon: Coins,
+    cls: "text-amber-600 bg-amber-50 border-amber-100",
   },
 };
 
@@ -824,6 +829,7 @@ export default function Reportes() {
                       <th className="text-right px-4 py-3">Ef. Bs</th>
                       <th className="text-right px-4 py-3">Punto Bs</th>
                       <th className="text-right px-4 py-3">Pago Móvil Bs</th>
+                      <th className="text-right px-4 py-3">Binance USD</th>
                       <th className="text-right px-4 py-3">Órdenes</th>
                       <th className="text-right px-4 py-3">Total USD</th>
                     </tr>
@@ -874,6 +880,9 @@ export default function Reportes() {
                           <td className="px-4 py-3 text-right font-mono text-violet-700 font-bold">
                             {fmtBs(c.monto_pago_movil_bs)}
                           </td>
+                          <td className="px-4 py-3 text-right font-mono text-amber-700 font-bold">
+                            {fmtUSD(c.monto_binance_usd)}
+                          </td>
                           <td className="px-4 py-3 text-right text-slate-700 font-bold">
                             {c.num_ordenes || 0}
                           </td>
@@ -906,6 +915,9 @@ export default function Reportes() {
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-violet-700">
                           {fmtBs(resumen.pago_movil_bs)}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-amber-700">
+                          {fmtUSD(resumen.binance_usd || 0)}
                         </td>
                         <td className="px-4 py-3 text-right text-slate-800 font-extrabold">
                           {resumen.total_ordenes}

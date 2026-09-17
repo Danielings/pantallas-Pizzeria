@@ -110,7 +110,9 @@ export default function PendingNotifications() {
             ? "mobile"
             : payment.metodo === "Efectivo"
               ? "cash"
-              : "pos",
+              : /binance|zelle/i.test(payment.metodo || "")
+                ? "binance"
+                : "pos",
         label: payment.metodo,
         amount:
           payment.monto_usd > 0

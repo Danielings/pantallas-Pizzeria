@@ -800,6 +800,19 @@ export default function CierresAdminScreen() {
                       ).toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
+
+                  {/* Binance/Zelle USD */}
+                  <div className="flex items-center justify-between p-3 text-sm">
+                    <span className="text-slate-600 font-medium">
+                      Binance / Zelle
+                    </span>
+                    <span className="font-bold text-amber-600">
+                      USD{" "}
+                      {Number(
+                        selectedCierre.monto_binance_usd || 0,
+                      ).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
               </div>
 

@@ -125,6 +125,7 @@ export const obtenerResumenDia = async (req, res) => {
     let efectivo_bs = 0;
     let punto_de_venta_bs = 0;
     let transferencia_bs = 0;
+    let binance_usd = 0;
 
     // Iteramos sobre pagosHoy.rows
     pagosHoy.rows.forEach((p) => {
@@ -139,6 +140,8 @@ export const obtenerResumenDia = async (req, res) => {
         }
       } else if (metodo.includes("punto") || metodo.includes("tarjeta")) {
         punto_de_venta_bs += Number(p.total_bs);
+      } else if (metodo.includes("binance") || metodo.includes("zelle")) {
+        binance_usd += Number(p.total_usd);
       } else {
         transferencia_bs += Number(p.total_bs);
       }
@@ -165,6 +168,7 @@ export const obtenerResumenDia = async (req, res) => {
     const total_divisa = Number(
       (
         efectivo_usd +
+        binance_usd +
         efectivo_bs_en_usd +
         punto_de_venta_en_usd +
         transferencia_en_usd
@@ -288,6 +292,7 @@ export const obtenerResumenDia = async (req, res) => {
         efectivo_bs,
         punto_de_venta_bs,
         transferencia_bs,
+        binance_usd,
       },
       salidas_efectivo,
       transacciones: transaccionesProcesadas,
@@ -308,6 +313,7 @@ export const cerrarCaja = async (req, res) => {
     monto_efectivo_bs,
     monto_punto_bs,
     monto_pago_movil_bs,
+    monto_binance_usd,
     total_usdt,
     num_ordenes,
   } = req.body;
@@ -369,16 +375,18 @@ export const cerrarCaja = async (req, res) => {
               monto_efectivo_bs,
               monto_punto_bs,
               monto_pago_movil_bs,
+              monto_binance_usd,
               total_usdt,
               num_ordenes,
               id_sucursal
-            ) VALUES (?, datetime('now', '-4 hours'), ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, datetime('now', '-4 hours'), ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         usuarioEjecutor,
         Number(monto_efectivo_usd || 0),
         Number(monto_efectivo_bs || 0),
         Number(monto_punto_bs || 0),
         Number(monto_pago_movil_bs || 0),
+        Number(monto_binance_usd || 0),
         Number(total_usdt || 0),
         Number(num_ordenes || 0),
         Number(id_sucursal || 0),

@@ -263,6 +263,12 @@ export const exportCierrePDF = async (cierre) => {
         fmtMoneyBs(cierre.monto_pago_movil_bs),
         tasa > 0 ? fmtMoneyUSD(cierre.monto_pago_movil_bs / tasa) : "—",
       ],
+      [
+        "Binance / Zelle (USD)",
+        "USD ($)",
+        fmtMoneyUSD(cierre.monto_binance_usd),
+        fmtMoneyUSD(cierre.monto_binance_usd),
+      ],
     ],
     headStyles: {
       fillColor: ACCENT,

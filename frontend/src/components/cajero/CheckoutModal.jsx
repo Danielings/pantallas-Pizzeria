@@ -7,6 +7,7 @@ import {
   Smartphone,
   Banknote,
   CreditCard,
+  Coins,
   CheckCircle2,
   ChevronRight,
   AlertCircle,
@@ -36,6 +37,13 @@ const PAYMENT_METHODS = [
     icon: CreditCard,
     color: "text-purple-500",
     bg: "bg-purple-50 border-purple-200 hover:border-purple-400",
+  },
+  {
+    id: "binance",
+    label: "Binance/Zelle",
+    icon: Coins,
+    color: "text-amber-500",
+    bg: "bg-amber-50 border-amber-200 hover:border-amber-400",
   },
 ];
 
@@ -90,7 +98,9 @@ export default function CheckoutModal({ onClose }) {
                   ? "Efectivo (abono)"
                   : ctxAdvancePaymentMethod === "pos"
                     ? "Punto de Venta (abono)"
-                    : "Abono previo",
+                    : ctxAdvancePaymentMethod === "binance"
+                      ? "Binance/Zelle (abono)"
+                      : "Abono previo",
             amount: ctxAdvanceAmount,
             currency: ctxAdvanceCurrency,
           },
@@ -182,6 +192,8 @@ export default function CheckoutModal({ onClose }) {
         return "Efectivo";
       case "mobile":
         return "Pago_Movil";
+      case "binance":
+        return "Binance/Zelle";
       case "advance":
         return "Abono";
       default:
