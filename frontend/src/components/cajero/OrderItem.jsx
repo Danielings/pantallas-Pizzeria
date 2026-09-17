@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { useApp } from "../../context/AppContext";
+import { tieneExtrasGratis } from "../../utils/extrasPrecio";
 import { Minus, Plus, Trash2, ChevronDown, Edit3 } from "lucide-react";
 
 const SIZE_OPTIONS = ["Normal", "Familiar", "Gigante"];
@@ -71,10 +73,15 @@ function ExtrasModal({ item, onClose, onSave }) {
     onClose();
   };
 
-  return (
-    <div className="modal-backdrop -translate-y-10" onClick={onClose}>
+  const extrasIncluidos = tieneExtrasGratis(item.name);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-white/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
-        className="modal-content p-6 w-96 max-h-[80vh] overflow-y-auto"
+        className="modal-content p-6 w-full max-w-md flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-bold mb-1 text-pizza-dark">Personalizar</h3>
@@ -82,7 +89,13 @@ function ExtrasModal({ item, onClose, onSave }) {
           {item.name} {item.size ? `(${item.size})` : ""}
         </p>
 
-        <div className="flex flex-col gap-2 mb-5">
+        {extrasIncluidos && (
+          <p className="text-emerald-600 text-xs font-medium mb-3">
+            Los extras de esta pizza están incluidos.
+          </p>
+        )}
+
+        <div className="flex flex-col gap-2 mb-5 flex-1 min-h-0 overflow-y-auto">
           {isLoading ? (
             <div className="text-center text-sm text-pizza-muted py-4 animate-pulse">
               Cargando extras...
@@ -110,7 +123,9 @@ function ExtrasModal({ item, onClose, onSave }) {
                     className={`text-xs font-semibold ${isSelected ? "text-pizza-red" : ""}`}
                   >
                     {/* Usamos 'price' tal cual viene de tu tabla */}
-                    +${Number(extra.price).toFixed(2)}
+                    {extrasIncluidos
+                      ? "Incluido"
+                      : `+$${Number(extra.price).toFixed(2)}`}
                   </span>
                 </button>
               );
@@ -118,20 +133,21 @@ function ExtrasModal({ item, onClose, onSave }) {
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <button onClick={onClose} className="btn-secondary flex-1">
-            Cancelar
+            Cerrar
           </button>
           <button
             onClick={handleSave}
             className="btn-primary flex-1"
             disabled={isLoading}
           >
-            Guardar
+            Aceptar
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

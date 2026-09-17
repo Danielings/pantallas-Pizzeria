@@ -4,14 +4,17 @@ import { useProducts, useExtras } from "../../hooks/useProducts";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 import { useKitchenOrders } from "../../hooks/useKitchenOrders";
 import PaymentEntryModal from "./PaymentEntryModal";
+import { tieneExtrasGratis } from "../../utils/extrasPrecio";
 
 const SIZE_OPTIONS = ["Normal", "Familiar", "Gigante"];
 
-const calculateItemPrice = (basePrice, size, extras = []) => {
+const calculateItemPrice = (basePrice, size, extras = [], nombreProducto = "") => {
   let multiplier = 1;
   if (size === "Familiar") multiplier = 1.3;
   if (size === "Gigante") multiplier = 1.6;
-  const extrasCost = extras.reduce((sum, e) => sum + e.price, 0);
+  const extrasCost = tieneExtrasGratis(nombreProducto)
+    ? 0
+    : extras.reduce((sum, e) => sum + e.price, 0);
   return basePrice * multiplier + extrasCost;
 };
 
@@ -70,13 +73,19 @@ export default function OrderPaymentAdjustmentModal({
     const product = findProductByName(item.name);
     const price =
       item.price ||
-      calculateItemPrice(product?.price || 0, item.size, item.extras || []);
+      calculateItemPrice(
+        product?.price || 0,
+        item.size,
+        item.extras || [],
+        item.name,
+      );
     return sum + price * item.qty;
   }, 0);
   const pizzaTotal = pizzaItems.reduce(
     (sum, item) =>
       sum +
-      calculateItemPrice(item.basePrice, item.size, item.extras) * item.qty,
+      calculateItemPrice(item.basePrice, item.size, item.extras, item.name) *
+        item.qty,
     0,
   );
   const newTotal = fixedTotal + pizzaTotal;
@@ -102,7 +111,12 @@ export default function OrderPaymentAdjustmentModal({
       productId: product.id,
       name: product.name,
       basePrice: product.price,
-      price: calculateItemPrice(product.price, selectedSize, selectedExtras),
+      price: calculateItemPrice(
+        product.price,
+        selectedSize,
+        selectedExtras,
+        product.name,
+      ),
       size: selectedSize,
       qty: selectedQty,
       extras: selectedExtras,
@@ -138,6 +152,7 @@ export default function OrderPaymentAdjustmentModal({
             updated.basePrice,
             updated.size,
             updated.extras || item.extras,
+            updated.name,
           );
         }
         return updated;
