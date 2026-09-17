@@ -44,9 +44,16 @@ const ROLE_CONFIG = {
     iconBg: "bg-amber-500",
     textColor: "text-amber-500",
   },
+  cashierdelivery: {
+    label: "Caja Delivery",
+    color: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+    bgCard: "bg-blue-50/70 border-blue-100/80",
+    iconBg: "bg-blue-500",
+    textColor: "text-blue-500",
+  },
 };
 
-const ROLES = ["cashier", "chef", "mesero", "despachador"];
+const ROLES = ["cashier", "chef", "mesero", "despachador", "cashierdelivery"];
 const EMPTY_ARRAY = [];
 
 export default function StaffManagement() {
@@ -90,7 +97,13 @@ export default function StaffManagement() {
   }, [safeStaff, searchBranch, searchRole]);
 
   const metrics = useMemo(() => {
-    const counts = { cashier: 0, chef: 0, mesero: 0, despachador: 0 };
+    const counts = {
+      cashier: 0,
+      chef: 0,
+      mesero: 0,
+      despachador: 0,
+      cashierdelivery: 0,
+    };
     // Only count active users in metrics
     safeStaff
       .filter((s) => s.estado === "Activo")
