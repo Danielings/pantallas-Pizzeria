@@ -7,6 +7,7 @@ import {
   Smartphone,
   Banknote,
   CreditCard,
+  Coins,
   CheckCircle2,
   ChevronRight,
   AlertCircle,
@@ -33,6 +34,13 @@ const PAYMENT_METHODS = [
     icon: CreditCard,
     color: "text-purple-400",
     bg: "bg-purple-400/10 border-purple-400/30 hover:border-purple-400",
+  },
+  {
+    id: "binance",
+    label: "Binance/Zelle",
+    icon: Coins,
+    color: "text-amber-400",
+    bg: "bg-amber-400/10 border-amber-400/30 hover:border-amber-400",
   },
 ];
 

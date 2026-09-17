@@ -10,6 +10,7 @@ import {
   Banknote,
   Smartphone,
   CreditCard,
+  Coins,
   Phone,
   Clock,
 } from "lucide-react";
@@ -57,6 +58,16 @@ const PAYMENT_METHODS = [
     colorBar: "bg-emerald-500",
     colorLight: "bg-emerald-50/70",
     colorBorder: "border-emerald-100/80",
+  },
+  {
+    metodo: "Binance/Zelle",
+    label: "Binance/Zelle",
+    icon: Coins,
+    colorText: "text-amber-500",
+    colorBg: "bg-amber-100",
+    colorBar: "bg-amber-500",
+    colorLight: "bg-amber-50/70",
+    colorBorder: "border-amber-100/80",
   },
 ];
 

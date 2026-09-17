@@ -22,6 +22,7 @@ import {
   IdCard,
   Smartphone,
   Banknote,
+  Coins,
 } from "lucide-react";
 
 // ─── Configuración estática ───────────────────────────────────────────────────
@@ -112,6 +113,13 @@ const PAYMENT_METHODS = [
     icon: CreditCard,
     color: "text-purple-500",
     bg: "bg-purple-50 border-purple-200 hover:border-purple-400",
+  },
+  {
+    id: "binance",
+    label: "Binance/Zelle",
+    icon: Coins,
+    color: "text-amber-500",
+    bg: "bg-amber-50 border-amber-200 hover:border-amber-400",
   },
 ];
 
@@ -306,6 +314,8 @@ export default function OrderTypeModal({ onConfirm, onClose, pendingProduct }) {
         return "Efectivo";
       case "mobile":
         return "Pago_Movil";
+      case "binance":
+        return "Binance/Zelle";
       default:
         return method;
     }

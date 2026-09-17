@@ -13,6 +13,7 @@ import {
   Calendar,
   CreditCard,
   Smartphone,
+  Coins,
   ShoppingBag,
   RefreshCw,
   Undo2,
@@ -169,6 +170,7 @@ export default function CierreScreen() {
           monto_efectivo_bs: Number(desglose_pagos.efectivo_bs || 0),
           monto_punto_bs: Number(desglose_pagos.punto_de_venta_bs || 0),
           monto_pago_movil_bs: Number(desglose_pagos.transferencia_bs || 0),
+          monto_binance_usd: Number(desglose_pagos.binance_usd || 0),
           total_usdt: Number(total_divisa || 0),
           num_ordenes: Number(total_ordenes || 0),
         },
@@ -187,6 +189,7 @@ export default function CierreScreen() {
           monto_efectivo_bs: Number(desglose_pagos.efectivo_bs || 0),
           monto_punto_bs: Number(desglose_pagos.punto_de_venta_bs || 0),
           monto_pago_movil_bs: Number(desglose_pagos.transferencia_bs || 0),
+          monto_binance_usd: Number(desglose_pagos.binance_usd || 0),
           total_usdt: Number(total_divisa || 0),
           num_ordenes: Number(total_ordenes || 0),
           tasa_cambio: Number(tasa || 1),
@@ -277,7 +280,9 @@ export default function CierreScreen() {
   const tasa = data.tasa_cambio || 1;
   const pvUSD = tasa > 0 ? desglose_pagos.punto_de_venta_bs / tasa : 0;
   const trUSD = tasa > 0 ? desglose_pagos.transferencia_bs / tasa : 0;
-  const totalMetodosUSD = desglose_pagos.efectivo_usd + pvUSD + trUSD;
+  const bnUSD = Number(desglose_pagos.binance_usd || 0);
+  const totalMetodosUSD =
+    desglose_pagos.efectivo_usd + pvUSD + trUSD + bnUSD;
   const pctEfectivo =
     totalMetodosUSD > 0
       ? Math.round((desglose_pagos.efectivo_usd / totalMetodosUSD) * 100)
@@ -286,6 +291,8 @@ export default function CierreScreen() {
     totalMetodosUSD > 0 ? Math.round((pvUSD / totalMetodosUSD) * 100) : 0;
   const pctTransferencia =
     totalMetodosUSD > 0 ? Math.round((trUSD / totalMetodosUSD) * 100) : 0;
+  const pctBinance =
+    totalMetodosUSD > 0 ? Math.round((bnUSD / totalMetodosUSD) * 100) : 0;
 
   // Donut SVG
   const R = 40;
@@ -293,8 +300,10 @@ export default function CierreScreen() {
   const dashEfectivo = (pctEfectivo / 100) * C;
   const dashTarjeta = (pctTarjeta / 100) * C;
   const dashTransf = (pctTransferencia / 100) * C;
+  const dashBinance = (pctBinance / 100) * C;
   const offTarjeta = C - dashEfectivo;
   const offTransf = C - dashEfectivo - dashTarjeta;
+  const offBinance = C - dashEfectivo - dashTarjeta - dashTransf;
 
   // Formato Bs.
   const fmtBs = (n) =>
@@ -320,8 +329,19 @@ export default function CierreScreen() {
         if (methodKey === "punto_de_venta_bs") {
           return metodo.includes("punto") || metodo.includes("tarjeta");
         }
+        if (methodKey === "binance_usd") {
+          return (
+            metodo.includes("binance") || metodo.includes("zelle")
+          );
+        }
         if (methodKey === "transferencia_bs") {
-          return !metodo.includes("efectivo") && !metodo.includes("punto") && !metodo.includes("tarjeta");
+          return (
+            !metodo.includes("efectivo") &&
+            !metodo.includes("punto") &&
+            !metodo.includes("tarjeta") &&
+            !metodo.includes("binance") &&
+            !metodo.includes("zelle")
+          );
         }
         return false;
       });
@@ -342,8 +362,10 @@ export default function CierreScreen() {
         totalBS += Number(p.monto_bs || 0);
       } else if (methodKey === "punto_de_venta_bs" && (metodo.includes("punto") || metodo.includes("tarjeta"))) {
         totalBS += Number(p.monto_bs || 0);
-      } else if (methodKey === "transferencia_bs" && !metodo.includes("efectivo") && !metodo.includes("punto") && !metodo.includes("tarjeta")) {
+      } else if (methodKey === "transferencia_bs" && !metodo.includes("efectivo") && !metodo.includes("punto") && !metodo.includes("tarjeta") && !metodo.includes("binance") && !metodo.includes("zelle")) {
         totalBS += Number(p.monto_bs || 0);
+      } else if (methodKey === "binance_usd" && (metodo.includes("binance") || metodo.includes("zelle"))) {
+        totalUSD += Number(p.monto_usd || 0);
       }
     });
     if (methodKey === "efectivo_usd") return `$${totalUSD.toFixed(2)}`;
@@ -456,6 +478,19 @@ export default function CierreScreen() {
                   strokeLinecap="round"
                 />
               )}
+              {dashBinance > 0 && (
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={R}
+                  fill="transparent"
+                  stroke="#f59e0b"
+                  strokeWidth="10"
+                  strokeDasharray={`${dashBinance} ${C}`}
+                  strokeDashoffset={offBinance}
+                  strokeLinecap="round"
+                />
+              )}
             </svg>
             <div className="absolute inset-0 flex flex-col justify-center items-center">
               <span className="text-3xl font-black text-slate-800">
@@ -477,6 +512,11 @@ export default function CierreScreen() {
               color: "bg-emerald-400",
               label: "Móvil / Transf.",
               pct: pctTransferencia,
+            },
+            {
+              color: "bg-amber-400",
+              label: "Binance / Zelle",
+              pct: pctBinance,
             },
           ].map(({ color, label, pct }) => (
             <div key={label}>
@@ -503,7 +543,7 @@ export default function CierreScreen() {
       </div>
 
       {/* ── WALLET CARDS (CLICKABLE) ── */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {[
           {
             key: "efectivo_usd",
@@ -540,6 +580,15 @@ export default function CierreScreen() {
             sub: "Pago Móvil & Transf. — en Bs.",
             value: `Bs. ${fmtBs(desglose_pagos.transferencia_bs)}`,
             textLight: "text-emerald-100",
+          },
+          {
+            key: "binance_usd",
+            gradient: "from-[#fbbf24] to-[#d97706]",
+            icon: <Coins className="w-5 h-5" />,
+            label: "Binance / Zelle",
+            sub: "Cripto / Transferencia US",
+            value: `$${Number(desglose_pagos.binance_usd || 0).toFixed(2)}`,
+            textLight: "text-amber-100",
           },
         ].map(({ key, gradient, icon, label, sub, value, textLight }) => {
           const methodTxs = getTransactionsForMethod(key);
@@ -781,6 +830,11 @@ export default function CierreScreen() {
                       label: "Transferencia / Pago Móvil",
                       value: `Bs. ${fmtBs(desglose_pagos.transferencia_bs)}`,
                       color: "text-emerald-600",
+                    },
+                    {
+                      label: "Binance / Zelle",
+                      value: `$${Number(desglose_pagos.binance_usd || 0).toFixed(2)}`,
+                      color: "text-amber-600",
                     },
                   ].map(({ label, value, color }) => (
                     <div

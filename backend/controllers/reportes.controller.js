@@ -146,7 +146,8 @@ export const obtenerPagosReporte = async (req, res) => {
          IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%efectivo%' AND UPPER(vp.referencia) != 'BS' THEN vp.monto_usd ELSE 0 END), 0) AS efectivo_usd,
          IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%efectivo%' AND UPPER(vp.referencia) = 'BS' THEN vp.monto_bs ELSE 0 END), 0) AS efectivo_bs,
          IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%punto%' OR vp.metodo_pago LIKE '%tarjeta%' THEN vp.monto_bs ELSE 0 END), 0) AS punto_bs,
-         IFNULL(SUM(CASE WHEN vp.metodo_pago NOT LIKE '%efectivo%' AND vp.metodo_pago NOT LIKE '%punto%' AND vp.metodo_pago NOT LIKE '%tarjeta%' THEN vp.monto_bs ELSE 0 END), 0) AS pago_movil_bs
+         IFNULL(SUM(CASE WHEN vp.metodo_pago LIKE '%binance%' OR vp.metodo_pago LIKE '%zelle%' THEN vp.monto_usd ELSE 0 END), 0) AS binance_usd,
+         IFNULL(SUM(CASE WHEN vp.metodo_pago NOT LIKE '%efectivo%' AND vp.metodo_pago NOT LIKE '%punto%' AND vp.metodo_pago NOT LIKE '%tarjeta%' AND vp.metodo_pago NOT LIKE '%binance%' AND vp.metodo_pago NOT LIKE '%zelle%' THEN vp.monto_bs ELSE 0 END), 0) AS pago_movil_bs
        FROM ventas_pagos vp
        INNER JOIN ventas v ON v.id_venta = vp.id_venta
        WHERE ${conditionVentas} ${branchVentas} AND v.estado != 'Reembolsado'`,
@@ -163,6 +164,7 @@ export const obtenerPagosReporte = async (req, res) => {
     const efectivoBsEnUsd = tasa > 0 ? Number(r.efectivo_bs) / tasa : 0;
     const puntoEnUsd = tasa > 0 ? Number(r.punto_bs) / tasa : 0;
     const pagoMovilEnUsd = tasa > 0 ? Number(r.pago_movil_bs) / tasa : 0;
+    const binanceUsd = Number(r.binance_usd);
 
     return res.json({
       success: true,
@@ -191,6 +193,12 @@ export const obtenerPagosReporte = async (req, res) => {
           valor_usd: pagoMovilEnUsd,
           valor_bs: Number(r.pago_movil_bs),
           color: "#8b5cf6",
+        },
+        {
+          nombre: "Binance/Zelle",
+          valor_usd: binanceUsd,
+          valor_bs: 0,
+          color: "#f59e0b",
         },
       ],
     });
