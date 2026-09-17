@@ -697,10 +697,7 @@ export default function StaffManagement() {
 
       {/* Modal de Creación / Edición */}
       {showModal && (
-        <div
-          className="fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4"
-          onClick={closeModal}
-        >
+        <div className="fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4">
           <div
             className="w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-fade-in flex flex-col"
             onClick={(e) => e.stopPropagation()}
