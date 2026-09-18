@@ -2,9 +2,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useEffect } from "react";
 import { subscribeToPusher } from "../lib/pusherClient";
+import { useApp } from "../context/AppContext";
 
 export function useEntregas() {
   const queryClient = useQueryClient();
+  const { currentUser } = useApp();
+  // El rol "cashierdelivery" (cajero-delivery) solo muestra pedidos de Delivery
+  const soloDelivery = currentUser?.role === "cashierdelivery";
 
   const query = useQuery({
     queryKey: ["entregas"],
@@ -17,12 +21,18 @@ export function useEntregas() {
       });
 
       // Extracción segura para garantizar que React Query almacene un arreglo
-      if (Array.isArray(res.data)) return res.data;
-      if (res.data?.data && Array.isArray(res.data.data)) return res.data.data;
-      if (res.data?.orders && Array.isArray(res.data.orders))
-        return res.data.orders;
+      let list = [];
+      if (Array.isArray(res.data)) list = res.data;
+      else if (res.data?.data && Array.isArray(res.data.data))
+        list = res.data.data;
+      else if (res.data?.orders && Array.isArray(res.data.orders))
+        list = res.data.orders;
 
-      return []; // Fallback por defecto si la API devuelve algo inesperado
+      if (soloDelivery) {
+        list = list.filter((o) => o.type === "delivery");
+      }
+
+      return list;
     },
   });
 

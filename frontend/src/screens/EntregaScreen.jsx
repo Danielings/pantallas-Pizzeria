@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEntregas } from "../hooks/useEntregas";
+import { useApp } from "../context/AppContext";
 import {
   Bike,
   Store,
@@ -293,6 +294,9 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
 
 export default function EntregaScreen() {
   const queryClient = useQueryClient();
+  const { currentUser } = useApp();
+  // El rol "cashierdelivery" (cajero-delivery) solo ve pedidos de Delivery
+  const soloDelivery = currentUser?.role === "cashierdelivery";
   const {
     data: orders = [],
     isLoading: loading,
@@ -416,28 +420,30 @@ export default function EntregaScreen() {
 
         <div className="flex items-center justify-between lg:justify-end gap-3 w-full lg:w-auto">
           {/* Group toggle buttons */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
-            <button
-              onClick={() => setSelectedGroup("delivery_pickup")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-                selectedGroup === "delivery_pickup"
-                  ? "bg-slate-950 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              Delivery & Pick Up
-            </button>
-            <button
-              onClick={() => setSelectedGroup("local_llevar")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-                selectedGroup === "local_llevar"
-                  ? "bg-slate-950 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              Local & Llevar
-            </button>
-          </div>
+          {!soloDelivery && (
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
+              <button
+                onClick={() => setSelectedGroup("delivery_pickup")}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  selectedGroup === "delivery_pickup"
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Delivery & Pick Up
+              </button>
+              <button
+                onClick={() => setSelectedGroup("local_llevar")}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  selectedGroup === "local_llevar"
+                    ? "bg-slate-950 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Local & Llevar
+              </button>
+            </div>
+          )}
 
           <button
             onClick={async () => {
@@ -465,7 +471,7 @@ export default function EntregaScreen() {
       {/* Main scrolling content area */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 flex flex-col gap-4 sm:gap-6 md:gap-8 hide-scrollbar">
         {/* Metrics Overview based on Selected Group */}
-        {selectedGroup === "delivery_pickup" ? (
+        {soloDelivery || selectedGroup === "delivery_pickup" ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
             <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
               <div>
@@ -505,43 +511,47 @@ export default function EntregaScreen() {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-              <div>
-                <p className="text-slate-400 font-medium text-sm mb-2">
-                  Pick Up Hoy
-                </p>
-                <div className="flex items-end gap-2">
-                  <h3 className="text-4xl font-black text-slate-800 leading-none">
-                    {orders.filter((o) => o.type === "pickup").length}
-                  </h3>
-                  <span className="text-slate-400 font-semibold text-base mb-1">
-                    total
-                  </span>
+            {!soloDelivery && (
+              <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+                <div>
+                  <p className="text-slate-400 font-medium text-sm mb-2">
+                    Pick Up Hoy
+                  </p>
+                  <div className="flex items-end gap-2">
+                    <h3 className="text-4xl font-black text-slate-800 leading-none">
+                      {orders.filter((o) => o.type === "pickup").length}
+                    </h3>
+                    <span className="text-slate-400 font-semibold text-base mb-1">
+                      total
+                    </span>
+                  </div>
+                </div>
+                <div className="w-14 h-14 bg-green-50 group-hover:bg-green-500 group-hover:text-white text-green-500 rounded-2xl flex items-center justify-center transition-colors">
+                  <Store className="w-7 h-7" />
                 </div>
               </div>
-              <div className="w-14 h-14 bg-green-50 group-hover:bg-green-500 group-hover:text-white text-green-500 rounded-2xl flex items-center justify-center transition-colors">
-                <Store className="w-7 h-7" />
-              </div>
-            </div>
+            )}
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
-              <div>
-                <p className="text-slate-400 font-medium text-sm mb-2">
-                  Pick Up Activos
-                </p>
-                <div className="flex items-end gap-2">
-                  <h3 className="text-4xl font-black text-green-600 leading-none">
-                    {pendingPickup.length}
-                  </h3>
-                  <span className="text-green-400 font-semibold text-base mb-1">
-                    pendientes
-                  </span>
+            {!soloDelivery && (
+              <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
+                <div>
+                  <p className="text-slate-400 font-medium text-sm mb-2">
+                    Pick Up Activos
+                  </p>
+                  <div className="flex items-end gap-2">
+                    <h3 className="text-4xl font-black text-green-600 leading-none">
+                      {pendingPickup.length}
+                    </h3>
+                    <span className="text-green-400 font-semibold text-base mb-1">
+                      pendientes
+                    </span>
+                  </div>
+                </div>
+                <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center border border-green-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                  <Clock className="w-7 h-7" />
                 </div>
               </div>
-              <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center border border-green-200/50 shadow-inner group-hover:scale-105 transition-transform">
-                <Clock className="w-7 h-7" />
-              </div>
-            </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
@@ -624,7 +634,7 @@ export default function EntregaScreen() {
         )}
 
         {/* Columns layout for pending orders */}
-        {selectedGroup === "delivery_pickup" ? (
+        {soloDelivery || selectedGroup === "delivery_pickup" ? (
           <div className="flex flex-col xl:flex-row gap-8 shrink-0">
             {/* Delivery Column */}
             <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm h-[450px] sm:h-[550px] md:h-[650px]">
@@ -663,38 +673,40 @@ export default function EntregaScreen() {
             </div>
 
             {/* Pickup Column */}
-            <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm h-[450px] sm:h-[550px] md:h-[650px]">
-              <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
-                <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-                    <Store className="w-5 h-5 text-green-500" />
-                  </div>
-                  Pick Up
-                </h2>
-                <span className="bg-green-100 text-green-700 text-sm font-semibold px-3.5 py-1.5 rounded-full border border-green-200/50 shadow-sm">
-                  {pendingPickup.length} Pendientes
-                </span>
+            {!soloDelivery && (
+              <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm h-[450px] sm:h-[550px] md:h-[650px]">
+                <div className="bg-white px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                  <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                      <Store className="w-5 h-5 text-green-500" />
+                    </div>
+                    Pick Up
+                  </h2>
+                  <span className="bg-green-100 text-green-700 text-sm font-semibold px-3.5 py-1.5 rounded-full border border-green-200/50 shadow-sm">
+                    {pendingPickup.length} Pendientes
+                  </span>
+                </div>
+                <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
+                  {pendingPickup.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                      <Store className="w-12 h-12 opacity-20" />
+                      <p className="font-bold">No hay órdenes de pick up activas</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+                      {pendingPickup.map((order) => (
+                        <OrderCard
+                          key={order.id}
+                          order={order}
+                          onConfirm={handleConfirm}
+                          onViewDetails={setSelectedOrder}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30 hide-scrollbar">
-                {pendingPickup.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
-                    <Store className="w-12 h-12 opacity-20" />
-                    <p className="font-bold">No hay órdenes de pick up activas</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
-                    {pendingPickup.map((order) => (
-                      <OrderCard
-                        key={order.id}
-                        order={order}
-                        onConfirm={handleConfirm}
-                        onViewDetails={setSelectedOrder}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col xl:flex-row gap-8 shrink-0">
@@ -803,13 +815,15 @@ export default function EntregaScreen() {
                       <Bike className="w-3.5 h-3.5" />
                       Delivery
                     </button>
-                    <button
-                      onClick={() => { setHistoryFilter("pickup"); setCurrentPage(1); }}
-                      className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "pickup" ? "bg-green-600 text-white shadow-sm" : "text-slate-600 hover:text-green-600"}`}
-                    >
-                      <Store className="w-3.5 h-3.5" />
-                      Pick Up
-                    </button>
+                    {!soloDelivery && (
+                      <button
+                        onClick={() => { setHistoryFilter("pickup"); setCurrentPage(1); }}
+                        className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "pickup" ? "bg-green-600 text-white shadow-sm" : "text-slate-600 hover:text-green-600"}`}
+                      >
+                        <Store className="w-3.5 h-3.5" />
+                        Pick Up
+                      </button>
+                    )}
                   </>
                 ) : (
                   <>
