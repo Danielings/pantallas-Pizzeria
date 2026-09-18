@@ -16,7 +16,7 @@ import {
 import PaymentEntryModal from "../cajero/PaymentEntryModal";
 import logo from "../../assets/login/logo.png";
 import axios from "axios";
-import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 
 const PAYMENT_METHODS = [
   {
@@ -243,7 +243,26 @@ export default function DeliveryCheckoutModal({ onClose }) {
       );
 
       if (response.data?.success) {
-        toast.success("Venta delivery procesada exitosamente");
+        Swal.fire({
+          icon: "success",
+          title: "¡Orden Creada!",
+          text: "La orden delivery ha sido registrada y enviada a cocina exitosamente.",
+          confirmButtonColor: "#EA2A33",
+          confirmButtonText: "Aceptar",
+          timer: 2500,
+          timerProgressBar: true,
+          customClass: {
+            popup: "rounded-2xl font-sans shadow-2xl border border-slate-100",
+            title: "text-lg font-black text-slate-800",
+            confirmButton: "px-6 py-2.5 font-bold rounded-xl text-sm",
+          },
+        });
+        if (window.Toast) {
+          window.Toast.fire({
+            icon: "success",
+            title: "¡Venta delivery procesada exitosamente!",
+          });
+        }
         queryClient.invalidateQueries({ queryKey: ["ventasHoy"] });
         queryClient.invalidateQueries({ queryKey: ["pedidosActivos"] });
         queryClient.invalidateQueries({ queryKey: ["entregas"] });
@@ -254,10 +273,22 @@ export default function DeliveryCheckoutModal({ onClose }) {
       }
     } catch (err) {
       console.error("Error al procesar la venta:", err);
-      setError(
+      const errMsg =
         err.response?.data?.message ||
-          "Ocurrió un error en el servidor al procesar la venta."
-      );
+        "Ocurrió un error en el servidor al procesar la venta.";
+      setError(errMsg);
+      Swal.fire({
+        icon: "error",
+        title: "Error al crear la orden",
+        text: errMsg,
+        confirmButtonColor: "#EA2A33",
+        confirmButtonText: "Entendido",
+        customClass: {
+          popup: "rounded-2xl font-sans shadow-2xl border border-slate-100",
+          title: "text-lg font-black text-slate-800",
+          confirmButton: "px-6 py-2.5 font-bold rounded-xl text-sm",
+        },
+      });
     } finally {
       setIsSubmitting(false);
     }

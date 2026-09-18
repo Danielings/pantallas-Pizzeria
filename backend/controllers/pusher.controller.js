@@ -24,18 +24,39 @@ const normalizePusherRole = (role) => {
 };
 
 const CHANNEL_ROLE_ACCESS = {
-  "private-pizzeria-kitchen": ["admin", "chef"],
+  "private-pizzeria-kitchen": [
+    "admin",
+    "chef",
+    "cashier",
+    "cashierdelivery",
+    "caja delivery",
+    "cajero delivery",
+  ],
   "private-pizzeria-orders": [
     "admin",
     "cashier",
     "cashierdelivery",
+    "caja delivery",
+    "cajero delivery",
     "chef",
     "mesero",
     "despachador",
     "waiter",
   ],
-  "private-pizzeria-notifications": ["admin", "cashier", "cashierdelivery"],
-  "private-pizzeria-sales": ["admin", "cashier", "cashierdelivery"],
+  "private-pizzeria-notifications": [
+    "admin",
+    "cashier",
+    "cashierdelivery",
+    "caja delivery",
+    "cajero delivery",
+  ],
+  "private-pizzeria-sales": [
+    "admin",
+    "cashier",
+    "cashierdelivery",
+    "caja delivery",
+    "cajero delivery",
+  ],
 };
 
 export const autorizarPusher = async (req, res) => {

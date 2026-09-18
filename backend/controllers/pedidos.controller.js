@@ -568,6 +568,20 @@ export const actualizarEntrega = async (req, res) => {
       });
     }
 
+    emitPusherEvent("pizzeria-orders", "pedido_actualizado", {
+      id_venta,
+      estado: "Completado",
+      tipo_evento: "pedido_actualizado",
+      timestamp: Date.now(),
+    });
+
+    emitPusherEvent("pizzeria-kitchen", "pedido_estado_cambiado", {
+      id_venta,
+      estado: "Completado",
+      tipo_evento: "pedido_estado_cambiado",
+      timestamp: Date.now(),
+    });
+
     res.json({
       success: true,
       message: "Pedido entregado exitosamente.",

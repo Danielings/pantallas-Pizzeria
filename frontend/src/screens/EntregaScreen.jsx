@@ -16,6 +16,7 @@ import {
   FileText,
   Utensils,
   ShoppingBag,
+  RefreshCw,
 } from "lucide-react";
 
 function getElapsed(iso) {
@@ -300,6 +301,7 @@ export default function EntregaScreen() {
     refetch: fetchOrders,
   } = useEntregas();
   const [error, setError] = useState(null);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState("delivery_pickup");
@@ -338,6 +340,7 @@ export default function EntregaScreen() {
       queryClient.setQueryData(["entregas"], (prev = []) =>
         prev.map((o) => (o.id === id ? { ...o, status: "delivered" } : o)),
       );
+      queryClient.invalidateQueries({ queryKey: ["entregas"] });
     } catch (err) {
       console.error("Error al confirmar la orden:", err);
       setError(
@@ -437,11 +440,17 @@ export default function EntregaScreen() {
           </div>
 
           <button
-            onClick={fetchOrders}
-            disabled={loading || isFetching}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-extrabold transition-all shadow-sm disabled:opacity-50"
+            onClick={async () => {
+              setManualRefreshing(true);
+              await fetchOrders();
+              setManualRefreshing(false);
+            }}
+            className="flex items-center gap-1.5 text-xs font-extrabold text-white bg-slate-900 hover:bg-black border border-slate-800 px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
           >
-            {loading || isFetching ? "Sincronizando..." : "Actualizar"}
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${manualRefreshing ? "animate-spin" : ""}`}
+            />
+            Actualizar
           </button>
         </div>
       </div>

@@ -93,6 +93,10 @@ function AuthenticatedLayout() {
         queryKey: ["pedidosActivos"],
         type: "all",
       });
+      queryClient.refetchQueries({
+        queryKey: ["entregas"],
+        type: "all",
+      });
     };
 
     const unsubscribe = subscribeToPusher({
@@ -181,15 +185,19 @@ export default function App() {
             <Route element={<AuthenticatedLayout />}>
               <Route path="/nueva-orden" element={<NuevaOrdenScreen />} />
               <Route path="/cola-trabajos" element={<ColaTrabajoScreen />} />
-              <Route path="/entrega" element={<EntregaScreen />} />
               <Route path="/cierre" element={<CierreScreen />} />
             </Route>
           </Route>
 
-          <Route element={<ProtectedRoute roles={["cashierdelivery"]} />}>
+          <Route element={<ProtectedRoute roles={["cashierdelivery", "caja delivery"]} />}>
             <Route element={<AuthenticatedLayout />}>
               <Route path="/caja-delivery" element={<DeliveryNuevaOrdenScreen />} />
               <Route path="/delivery-cola" element={<DeliveryColaTrabajoScreen />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["cashier", "cashierdelivery", "caja delivery", "admin"]} />}>
+            <Route element={<AuthenticatedLayout />}>
               <Route path="/entrega" element={<EntregaScreen />} />
             </Route>
           </Route>
