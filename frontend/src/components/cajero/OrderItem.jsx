@@ -6,6 +6,7 @@ import { tieneExtrasGratis } from "../../utils/extrasPrecio";
 import { Minus, Plus, Trash2, ChevronDown, Edit3 } from "lucide-react";
 
 const SIZE_OPTIONS = ["Normal", "Familiar", "Gigante"];
+const NO_NOTE_CATEGORIES = ["drinks", "cajas"];
 
 // Diccionario para relacionar el texto del tamaño con el id_categoria_pizza de tu base de datos
 const SIZE_TO_CATEGORY = {
@@ -159,6 +160,10 @@ export default function OrderItem({ item }) {
 
   const hasSize = item.category === "pizzas";
 
+  const canHaveNote = !NO_NOTE_CATEGORIES.includes(
+    String(item.category || "").toLowerCase(),
+  );
+
   return (
     <>
       <div className="bg-pizza-gray-2 rounded-lg sm:rounded-xl p-2 sm:p-3 flex flex-col gap-1.5 sm:gap-2 animate-slide-in border border-pizza-gray-3">
@@ -176,7 +181,7 @@ export default function OrderItem({ item }) {
                   {item.extras.map((e) => e.name || e.name).join(", ")}
                 </p>
               )}
-              {item.note && (
+              {canHaveNote && item.note && (
                 <p className="text-xs text-slate-500 mt-1">Nota: {item.note}</p>
               )}
             </div>
@@ -231,12 +236,14 @@ export default function OrderItem({ item }) {
           )}
 
           {/* Note button */}
-          <button
-            onClick={() => setShowNote((prev) => !prev)}
-            className="text-xs border px-2 py-1 rounded ml-2"
-          >
-            {showNote ? "Cerrar nota" : "Nota"}
-          </button>
+          {canHaveNote && (
+            <button
+              onClick={() => setShowNote((prev) => !prev)}
+              className="text-xs border px-2 py-1 rounded ml-2"
+            >
+              {showNote ? "Cerrar nota" : "Nota"}
+            </button>
+          )}
 
           {/* Price */}
           <span className="text-pizza-dark font-bold text-sm ml-auto">
@@ -245,7 +252,7 @@ export default function OrderItem({ item }) {
         </div>
       </div>
 
-      {showNote && (
+      {canHaveNote && showNote && (
         <div className="mt-2">
           <textarea
             value={noteValue}
