@@ -3,6 +3,7 @@ import db from "../config/turso.js";
 // Verificar si hay pedidos pendientes en la cola de trabajo
 export const verificarPedidosPendientes = async (req, res) => {
   const { id_sucursal } = req.user;
+  const despacho = req.query.despacho || null;
   try {
     const results = await db.execute({
       sql: `
@@ -10,6 +11,7 @@ export const verificarPedidosPendientes = async (req, res) => {
       FROM ventas v
       WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND v.estado != 'Rechazado'
+        AND (? IS NULL OR v.despacho = ?)
         AND EXISTS (
         SELECT 1 FROM venta_detalle vd
         WHERE vd.id_venta = v.id_venta
@@ -18,7 +20,7 @@ export const verificarPedidosPendientes = async (req, res) => {
           AND vd.estado != 'Cancelado'
           AND v.id_sucursal = ?
       );`,
-      args: [id_sucursal],
+      args: [despacho, despacho, id_sucursal],
     });
     const total = results.rows[0].total;
     return res.status(200).json({ pendientes: total, bloqueado: total > 0 });
@@ -34,12 +36,17 @@ export const verificarPedidosPendientes = async (req, res) => {
 export const verificarCierrePendiente = async (req, res) => {
   const { id_sucursal } = req.user;
   try {
+    // Solo el cierre GENERAL pendiente bloquea la jornada del cajero.
+    // El delivery tiene su propio flujo (resumen-dia + cierre delivery) y no bloquea.
+    // Se incluyen ventas 'Cerrado': si el día anterior se hizo el cierre delivery,
+    // sus ventas ya están 'Cerrado' pero el cierre general sigue pendiente.
     const results = await db.execute({
       sql: `
         SELECT 1
         FROM ventas
-        WHERE estado = 'Completado'
+        WHERE estado IN ('Completado', 'Cerrado')
           AND DATE(fecha_hora, '-9 hours') < DATE('now', '-9 hours')
+          AND cierre_general = 0
           AND id_sucursal = ?
         LIMIT 1`,
       args: [id_sucursal],
@@ -53,29 +60,37 @@ export const verificarCierrePendiente = async (req, res) => {
 
 export const obtenerResumenDia = async (req, res) => {
   const { id_sucursal } = req.user;
+  // Vista: 'delivery' solo muestra ventas de delivery; sin despacho (null) muestra TODO.
+  const esDelivery =
+    String(req.query.despacho || "").trim().toLowerCase() === "delivery";
+  const despacho = esDelivery ? "Delivery" : null;
   try {
     // 1. Determinar el día lógico a mostrar: si hay un cierre pendiente de un
     //    día anterior se muestra ESE día; si no, el día lógico actual.
+    //    Se incluyen ventas 'Completado' Y 'Cerrado' que no hayan sido consumidas
+    //    por ESTE tipo de cierre (cierre_general=0 o cierre_delivery=0).
+    //    Esto permite que el cierre delivery muestre números aunque el cierre
+    //    general ya haya marcado todas las ventas como 'Cerrado'.
     //    Día lógico: corte 5:00 AM local (UTC-4) => aplicar '-9 hours' sobre UTC.
     const diaRow = await db.execute({
       sql: `
         SELECT COALESCE(
           (SELECT DATE(MIN(fecha_hora), '-9 hours')
              FROM ventas
-            WHERE estado = 'Completado'
+            WHERE estado IN ('Completado', 'Cerrado')
               AND DATE(fecha_hora, '-9 hours') < DATE('now', '-9 hours')
-              AND id_sucursal = ?),
+              AND id_sucursal = ?
+              AND (CASE WHEN ? IS NULL
+                        THEN cierre_general = 0
+                        ELSE despacho = ? AND cierre_delivery = 0 END)),
           DATE('now', '-9 hours')
         ) AS fecha_meta`,
-      args: [id_sucursal],
+      args: [id_sucursal, despacho, despacho],
     });
 
     const fechaMeta = String(diaRow.rows[0].fecha_meta);
     const [anioMeta, mesMeta, diaMeta] = fechaMeta.split("-");
     const dateLabel = `${diaMeta}/${mesMeta}/${anioMeta}`;
-
-    // Filtro común: todas las consultas usan el MISMO día lógico (-9 hours).
-    const conDia = "DATE(fecha_hora, '-9 hours') = ?";
 
     // 2. Obtener total ventas y cantidad de órdenes
     const ventasHoy = await db.execute({
@@ -83,8 +98,13 @@ export const obtenerResumenDia = async (req, res) => {
         COUNT(*) AS total_ordenes,
         IFNULL(SUM(monto_total_usd), 0) AS ventas_totales
        FROM ventas 
-       WHERE ${conDia} AND estado = 'Completado' AND id_sucursal = ?`,
-      args: [fechaMeta, id_sucursal],
+       WHERE DATE(fecha_hora, '-9 hours') = ?
+         AND estado IN ('Completado', 'Cerrado')
+         AND id_sucursal = ?
+         AND (CASE WHEN ? IS NULL
+                   THEN cierre_general = 0
+                   ELSE despacho = ? AND cierre_delivery = 0 END)`,
+      args: [fechaMeta, id_sucursal, despacho, despacho],
     });
 
     const total_ordenes = Number(ventasHoy.rows[0].total_ordenes);
@@ -98,13 +118,19 @@ export const obtenerResumenDia = async (req, res) => {
     const anulacionesHoy = await db.execute({
       sql: `SELECT IFNULL(SUM(monto_total_usd), 0) AS total_anulaciones
        FROM ventas
-       WHERE ${conDia} AND estado = 'Rechazado' AND id_sucursal = ?`,
-      args: [fechaMeta, id_sucursal],
+       WHERE DATE(fecha_hora, '-9 hours') = ?
+         AND estado = 'Rechazado'
+         AND id_sucursal = ?
+         AND (CASE WHEN ? IS NULL
+                   THEN cierre_general = 0
+                   ELSE despacho = ? AND cierre_delivery = 0 END)`,
+      args: [fechaMeta, id_sucursal, despacho, despacho],
     });
     const anulaciones = Number(anulacionesHoy.rows[0].total_anulaciones);
 
     // 5. Desglose de pagos
-    const queryPagos = `SELECT 
+    const pagosHoy = await db.execute({
+      sql: `SELECT 
         vp.metodo_pago,
         vp.referencia,
         IFNULL(SUM(vp.monto_usd), 0) AS total_usd,
@@ -112,13 +138,13 @@ export const obtenerResumenDia = async (req, res) => {
        FROM ventas_pagos vp
        INNER JOIN ventas v ON v.id_venta = vp.id_venta
        WHERE DATE(v.fecha_hora, '-9 hours') = ?
-         AND v.estado = 'Completado'
+         AND v.estado IN ('Completado', 'Cerrado')
          AND v.id_sucursal = ?
-       GROUP BY vp.metodo_pago, vp.referencia`;
-
-    const pagosHoy = await db.execute({
-      sql: queryPagos,
-      args: [fechaMeta, id_sucursal],
+         AND (CASE WHEN ? IS NULL
+                   THEN v.cierre_general = 0
+                   ELSE v.despacho = ? AND v.cierre_delivery = 0 END)
+       GROUP BY vp.metodo_pago, vp.referencia`,
+      args: [fechaMeta, id_sucursal, despacho, despacho],
     });
 
     let efectivo_usd = 0;
@@ -199,10 +225,13 @@ export const obtenerResumenDia = async (req, res) => {
        FROM ventas v
        LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
        WHERE DATE(v.fecha_hora, '-9 hours') = ?
-         AND v.estado = 'Completado'
+         AND v.estado IN ('Completado', 'Cerrado')
          AND v.id_sucursal = ?
+         AND (CASE WHEN ? IS NULL
+                   THEN v.cierre_general = 0
+                   ELSE v.despacho = ? AND v.cierre_delivery = 0 END)
        ORDER BY v.fecha_hora DESC`,
-      args: [fechaMeta, id_sucursal],
+      args: [fechaMeta, id_sucursal, despacho, despacho],
     });
 
     const transaccionesProcesadas = transacciones.rows.map((t) => {
@@ -316,8 +345,12 @@ export const cerrarCaja = async (req, res) => {
     monto_binance_usd,
     total_usdt,
     num_ordenes,
+    tipo_cierre = "general",
   } = req.body;
   const { id_sucursal } = req.user;
+  const tipo = String(tipo_cierre || "general").toLowerCase() === "delivery"
+    ? "delivery"
+    : "general";
 
   if (!pin || !String(pin).trim()) {
     return res
@@ -336,7 +369,7 @@ export const cerrarCaja = async (req, res) => {
             FROM usuarios u
             INNER JOIN pin p ON u.id_usuario = p.id_usuario
             WHERE u.id_usuario = ?
-              AND (u.rol = 'admin' OR u.rol = 'cashier') 
+              AND LOWER(TRIM(u.rol)) IN ('admin', 'cashier', 'cashierdelivery', 'caja delivery', 'cajero delivery', 'delivery') 
               AND u.estado = 'Activo' 
               AND p.pin = ? 
             LIMIT 1`,
@@ -378,8 +411,9 @@ export const cerrarCaja = async (req, res) => {
               monto_binance_usd,
               total_usdt,
               num_ordenes,
-              id_sucursal
-            ) VALUES (?, datetime('now', '-4 hours'), ?, ?, ?, ?, ?, ?, ?, ?)`,
+              id_sucursal,
+              tipo_cierre
+            ) VALUES (?, datetime('now', '-4 hours'), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         usuarioEjecutor,
         Number(monto_efectivo_usd || 0),
@@ -390,20 +424,76 @@ export const cerrarCaja = async (req, res) => {
         Number(total_usdt || 0),
         Number(num_ordenes || 0),
         Number(id_sucursal || 0),
+        tipo,
       ],
     });
 
-    await tx.execute({
-      sql: `UPDATE ventas
-            SET estado = 'Cerrado'
-            WHERE estado IN ('Pendiente', 'Completado')`,
+    // Determinar el MISMO día lógico que mostró el resumen, para marcar
+    // como consumidas exactamente las ventas que se visualizaron.
+    const despachoClose = tipo === "delivery" ? "Delivery" : null;
+    const diaCierre = await tx.execute({
+      sql: `SELECT COALESCE(
+        (SELECT DATE(MIN(fecha_hora), '-9 hours')
+           FROM ventas
+          WHERE estado IN ('Completado', 'Cerrado')
+            AND DATE(fecha_hora, '-9 hours') < DATE('now', '-9 hours')
+            AND id_sucursal = ?
+            AND (CASE WHEN ? IS NULL THEN cierre_general = 0
+                      ELSE despacho = ? AND cierre_delivery = 0 END)),
+        DATE('now', '-9 hours')
+      ) AS fecha_meta`,
+      args: [id_sucursal, despachoClose, despachoClose],
     });
+    const fechaCierre = String(diaCierre.rows[0].fecha_meta);
 
-    await tx.execute({
-      sql: `UPDATE venta_detalle
-            SET estado = 'Cerrado'
-            WHERE estado <> 'Cerrado'`,
-    });
+    // Cada cierre marca SOLO las ventas de su tipo (cierre_general consume
+    // todas; cierre_delivery consume únicamente delivery). Así el otro cierre
+    // sigue mostrando y pudiendo cerrar sus números aunque ya haya un 'Cerrado'.
+    if (tipo === "delivery") {
+      await tx.execute({
+        sql: `UPDATE ventas
+              SET cierre_delivery = 1,
+                  estado = CASE WHEN estado = 'Rechazado' THEN estado ELSE 'Cerrado' END
+              WHERE cierre_delivery = 0
+                AND despacho = ?
+                AND DATE(fecha_hora, '-9 hours') = ?`,
+        args: ["Delivery", fechaCierre],
+      });
+
+      await tx.execute({
+        sql: `UPDATE venta_detalle
+              SET estado = 'Cerrado'
+              WHERE estado <> 'Cerrado'
+                AND id_venta IN (
+                  SELECT id_venta FROM ventas
+                  WHERE cierre_delivery = 1
+                    AND despacho = ?
+                    AND DATE(fecha_hora, '-9 hours') = ?
+                )`,
+        args: ["Delivery", fechaCierre],
+      });
+    } else {
+      await tx.execute({
+        sql: `UPDATE ventas
+              SET cierre_general = 1,
+                  estado = CASE WHEN estado = 'Rechazado' THEN estado ELSE 'Cerrado' END
+              WHERE cierre_general = 0
+                AND DATE(fecha_hora, '-9 hours') = ?`,
+        args: [fechaCierre],
+      });
+
+      await tx.execute({
+        sql: `UPDATE venta_detalle
+              SET estado = 'Cerrado'
+              WHERE estado <> 'Cerrado'
+                AND id_venta IN (
+                  SELECT id_venta FROM ventas
+                  WHERE cierre_general = 1
+                    AND DATE(fecha_hora, '-9 hours') = ?
+                )`,
+        args: [fechaCierre],
+      });
+    }
 
     await tx.commit();
 
@@ -443,7 +533,8 @@ export const obtenerHistorialCierres = async (req, res) => {
         IFNULL(SUM(total_usdt), 0) AS total_usd,
         IFNULL(AVG(total_usdt), 0) AS promedio_usd
        FROM cierres_caja 
-       WHERE strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now', '-4 hours')`,
+       WHERE strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now', '-4 hours')
+         AND tipo_cierre = 'general'`,
     });
 
     const cantidad_cierres = Number(mesMetrics.rows[0].cantidad_cierres);
@@ -456,6 +547,7 @@ export const obtenerHistorialCierres = async (req, res) => {
         DATE(fecha_hora) AS fecha
        FROM cierres_caja 
       WHERE DATE(fecha_hora) < DATE('now', '-4 hours')
+        AND tipo_cierre = 'general'
        ORDER BY fecha_hora DESC 
        LIMIT 1`,
     });
@@ -502,14 +594,15 @@ export const obtenerHistorialCierres = async (req, res) => {
   }
 };
 
-// Obtener cajeros activos para gestionar su PIN de cierre
+// Obtener usuarios activos para gestionar su PIN de cierre
 export const obtenerCajeros = async (req, res) => {
   try {
     const cajero = await db.execute({
-      sql: `SELECT u.id_usuario, u.nombre_completo, u.email, p.pin 
+      sql: `SELECT u.id_usuario, u.nombre_completo, u.email, u.rol, p.pin 
        FROM usuarios u
        LEFT JOIN pin p ON u.id_usuario = p.id_usuario
-       WHERE rol = 'cashier' AND estado = 'Activo'`,
+       WHERE u.estado = 'Activo'
+       ORDER BY u.rol, u.nombre_completo`,
     });
     const cajeros = cajero.rows || [];
     return res.status(200).json({ success: true, cajeros });
@@ -542,14 +635,14 @@ export const actualizarPinCajero = async (req, res) => {
 
   try {
     const user = await db.execute({
-      sql: `SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND rol = 'cashier'`,
+      sql: `SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND estado = 'Activo'`,
       args: [id_usuario],
     });
 
     if (user.rows.length === 0) {
       return res
         .status(404)
-        .json({ success: false, mensaje: "Cajero no encontrado" });
+        .json({ success: false, mensaje: "Usuario no encontrado" });
     }
 
     // Validar que el PIN no esté en uso por otro cajero

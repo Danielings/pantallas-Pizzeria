@@ -23,8 +23,10 @@ import { exportCierrePDF } from "../utils/pdfCierre";
 const API = "http://localhost:3001/api";
 
 export default function CierreScreen() {
-  const { clearCart } = useApp();
+  const { clearCart, currentUser } = useApp();
   const queryClient = useQueryClient();
+  const esCierreDelivery = currentUser?.role === "cashierdelivery";
+  const paramsCierre = esCierreDelivery ? { despacho: "Delivery" } : undefined;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -40,6 +42,7 @@ export default function CierreScreen() {
     try {
       setLoading(true);
       const res = await axios.get(`${API}/cierre/resumen-dia`, {
+        params: paramsCierre,
         withCredentials: true,
       });
       setData(res.data);
@@ -73,6 +76,7 @@ export default function CierreScreen() {
     // 2. Verificar pedidos pendientes primero
     try {
       const check = await axios.get(`${API}/cierre/pedidos-pendientes`, {
+        params: paramsCierre,
         withCredentials: true,
       });
       if (check.data.bloqueado) {
@@ -173,6 +177,7 @@ export default function CierreScreen() {
           monto_binance_usd: Number(desglose_pagos.binance_usd || 0),
           total_usdt: Number(total_divisa || 0),
           num_ordenes: Number(total_ordenes || 0),
+          tipo_cierre: esCierreDelivery ? "delivery" : "general",
         },
         { withCredentials: true },
       );
@@ -193,6 +198,7 @@ export default function CierreScreen() {
           total_usdt: Number(total_divisa || 0),
           num_ordenes: Number(total_ordenes || 0),
           tasa_cambio: Number(tasa || 1),
+          tipo_cierre: esCierreDelivery ? "delivery" : "general",
           reembolsos: data.reembolsos || null,
         });
       } catch (pdfError) {
@@ -383,6 +389,11 @@ export default function CierreScreen() {
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight leading-none">
               Relación del Día
+              {esCierreDelivery && (
+                <span className="ml-2 align-middle inline-flex items-center px-2.5 py-1 rounded-full bg-pizza-red/10 border border-pizza-red/20 text-pizza-red text-[10px] font-extrabold uppercase tracking-wider">
+                  Delivery
+                </span>
+              )}
             </h1>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 mt-1.5">
               <Calendar className="w-3.5 h-3.5" />
@@ -404,7 +415,7 @@ export default function CierreScreen() {
             className="px-6 py-3 bg-pizza-red text-white hover:bg-pizza-red-dark transition-all font-bold rounded-2xl text-sm shadow-md hover:shadow-lg flex items-center gap-2"
           >
             <Lock className="w-4 h-4" />
-            Cierre de Caja
+            {esCierreDelivery ? "Cierre Delivery" : "Cierre de Caja"}
           </button>
         </div>
       </header>

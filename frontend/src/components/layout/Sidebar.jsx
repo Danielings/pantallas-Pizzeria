@@ -112,6 +112,11 @@ export default function Sidebar({ module, activeView, onNavigate }) {
       icon: <ChefHat className="w-5 h-5" />,
     },
     { id: "entrega", name: "Entrega", icon: <Package className="w-5 h-5" /> },
+    {
+      id: "cierre-delivery",
+      name: "Cierre Delivery",
+      icon: <DollarSign className="w-5 h-5" />,
+    },
   ];
 
   const links =

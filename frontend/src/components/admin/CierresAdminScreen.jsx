@@ -45,6 +45,24 @@ const formatTime = (value) => {
   });
 };
 
+// Mostrar el rol del usuario en español dentro de la gestión de PINs
+const ROL_LABELS = {
+  admin: "Administrador",
+  cashier: "Cajero",
+  cashierdelivery: "Cajero Delivery",
+  "caja delivery": "Caja Delivery",
+  "cajero delivery": "Cajero Delivery",
+  chef: "Cocinero",
+  cocinero: "Cocinero",
+  mesero: "Mesero",
+  waiter: "Mesero",
+  despachador: "Despachador",
+  delivery: "Delivery",
+  repartidor: "Repartidor",
+};
+
+const rolLabel = (rol) => ROL_LABELS[String(rol).toLowerCase()] || rol;
+
 const getHeaderDate = () => {
   const date = new Date();
   const options = {
@@ -518,7 +536,14 @@ export default function CierresAdminScreen() {
                       {(currentPage - 1) * 10 + index + 1}
                     </td>
                     <td className="px-5 py-3.5 font-bold text-slate-800">
-                      {formatDate(cierre.fecha_hora)}
+                      <div className="flex items-center gap-2">
+                        {formatDate(cierre.fecha_hora)}
+                        {cierre.tipo_cierre === "delivery" && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 text-[10px] font-extrabold uppercase tracking-wider">
+                            Delivery
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-slate-600 font-mono text-xs">
                       {formatTime(cierre.fecha_hora)}
@@ -607,6 +632,11 @@ export default function CierresAdminScreen() {
                             {formatDate(cierre.fecha_hora)} •{" "}
                             {formatTime(cierre.fecha_hora)}
                           </span>
+                          {cierre.tipo_cierre === "delivery" && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 text-[9px] font-extrabold uppercase tracking-wider shrink-0">
+                              Delivery
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -875,7 +905,7 @@ export default function CierresAdminScreen() {
               </div>
               <h2 className="text-xl font-bold">PINs de Cierre</h2>
               <p className="text-slate-400 text-sm mt-1">
-                Asigna claves de 4 números para cajeros
+                Asigna claves de 4 números a los usuarios que lo requieran
               </p>
             </div>
 
@@ -903,18 +933,18 @@ export default function CierresAdminScreen() {
                 <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                   <User className="w-10 h-10 mb-2 opacity-35" />
                   <p className="text-sm font-bold">
-                    No hay cajeros registrados activos
+                    No hay usuarios registrados activos
                   </p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {/* Selector de Cajero */}
+                  {/* Selector de Usuario */}
                   <div className="flex flex-col gap-1.5">
                     <label
                       className="text-xs font-black text-slate-500 uppercase tracking-wider"
                       htmlFor="select-cajero"
                     >
-                      Seleccionar Cajero
+                      Seleccionar Usuario
                     </label>
                     <select
                       id="select-cajero"
@@ -930,7 +960,7 @@ export default function CierresAdminScreen() {
                     >
                       {cajeros.map((c) => (
                         <option key={c.id_usuario} value={c.id_usuario}>
-                          {c.nombre_completo} ({c.email})
+                          {c.nombre_completo} ({rolLabel(c.rol)}){c.email ? ` · ${c.email}` : ""}
                         </option>
                       ))}
                     </select>
@@ -957,7 +987,10 @@ export default function CierresAdminScreen() {
                               {activeCajero.nombre_completo}
                             </p>
                             <p className="text-xs text-slate-400 font-medium truncate">
-                              {activeCajero.email}
+                              {rolLabel(activeCajero.rol)}
+                              {activeCajero.email
+                                ? ` · ${activeCajero.email}`
+                                : ""}
                             </p>
                           </div>
                           <div className="shrink-0">

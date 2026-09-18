@@ -193,6 +193,7 @@ export default function App() {
             <Route element={<AuthenticatedLayout />}>
               <Route path="/caja-delivery" element={<DeliveryNuevaOrdenScreen />} />
               <Route path="/delivery-cola" element={<DeliveryColaTrabajoScreen />} />
+              <Route path="/cierre-delivery" element={<CierreScreen />} />
             </Route>
           </Route>
 
