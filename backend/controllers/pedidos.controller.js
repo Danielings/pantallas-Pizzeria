@@ -447,7 +447,7 @@ export const actualizarEstadoPedido = async (req, res) => {
 //-----------------------------Entregas
 
 export const obtenerEntregas = async (req, res) => {
-  const { id_sucursal } = req.user;
+  const id_sucursal = req.user?.id_sucursal || 1;
   try {
     let query = `SELECT DISTINCT
         v.id_venta,
@@ -463,7 +463,7 @@ export const obtenerEntregas = async (req, res) => {
       WHERE v.despacho IN ('Delivery', 'Pick Up', 'Local', 'Llevar')
         AND DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND v.estado != 'Reembolsado'
-        AND v.id_sucursal = ?
+        AND (v.id_sucursal = ? OR v.id_sucursal IS NULL)
       ORDER BY v.fecha_hora ASC`;
 
     let paparamericano = [id_sucursal];

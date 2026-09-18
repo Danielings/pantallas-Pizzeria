@@ -89,22 +89,22 @@ export default function CheckoutModal({ onClose }) {
   const initialPayments =
     ctxPaymentStatus === "partial" && ctxAdvanceAmount > 0
       ? [
-          {
-            method: ctxAdvancePaymentMethod || "advance",
-            label:
-              ctxAdvancePaymentMethod === "mobile"
-                ? "Pago Móvil (abono)"
-                : ctxAdvancePaymentMethod === "cash"
-                  ? "Efectivo (abono)"
-                  : ctxAdvancePaymentMethod === "pos"
-                    ? "Punto de Venta (abono)"
-                    : ctxAdvancePaymentMethod === "binance"
-                      ? "Binance/Zelle (abono)"
-                      : "Abono previo",
-            amount: ctxAdvanceAmount,
-            currency: ctxAdvanceCurrency,
-          },
-        ]
+        {
+          method: ctxAdvancePaymentMethod || "advance",
+          label:
+            ctxAdvancePaymentMethod === "mobile"
+              ? "Pago Móvil (abono)"
+              : ctxAdvancePaymentMethod === "cash"
+                ? "Efectivo (abono)"
+                : ctxAdvancePaymentMethod === "pos"
+                  ? "Punto de Venta (abono)"
+                  : ctxAdvancePaymentMethod === "binance"
+                    ? "Binance/Zelle (abono)"
+                    : "Abono previo",
+          amount: ctxAdvanceAmount,
+          currency: ctxAdvanceCurrency,
+        },
+      ]
       : [];
 
   // internal payments array to allow splits
@@ -261,7 +261,7 @@ export default function CheckoutModal({ onClose }) {
     setSelectedMethod(null);
     if (
       totalToUse -
-        (paymentsInternal.reduce((s, p) => s + p.amount, 0) + amountUSD) <=
+      (paymentsInternal.reduce((s, p) => s + p.amount, 0) + amountUSD) <=
       0.01
     ) {
       setStep(2);
@@ -382,10 +382,10 @@ export default function CheckoutModal({ onClose }) {
             nota: item.note || "",
             extras: item.extras
               ? item.extras.map((extra) =>
-                  typeof extra.id === "string"
-                    ? parseInt(extra.id.replace(/\D/g, ""))
-                    : Number(extra.id),
-                )
+                typeof extra.id === "string"
+                  ? parseInt(extra.id.replace(/\D/g, ""))
+                  : Number(extra.id),
+              )
               : [],
           };
         }),
@@ -402,19 +402,19 @@ export default function CheckoutModal({ onClose }) {
         : "http://localhost:3001/api/procesar-venta";
       const requestPayload = isPendingSale
         ? {
-            id_usuario: currentUser?.id || 1,
-            monto_total_usd: Number(
-              (pendingOriginalTotal + pendingAddedTotal).toFixed(2),
-            ),
-            monto_total_bs: Number(
-              (
-                (pendingOriginalTotal + pendingAddedTotal) *
-                (exchangeRate || 0)
-              ).toFixed(2),
-            ),
-            detalles: payload.detalles,
-            pagos: payload.pagos.slice(currentOrder.payments.length),
-          }
+          id_usuario: currentUser?.id || 1,
+          monto_total_usd: Number(
+            (pendingOriginalTotal + pendingAddedTotal).toFixed(2),
+          ),
+          monto_total_bs: Number(
+            (
+              (pendingOriginalTotal + pendingAddedTotal) *
+              (exchangeRate || 0)
+            ).toFixed(2),
+          ),
+          detalles: payload.detalles,
+          pagos: payload.pagos.slice(currentOrder.payments.length),
+        }
         : payload;
       const response = await fetch(endpoint, {
         method: "POST",
@@ -667,28 +667,28 @@ export default function CheckoutModal({ onClose }) {
                 {/* Info Cliente */}
                 {(currentOrder.customer?.name ||
                   currentOrder.customer?.cedula) && (
-                  <div className="border-t border-dashed border-slate-300 py-3 text-xs text-slate-600 space-y-1">
-                    <div className="font-bold text-slate-800 mb-1">
-                      DATOS DEL CLIENTE
+                    <div className="border-t border-dashed border-slate-300 py-3 text-xs text-slate-600 space-y-1">
+                      <div className="font-bold text-slate-800 mb-1">
+                        DATOS DEL CLIENTE
+                      </div>
+                      {currentOrder.customer?.name && (
+                        <div className="flex justify-between">
+                          <span>Nombre:</span>
+                          <span className="font-medium">
+                            {currentOrder.customer.name}
+                          </span>
+                        </div>
+                      )}
+                      {currentOrder.customer?.cedula && (
+                        <div className="flex justify-between">
+                          <span>C.I./RIF:</span>
+                          <span className="font-medium">
+                            {currentOrder.customer.cedula}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    {currentOrder.customer?.name && (
-                      <div className="flex justify-between">
-                        <span>Nombre:</span>
-                        <span className="font-medium">
-                          {currentOrder.customer.name}
-                        </span>
-                      </div>
-                    )}
-                    {currentOrder.customer?.cedula && (
-                      <div className="flex justify-between">
-                        <span>C.I./RIF:</span>
-                        <span className="font-medium">
-                          {currentOrder.customer.cedula}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
                 <div className="space-y-2 border-t border-b border-dashed border-slate-300 py-3 mb-3">
                   {currentOrder.items.map((item, idx) => (

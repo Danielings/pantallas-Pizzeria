@@ -19,7 +19,10 @@ import {
 } from "lucide-react";
 
 function getElapsed(iso) {
-  const mins = Math.floor((Date.now() - new Date(iso)) / 60000);
+  if (!iso) return "< 1 min";
+  const parsed = new Date(iso).getTime();
+  if (isNaN(parsed)) return "< 1 min";
+  const mins = Math.floor((Date.now() - parsed) / 60000);
   if (mins < 1) return "< 1 min";
   if (mins < 60) return `${mins} min`;
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;
@@ -155,7 +158,7 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
             className="flex items-center justify-center gap-1.5 text-sm font-extrabold text-slate-700 hover:text-white transition-colors w-full bg-slate-100 hover:bg-slate-800 px-3 py-2.5 rounded-xl border border-slate-200"
           >
             <FileText className="w-4 h-4" />
-            Detalle ({order.items.length})
+            Detalle ({(order.items || []).length})
           </button>
         </div>
 
@@ -190,9 +193,17 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
   const theme = themes[order.type] || themes.delivery;
   const isDelivery = order.type === "delivery";
 
-  const formattedTime = deliveryTime
-    ? new Date(deliveryTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : new Date(order.orderedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const formattedTime = (() => {
+    try {
+      const time = deliveryTime || order.orderedAt;
+      if (!time) return "--:--";
+      const d = new Date(time);
+      if (isNaN(d.getTime())) return "--:--";
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "--:--";
+    }
+  })();
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between p-5 bg-white border border-slate-200/60 rounded-3xl shadow-sm hover:shadow-md transition-shadow gap-4">
@@ -251,7 +262,7 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
           </div>
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
             <Package className="w-3.5 h-3.5" />
-            {order.items.length} artículo{order.items.length !== 1 ? "s" : ""}
+            {(order.items || []).length} artículo{(order.items || []).length !== 1 ? "s" : ""}
           </div>
         </div>
 
@@ -366,8 +377,8 @@ export default function EntregaScreen() {
   });
 
   const sortedDeliveredOrders = [...filteredDeliveredOrders].sort((a, b) => {
-    const timeA = new Date(deliveryTimes[a.id] || a.orderedAt).getTime();
-    const timeB = new Date(deliveryTimes[b.id] || b.orderedAt).getTime();
+    const timeA = new Date(deliveryTimes[a?.id] || a?.orderedAt || 0).getTime() || 0;
+    const timeB = new Date(deliveryTimes[b?.id] || b?.orderedAt || 0).getTime() || 0;
     return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
   });
 
@@ -956,10 +967,10 @@ export default function EntregaScreen() {
                 <div>
                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-3">
                     <Package className="w-4 h-4" /> Productos (
-                    {selectedOrder.items.length})
+                    {(selectedOrder.items || []).length})
                   </h4>
                   <div className="space-y-2">
-                    {selectedOrder.items.map((item, idx) => {
+                    {(selectedOrder.items || []).map((item, idx) => {
                       const isPizza = item.type === "Pizza";
                       const isDrink = item.type === "Bebida";
                       const isIceCream = item.type === "Helado";

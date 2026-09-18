@@ -92,6 +92,9 @@ const normalizeRole = (role) => {
     mesero: "mesero",
     waiter: "waiter",
     despachador: "despachador",
+    cashierdelivery: "cashierdelivery",
+    "caja delivery": "cashierdelivery",
+    "cajero delivery": "cashierdelivery",
   };
 
   const normalized = String(role).trim().toLowerCase();
@@ -347,7 +350,14 @@ function reducer(state, action) {
 export function AppProvider({ children }) {
   const savedUser = (() => {
     try {
-      return JSON.parse(localStorage.getItem("currentUser")) || null;
+      const u = JSON.parse(localStorage.getItem("currentUser")) || null;
+      if (u) {
+        return {
+          ...u,
+          role: normalizeRole(u.role || u.rol),
+        };
+      }
+      return null;
     } catch {
       return null;
     }
