@@ -40,6 +40,9 @@ const normalizeRole = (role) => {
     mesero: "mesero",
     waiter: "waiter",
     despachador: "despachador",
+    cashierdelivery: "cashierdelivery",
+    "caja delivery": "cashierdelivery",
+    "cajero delivery": "cashierdelivery",
   };
 
   const normalized = String(role).trim().toLowerCase();

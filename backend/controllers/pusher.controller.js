@@ -14,6 +14,9 @@ const normalizePusherRole = (role) => {
     mesero: "mesero",
     waiter: "waiter",
     despachador: "despachador",
+    cashierdelivery: "cashierdelivery",
+    "caja delivery": "cashierdelivery",
+    "cajero delivery": "cashierdelivery",
   };
 
   const normalized = String(role).trim().toLowerCase();
@@ -25,13 +28,14 @@ const CHANNEL_ROLE_ACCESS = {
   "private-pizzeria-orders": [
     "admin",
     "cashier",
+    "cashierdelivery",
     "chef",
     "mesero",
     "despachador",
     "waiter",
   ],
-  "private-pizzeria-notifications": ["admin", "cashier"],
-  "private-pizzeria-sales": ["admin", "cashier"],
+  "private-pizzeria-notifications": ["admin", "cashier", "cashierdelivery"],
+  "private-pizzeria-sales": ["admin", "cashier", "cashierdelivery"],
 };
 
 export const autorizarPusher = async (req, res) => {

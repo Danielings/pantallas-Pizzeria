@@ -8,9 +8,8 @@ export function useEntregas() {
 
   const query = useQuery({
     queryKey: ["entregas"],
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    staleTime: 5000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const res = await axios.get("http://localhost:3001/api/entregas", {
         withCredentials: true,

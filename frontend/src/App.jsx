@@ -17,6 +17,8 @@ import ClientesScreen from "./screens/ClientesScreen";
 import DeliveryScreen from "./screens/DeliveryScreen";
 import EntregaScreen from "./screens/EntregaScreen";
 import CierreScreen from "./screens/CierreScreen";
+import DeliveryNuevaOrdenScreen from "./screens/DeliveryNuevaOrdenScreen";
+import DeliveryColaTrabajoScreen from "./screens/DeliveryColaTrabajoScreen";
 
 import CocineroScreen from "./screens/CocineroScreen";
 import DespachoScreen from "./screens/DespachoScreen";
@@ -32,6 +34,10 @@ import { Toaster } from "react-hot-toast";
 const ROLE_HOME = {
   admin: "/dashboard",
   cashier: "/nueva-orden",
+  cashierdelivery: "/caja-delivery",
+  cashierDelivery: "/caja-delivery",
+  "caja delivery": "/caja-delivery",
+  "cajero delivery": "/caja-delivery",
   chef: "/cocina",
   despachador: "/despacho",
   mesero: "/mesero",
@@ -42,7 +48,13 @@ function LoginRoute() {
   const { currentUser } = useApp();
 
   if (currentUser) {
-    return <Navigate to={ROLE_HOME[currentUser.role] || "/login"} replace />;
+    const userRole = String(currentUser.role || "").trim().toLowerCase();
+    return (
+      <Navigate
+        to={ROLE_HOME[userRole] || ROLE_HOME[currentUser.role] || "/login"}
+        replace
+      />
+    );
   }
 
   return <LoginScreen />;
@@ -52,8 +64,14 @@ function ProtectedRoute({ roles }) {
   const { currentUser } = useApp();
 
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(currentUser.role)) {
-    return <Navigate to={ROLE_HOME[currentUser.role] || "/login"} replace />;
+  const userRole = String(currentUser.role || "").trim().toLowerCase();
+  if (roles && !roles.map((r) => r.toLowerCase()).includes(userRole)) {
+    return (
+      <Navigate
+        to={ROLE_HOME[userRole] || ROLE_HOME[currentUser.role] || "/login"}
+        replace
+      />
+    );
   }
 
   return <Outlet />;
@@ -165,7 +183,14 @@ export default function App() {
               <Route path="/cola-trabajos" element={<ColaTrabajoScreen />} />
               <Route path="/entrega" element={<EntregaScreen />} />
               <Route path="/cierre" element={<CierreScreen />} />
+            </Route>
+          </Route>
 
+          <Route element={<ProtectedRoute roles={["cashierdelivery"]} />}>
+            <Route element={<AuthenticatedLayout />}>
+              <Route path="/caja-delivery" element={<DeliveryNuevaOrdenScreen />} />
+              <Route path="/delivery-cola" element={<DeliveryColaTrabajoScreen />} />
+              <Route path="/entrega" element={<EntregaScreen />} />
             </Route>
           </Route>
 

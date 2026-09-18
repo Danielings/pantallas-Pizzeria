@@ -28,6 +28,7 @@ export const procesarVenta = async (req, res) => {
     detalles,
   } = req.body;
   const { id_sucursal } = req.user;
+  const finalUserId = id_usuario || req.user?.id || 1;
 
   if (!Array.isArray(detalles) || !validarDetallesNuevos(detalles)) {
     return res.status(400).json({
@@ -47,7 +48,7 @@ export const procesarVenta = async (req, res) => {
       VALUES (?, ?, ?, ?, 'Completado', datetime('now', '-4 hours'), ?, ?, ?, ?)`,
       args: [
         id_cliente,
-        id_usuario,
+        finalUserId,
         id_delivery || null,
         despacho,
         tasa_cambio,
@@ -754,9 +755,11 @@ export const obtenerMetodosPago = async (req, res) => {
 // ---- Obtener ventas del día
 export const obtenerVentasHoy = async (req, res) => {
   const { id_sucursal } = req.user;
+  const { id_usuario, despacho } = req.query;
   try {
-    const query = `SELECT 
+    let query = `SELECT 
         v.id_venta,
+        v.id_usuario,
         v.monto_total_usd,
         v.monto_total_bs,
         v.despacho,
@@ -772,10 +775,20 @@ export const obtenerVentasHoy = async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
         AND v.estado = 'Completado'
-        AND v.id_sucursal = ?
-      ORDER BY v.fecha_hora DESC`;
+        AND v.id_sucursal = ?`;
 
-    const result = await db.execute({ sql: query, args: [id_sucursal] });
+    const args = [id_sucursal];
+    if (despacho) {
+      query += ` AND v.despacho = ?`;
+      args.push(despacho);
+    }
+    if (id_usuario) {
+      query += ` AND v.id_usuario = ?`;
+      args.push(Number(id_usuario));
+    }
+    query += ` ORDER BY v.fecha_hora DESC`;
+
+    const result = await db.execute({ sql: query, args });
     const ventas = result.rows;
 
     const totalRevenue = ventas.reduce(
@@ -807,9 +820,11 @@ export const obtenerVentasHoy = async (req, res) => {
 // ---- Obtener pedidos activos
 export const obtenerPedidosActivos = async (req, res) => {
   const { id_sucursal } = req.user;
+  const { id_usuario, despacho } = req.query;
   try {
-    const query = `SELECT DISTINCT
+    let query = `SELECT DISTINCT
         v.id_venta,
+        v.id_usuario,
         v.fecha_hora,
         v.despacho,
         v.monto_total_usd,
@@ -822,8 +837,19 @@ export const obtenerPedidosActivos = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
-        AND v.id_sucursal = ?
-        AND EXISTS (
+        AND v.id_sucursal = ?`;
+
+    const args = [id_sucursal];
+    if (despacho) {
+      query += ` AND v.despacho = ?`;
+      args.push(despacho);
+    }
+    if (id_usuario) {
+      query += ` AND v.id_usuario = ?`;
+      args.push(Number(id_usuario));
+    }
+
+    query += ` AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
             AND vd.estado != 'Completado'
@@ -831,7 +857,8 @@ export const obtenerPedidosActivos = async (req, res) => {
             AND vd.estado != 'Cancelado'
         )
       ORDER BY v.fecha_hora DESC`;
-    const result = await db.execute({ sql: query, args: [id_sucursal] });
+
+    const result = await db.execute({ sql: query, args });
     const ventas = result.rows;
 
     const pedidos = await Promise.all(
