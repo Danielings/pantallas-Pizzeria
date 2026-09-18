@@ -141,7 +141,13 @@ export const exportCierrePDF = async (cierre) => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   doc.setTextColor(...TEXT_DARK);
-  doc.text(`REPORTE DE CIERRE DE CAJA`, 14, 56);
+  doc.text(
+    cierre.tipo_cierre === "delivery"
+      ? "REPORTE DE CIERRE DE CAJA · DELIVERY"
+      : "REPORTE DE CIERRE DE CAJA",
+    14,
+    56,
+  );
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
