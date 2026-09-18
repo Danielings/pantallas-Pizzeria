@@ -10,6 +10,7 @@ export function useEntregas() {
     queryKey: ["entregas"],
     staleTime: 5000,
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
     queryFn: async () => {
       const res = await axios.get("http://localhost:3001/api/entregas", {
         withCredentials: true,
@@ -26,19 +27,31 @@ export function useEntregas() {
   });
 
   useEffect(() => {
-    const unsubscribe = subscribeToPusher({
+    const refreshEntregas = () => {
+      queryClient.invalidateQueries({ queryKey: ["entregas"] });
+      queryClient.refetchQueries({ queryKey: ["entregas"] });
+    };
+
+    const unsubscribeOrders = subscribeToPusher({
       channelName: "pizzeria-orders",
       events: {
-        pedido_actualizado: () => {
-          queryClient.invalidateQueries({ queryKey: ["entregas"] });
-        },
-        nuevo_pedido: () => {
-          queryClient.invalidateQueries({ queryKey: ["entregas"] });
-        },
+        pedido_actualizado: refreshEntregas,
+        pedido_creado: refreshEntregas,
+        nuevo_pedido: refreshEntregas,
       },
     });
 
-    return () => unsubscribe();
+    const unsubscribeKitchen = subscribeToPusher({
+      channelName: "pizzeria-kitchen",
+      events: {
+        pedido_estado_cambiado: refreshEntregas,
+      },
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeKitchen();
+    };
   }, [queryClient]);
 
   return query;
