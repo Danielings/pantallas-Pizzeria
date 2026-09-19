@@ -101,7 +101,12 @@ const normalizeRole = (role) => {
   return roleMap[normalized] || normalized;
 };
 
-const calculateItemPrice = (basePrice, size, extras = [], nombreProducto = "") => {
+const calculateItemPrice = (
+  basePrice,
+  size,
+  extras = [],
+  nombreProducto = "",
+) => {
   let multiplier = 1;
   if (size === "Mediana") multiplier = 1.3;
   if (size === "Familiar") multiplier = 1.6;
@@ -138,7 +143,12 @@ function reducer(state, action) {
           product.id ?? product.id_helado ?? product.id_heladeria,
         name: product.name,
         basePrice: product.price,
-        price: calculateItemPrice(product.price, size || null, [], product.name),
+        price: calculateItemPrice(
+          product.price,
+          size || null,
+          [],
+          product.name,
+        ),
         size: size || null,
         qty: 1,
         extras: [],
@@ -194,7 +204,12 @@ function reducer(state, action) {
           id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           qty: 1,
           extras,
-          price: calculateItemPrice(item.basePrice, item.size, extras, item.name),
+          price: calculateItemPrice(
+            item.basePrice,
+            item.size,
+            extras,
+            item.name,
+          ),
         };
         const newItems = [...state.currentOrder.items];
         newItems.splice(itemIndex, 1, originalItem, newItem);
@@ -238,6 +253,7 @@ function reducer(state, action) {
           payments: [],
           orderType: null,
           includesBox: false,
+          boxQty: 0,
           paymentStatus: null,
           advanceAmount: 0,
           advancePaymentMethod: null,
@@ -262,6 +278,7 @@ function reducer(state, action) {
         phoneLastDigits,
         deliveryId,
       } = action.payload;
+      const wantsBox = Boolean(action.payload.includesBox);
       return {
         ...state,
         currentOrder: {
@@ -274,19 +291,51 @@ function reducer(state, action) {
           customer: customer || null,
           phoneLastDigits: phoneLastDigits || "",
           deliveryId: deliveryId || null,
-          includesBox: Boolean(action.payload.includesBox),
+          includesBox: wantsBox,
+          boxQty: wantsBox
+            ? Math.max(1, Number(state.currentOrder.boxQty) || 0)
+            : 0,
         },
       };
     }
 
     case "SET_INCLUDES_BOX":
+      // Compatibilidad: true => al menos 1 caja, false => quita todas
+      const current = Number(state.currentOrder.boxQty) || 0;
+      const boxQty = action.payload ? Math.max(1, current) : 0;
       return {
         ...state,
         currentOrder: {
           ...state.currentOrder,
-          includesBox: Boolean(action.payload),
+          boxQty,
+          includesBox: boxQty > 0,
         },
       };
+
+    case "SET_BOX_QTY": {
+      const boxQty = Math.max(0, Math.floor(Number(action.payload) || 0));
+      return {
+        ...state,
+        currentOrder: {
+          ...state.currentOrder,
+          boxQty,
+          includesBox: boxQty > 0,
+        },
+      };
+    }
+
+    case "ADD_BOXES": {
+      const amount = Math.max(1, Math.floor(Number(action.payload) || 1));
+      const boxQty = (Number(state.currentOrder.boxQty) || 0) + amount;
+      return {
+        ...state,
+        currentOrder: {
+          ...state.currentOrder,
+          boxQty,
+          includesBox: true,
+        },
+      };
+    }
 
     case "SET_BOX_PRICE":
       return {
@@ -295,12 +344,23 @@ function reducer(state, action) {
       };
 
     case "LOAD_PENDING_ORDER": {
+      const payload = action.payload;
+      const hasBoxInfo = "boxQty" in payload || "includesBox" in payload;
+      const boxQty = hasBoxInfo
+        ? Number(payload.boxQty) > 0
+          ? Math.floor(Number(payload.boxQty))
+          : payload.includesBox
+            ? 1
+            : 0
+        : Number(state.currentOrder.boxQty) || 0;
       return {
         ...state,
         currentOrder: {
           ...state.currentOrder,
-          ...action.payload,
-          payments: action.payload.payments || [],
+          ...payload,
+          payments: payload.payments || [],
+          boxQty,
+          includesBox: boxQty > 0,
         },
       };
     }
@@ -373,10 +433,11 @@ export function AppProvider({ children }) {
     0,
   );
   const tax = 0; // IVA eliminado
+  const boxQty = Number(state.currentOrder.boxQty) || 0;
   const hasBoxCharge =
-    state.currentOrder.includesBox &&
-    BOX_ORDER_TYPES.has(state.currentOrder.orderType);
-  const total = subtotal + (hasBoxCharge ? state.boxPrice : 0); // total = subtotal + caja, sin impuestos
+    boxQty > 0 && BOX_ORDER_TYPES.has(state.currentOrder.orderType);
+  const boxTotal = hasBoxCharge ? boxQty * state.boxPrice : 0; // cantidad × precio de la caja
+  const total = subtotal + boxTotal; // total = subtotal + caja, sin impuestos
   const amountPaid = state.currentOrder.payments.reduce(
     (sum, p) => sum + p.amount,
     0,
@@ -413,6 +474,14 @@ export function AppProvider({ children }) {
   const setIncludesBox = useCallback(
     (includesBox) =>
       dispatch({ type: "SET_INCLUDES_BOX", payload: includesBox }),
+    [],
+  );
+  const setBoxQty = useCallback(
+    (qty) => dispatch({ type: "SET_BOX_QTY", payload: qty }),
+    [],
+  );
+  const addBoxes = useCallback(
+    (qty) => dispatch({ type: "ADD_BOXES", payload: qty }),
     [],
   );
   const setBoxPrice = useCallback(
@@ -549,11 +618,15 @@ export function AppProvider({ children }) {
       subtotal,
       tax,
       total,
+      boxQty,
+      boxTotal,
       amountPaid,
       remaining,
       TAX_RATE,
       KITCHEN_CATEGORIES,
       setBoxPrice,
+      setBoxQty,
+      addBoxes,
       addToCart,
       updateItemQty,
       updateItemSize,
@@ -575,9 +648,13 @@ export function AppProvider({ children }) {
       subtotal,
       tax,
       total,
+      boxQty,
+      boxTotal,
       amountPaid,
       remaining,
       setBoxPrice,
+      setBoxQty,
+      addBoxes,
       addToCart,
       updateItemQty,
       updateItemSize,
