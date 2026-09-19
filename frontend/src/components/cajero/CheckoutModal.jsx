@@ -47,15 +47,11 @@ const PAYMENT_METHODS = [
   },
 ];
 
+const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
+
 export default function CheckoutModal({ onClose }) {
-  const {
-    total,
-    currentOrder,
-    confirmSale,
-    clearCart,
-    currentUser,
-    boxPrice,
-  } = useApp();
+  const { total, currentOrder, confirmSale, clearCart, currentUser, boxPrice } =
+    useApp();
   const { exchangeRate } = useExchangeRate();
   const queryClient = useQueryClient();
 
@@ -74,6 +70,14 @@ export default function CheckoutModal({ onClose }) {
       0,
     );
 
+  // Cajas vendidas en esta venta (solo pedidos nuevos que admiten caja)
+  const boxUnitPriceUSD = Number(boxPrice) || 0;
+  const soldBoxes =
+    !isPendingSale && BOX_ORDER_TYPES.has(ctxOrderType)
+      ? Number(currentOrder.boxQty) || 0
+      : 0;
+  const boxesTotalUSD = soldBoxes * boxUnitPriceUSD; // cantidad × precio de la caja
+
   const ORDER_TYPE_LABELS = {
     local: "Local",
     takeaway: "Para Llevar",
@@ -89,22 +93,22 @@ export default function CheckoutModal({ onClose }) {
   const initialPayments =
     ctxPaymentStatus === "partial" && ctxAdvanceAmount > 0
       ? [
-        {
-          method: ctxAdvancePaymentMethod || "advance",
-          label:
-            ctxAdvancePaymentMethod === "mobile"
-              ? "Pago Móvil (abono)"
-              : ctxAdvancePaymentMethod === "cash"
-                ? "Efectivo (abono)"
-                : ctxAdvancePaymentMethod === "pos"
-                  ? "Punto de Venta (abono)"
-                  : ctxAdvancePaymentMethod === "binance"
-                    ? "Binance/Zelle (abono)"
-                    : "Abono previo",
-          amount: ctxAdvanceAmount,
-          currency: ctxAdvanceCurrency,
-        },
-      ]
+          {
+            method: ctxAdvancePaymentMethod || "advance",
+            label:
+              ctxAdvancePaymentMethod === "mobile"
+                ? "Pago Móvil (abono)"
+                : ctxAdvancePaymentMethod === "cash"
+                  ? "Efectivo (abono)"
+                  : ctxAdvancePaymentMethod === "pos"
+                    ? "Punto de Venta (abono)"
+                    : ctxAdvancePaymentMethod === "binance"
+                      ? "Binance/Zelle (abono)"
+                      : "Abono previo",
+            amount: ctxAdvanceAmount,
+            currency: ctxAdvanceCurrency,
+          },
+        ]
       : [];
 
   // internal payments array to allow splits
@@ -261,7 +265,7 @@ export default function CheckoutModal({ onClose }) {
     setSelectedMethod(null);
     if (
       totalToUse -
-      (paymentsInternal.reduce((s, p) => s + p.amount, 0) + amountUSD) <=
+        (paymentsInternal.reduce((s, p) => s + p.amount, 0) + amountUSD) <=
       0.01
     ) {
       setStep(2);
@@ -349,6 +353,12 @@ export default function CheckoutModal({ onClose }) {
         tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
         monto_total_usd: Number(totalToUse.toFixed(2)),
         monto_total_bs: Number((totalToUse * (exchangeRate || 0)).toFixed(2)),
+        cantidad_cajas: soldBoxes,
+        precio_caja_usd: Number(boxUnitPriceUSD.toFixed(2)),
+        monto_cajas_usd: Number(boxesTotalUSD.toFixed(2)),
+        monto_cajas_bs: Number(
+          (boxesTotalUSD * (exchangeRate || 0)).toFixed(2),
+        ),
         pagos: paymentsInternal.map((payment) => {
           const isUSD = payment.currency === "USD";
           const isBs = payment.currency === "Bs";
@@ -382,10 +392,10 @@ export default function CheckoutModal({ onClose }) {
             nota: item.note || "",
             extras: item.extras
               ? item.extras.map((extra) =>
-                typeof extra.id === "string"
-                  ? parseInt(extra.id.replace(/\D/g, ""))
-                  : Number(extra.id),
-              )
+                  typeof extra.id === "string"
+                    ? parseInt(extra.id.replace(/\D/g, ""))
+                    : Number(extra.id),
+                )
               : [],
           };
         }),
@@ -402,19 +412,19 @@ export default function CheckoutModal({ onClose }) {
         : "http://localhost:3001/api/procesar-venta";
       const requestPayload = isPendingSale
         ? {
-          id_usuario: currentUser?.id || 1,
-          monto_total_usd: Number(
-            (pendingOriginalTotal + pendingAddedTotal).toFixed(2),
-          ),
-          monto_total_bs: Number(
-            (
-              (pendingOriginalTotal + pendingAddedTotal) *
-              (exchangeRate || 0)
-            ).toFixed(2),
-          ),
-          detalles: payload.detalles,
-          pagos: payload.pagos.slice(currentOrder.payments.length),
-        }
+            id_usuario: currentUser?.id || 1,
+            monto_total_usd: Number(
+              (pendingOriginalTotal + pendingAddedTotal).toFixed(2),
+            ),
+            monto_total_bs: Number(
+              (
+                (pendingOriginalTotal + pendingAddedTotal) *
+                (exchangeRate || 0)
+              ).toFixed(2),
+            ),
+            detalles: payload.detalles,
+            pagos: payload.pagos.slice(currentOrder.payments.length),
+          }
         : payload;
       const response = await fetch(endpoint, {
         method: "POST",
@@ -667,28 +677,28 @@ export default function CheckoutModal({ onClose }) {
                 {/* Info Cliente */}
                 {(currentOrder.customer?.name ||
                   currentOrder.customer?.cedula) && (
-                    <div className="border-t border-dashed border-slate-300 py-3 text-xs text-slate-600 space-y-1">
-                      <div className="font-bold text-slate-800 mb-1">
-                        DATOS DEL CLIENTE
-                      </div>
-                      {currentOrder.customer?.name && (
-                        <div className="flex justify-between">
-                          <span>Nombre:</span>
-                          <span className="font-medium">
-                            {currentOrder.customer.name}
-                          </span>
-                        </div>
-                      )}
-                      {currentOrder.customer?.cedula && (
-                        <div className="flex justify-between">
-                          <span>C.I./RIF:</span>
-                          <span className="font-medium">
-                            {currentOrder.customer.cedula}
-                          </span>
-                        </div>
-                      )}
+                  <div className="border-t border-dashed border-slate-300 py-3 text-xs text-slate-600 space-y-1">
+                    <div className="font-bold text-slate-800 mb-1">
+                      DATOS DEL CLIENTE
                     </div>
-                  )}
+                    {currentOrder.customer?.name && (
+                      <div className="flex justify-between">
+                        <span>Nombre:</span>
+                        <span className="font-medium">
+                          {currentOrder.customer.name}
+                        </span>
+                      </div>
+                    )}
+                    {currentOrder.customer?.cedula && (
+                      <div className="flex justify-between">
+                        <span>C.I./RIF:</span>
+                        <span className="font-medium">
+                          {currentOrder.customer.cedula}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2 border-t border-b border-dashed border-slate-300 py-3 mb-3">
                   {currentOrder.items.map((item, idx) => (
@@ -703,14 +713,12 @@ export default function CheckoutModal({ onClose }) {
                       </span>
                     </div>
                   ))}
-                  {currentOrder.includesBox && !isPendingSale && (
+                  {soldBoxes > 0 && (
                     <div className="flex justify-between font-semibold">
-                      <span>1x Caja</span>
                       <span>
-                        {currency === "Bs"
-                          ? `Bs. ${(boxPrice * (exchangeRate || 0)).toFixed(2)}`
-                          : `$${boxPrice.toFixed(2)}`}
+                        {soldBoxes}x {soldBoxes === 1 ? "Caja" : "Cajas"}
                       </span>
+                      <span>{formatDisplay(boxesTotalUSD)}</span>
                     </div>
                   )}
                 </div>

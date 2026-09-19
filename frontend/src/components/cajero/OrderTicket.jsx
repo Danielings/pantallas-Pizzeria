@@ -1,27 +1,41 @@
+import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import OrderItem from "./OrderItem";
-import { ShoppingCart, Package, Trash2 } from "lucide-react";
+import { ShoppingCart, Package, Trash2, Plus, Minus } from "lucide-react";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 
 const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
 
 export default function OrderTicket({ onCheckout }) {
-  const { currentOrder, total, boxPrice, setIncludesBox } = useApp();
+  const { currentOrder, total, boxPrice, addBoxes, setBoxQty } = useApp();
   const { exchangeRate } = useExchangeRate();
   const { items, pendingRemaining } = currentOrder;
+
+  // Cantidad elegida en el selector
+  const [boxesToAdd, setBoxesToAdd] = useState(1);
+
   const addedTotal = items
     .filter((item) => !item.isPendingExisting)
     .reduce(
       (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
       0,
     );
+  const unitBoxPrice = Number(boxPrice) || 0;
   const canAddBox = BOX_ORDER_TYPES.has(currentOrder.orderType);
-  const includesBox = Boolean(currentOrder.includesBox);
-  const boxCharge = canAddBox && includesBox ? Number(boxPrice) || 0 : 0;
+  const boxQty = Number(currentOrder.boxQty) || 0; // cajas ya en el pedido
+  const includesBox = boxQty > 0;
+  const boxCharge = canAddBox ? boxQty * unitBoxPrice : 0; // cantidad × boxPrice
   const displayTotal =
     pendingRemaining != null
       ? pendingRemaining + addedTotal + boxCharge
       : total;
+
+  const handleDecrease = () => setBoxesToAdd((q) => Math.max(1, q - 1));
+  const handleIncrease = () => setBoxesToAdd((q) => q + 1);
+  const handleAddBoxes = () => {
+    addBoxes(boxesToAdd);
+    setBoxesToAdd(1); // el selector vuelve a 1 tras añadir
+  };
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-slate-50">
@@ -47,39 +61,85 @@ export default function OrderTicket({ onCheckout }) {
         <div className="bg-white border-t border-slate-100 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
           <div className="space-y-1.5 text-sm">
             {canAddBox && !includesBox && (
-              <button
-                onClick={() => setIncludesBox(true)}
-                className="w-full flex items-center justify-between gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-left cursor-pointer select-none hover:border-slate-400 transition-colors"
-              >
-                <span className="flex items-center gap-2 text-slate-700 font-semibold">
-                  <Package className="w-4 h-4 text-pizza-red" />
-                  Agregar caja
-                  <span className="text-xs font-normal text-slate-500">
-                    ${boxPrice.toFixed(2)}
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                {/* Título + precio unitario */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100">
+                    <Package className="w-4 h-4 text-pizza-red" />
                   </span>
-                </span>
-                <span className="text-slate-400 text-xs font-semibold">
-                  Añadir
-                </span>
-              </button>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 leading-tight truncate">
+                      Cajas
+                      {includesBox && ` (${boxQty} en pedido)`}
+                    </p>
+                    <p className="text-xs font-medium text-slate-400">
+                      ${unitBoxPrice.toFixed(2)} c/u
+                    </p>
+                  </div>
+                </div>
+
+                {/* Incrementador + botón Añadir */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center rounded-lg border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={handleDecrease}
+                      disabled={boxesToAdd <= 1}
+                      aria-label="Disminuir cantidad de cajas"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:hover:text-slate-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span
+                      className="min-w-[1.75rem] text-center text-sm font-bold text-slate-800 select-none tabular-nums"
+                      aria-live="polite"
+                    >
+                      {boxesToAdd}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleIncrease}
+                      aria-label="Aumentar cantidad de cajas"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddBoxes}
+                    className="rounded-lg bg-pizza-red px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:brightness-95 active:scale-[0.97] transition-all"
+                  >
+                    Añadir
+                  </button>
+                </div>
+              </div>
             )}
 
             {canAddBox && includesBox && (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                 <span className="flex items-center gap-2 text-slate-800 font-semibold">
                   <Package className="w-4 h-4 text-pizza-red" />
-                  Caja
+                  Cajas
                   <span className="text-xs font-normal text-slate-500">
-                    1 × ${boxPrice.toFixed(2)}
+                    {boxQty} × ${unitBoxPrice.toFixed(2)}
                   </span>
                 </span>
-                <button
-                  onClick={() => setIncludesBox(false)}
-                  title="Quitar caja"
-                  className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-800 font-semibold">
+                    ${boxCharge.toFixed(2)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setBoxQty(0)}
+                    title="Quitar cajas"
+                    aria-label="Quitar todas las cajas"
+                    className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
 
