@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "../../context/AppContext";
+import { useApp, isBoxItem } from "../../context/AppContext";
 import OrderItem from "./OrderItem";
 import { ShoppingCart, Package, Trash2, Plus, Minus } from "lucide-react";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
@@ -7,7 +7,7 @@ import { useExchangeRate } from "../../hooks/useExchangeRate";
 const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
 
 export default function OrderTicket({ onCheckout }) {
-  const { currentOrder, total, boxPrice, addBoxes, setBoxQty } = useApp();
+  const { currentOrder, total, boxPrice, addBoxes } = useApp();
   const { exchangeRate } = useExchangeRate();
   const { items, pendingRemaining } = currentOrder;
 
@@ -22,13 +22,11 @@ export default function OrderTicket({ onCheckout }) {
     );
   const unitBoxPrice = Number(boxPrice) || 0;
   const canAddBox = BOX_ORDER_TYPES.has(currentOrder.orderType);
-  const boxQty = Number(currentOrder.boxQty) || 0; // cajas ya en el pedido
-  const includesBox = boxQty > 0;
-  const boxCharge = canAddBox ? boxQty * unitBoxPrice : 0; // cantidad × boxPrice
+  const hasBoxLine = items.some(
+    (item) => isBoxItem(item) && !item.isPendingExisting,
+  );
   const displayTotal =
-    pendingRemaining != null
-      ? pendingRemaining + addedTotal + boxCharge
-      : total;
+    pendingRemaining != null ? pendingRemaining + addedTotal : total;
 
   const handleDecrease = () => setBoxesToAdd((q) => Math.max(1, q - 1));
   const handleIncrease = () => setBoxesToAdd((q) => q + 1);
@@ -60,7 +58,7 @@ export default function OrderTicket({ onCheckout }) {
       {items.length > 0 && (
         <div className="bg-white border-t border-slate-100 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
           <div className="space-y-1.5 text-sm">
-            {canAddBox && !includesBox && (
+            {canAddBox && !hasBoxLine && (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                 {/* Título + precio unitario */}
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -70,7 +68,6 @@ export default function OrderTicket({ onCheckout }) {
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-800 leading-tight truncate">
                       Cajas
-                      {includesBox && ` (${boxQty} en pedido)`}
                     </p>
                     <p className="text-xs font-medium text-slate-400">
                       ${unitBoxPrice.toFixed(2)} c/u
@@ -112,32 +109,6 @@ export default function OrderTicket({ onCheckout }) {
                     className="rounded-lg bg-pizza-red px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:brightness-95 active:scale-[0.97] transition-all"
                   >
                     Añadir
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {canAddBox && includesBox && (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <span className="flex items-center gap-2 text-slate-800 font-semibold">
-                  <Package className="w-4 h-4 text-pizza-red" />
-                  Cajas
-                  <span className="text-xs font-normal text-slate-500">
-                    {boxQty} × ${unitBoxPrice.toFixed(2)}
-                  </span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-800 font-semibold">
-                    ${boxCharge.toFixed(2)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setBoxQty(0)}
-                    title="Quitar cajas"
-                    aria-label="Quitar todas las cajas"
-                    className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>

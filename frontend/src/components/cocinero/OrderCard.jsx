@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { Clock, User, Phone } from "lucide-react";
 
+const BOX_CATEGORY = "cajas";
+const isBoxItem = (item) =>
+  String(item?.category || "").toLowerCase() === BOX_CATEGORY;
+
 function useTimer(createdAt) {
   const [elapsed, setElapsed] = useState("");
 
@@ -58,7 +62,8 @@ const VARIANT_CONFIG = {
     badge: "bg-amber-100 text-amber-700 border border-amber-200",
     dot: "bg-amber-400 animate-pulse",
     primaryBtn: "bg-amber-400 hover:bg-amber-500 text-white",
-    secondaryBtn: "bg-red-500 hover:bg-red-600 text-white border border-red-600 ",
+    secondaryBtn:
+      "bg-red-500 hover:bg-red-600 text-white border border-red-600 ",
   },
   orange: {
     border: "border-l-orange-400",
@@ -149,6 +154,7 @@ export function OrderCard({
   onSecondary,
   itemsFilter = null,
   compactText = false,
+  showBoxes = false,
 }) {
   const elapsed = useTimer(order.createdAt);
 
@@ -166,7 +172,9 @@ export function OrderCard({
   const visibleItems =
     itemsFilter && Array.isArray(itemsFilter)
       ? order.items.filter(
-          (it) => it.category && itemsFilter.includes(it.category),
+          (it) =>
+            (it.category && itemsFilter.includes(it.category)) ||
+            (showBoxes && isBoxItem(it)),
         )
       : order.items;
 
@@ -190,7 +198,14 @@ export function OrderCard({
             {order.id}
           </span>
           {isReturnedFromOven && (
-            <span className="text-xs font-bold px-1.5 py-0.5 rounded-md border" style={{ color: "#ED4E09", backgroundColor: "#ED4E091A", borderColor: "#ED4E0940" }}>
+            <span
+              className="text-xs font-bold px-1.5 py-0.5 rounded-md border"
+              style={{
+                color: "#ED4E09",
+                backgroundColor: "#ED4E091A",
+                borderColor: "#ED4E0940",
+              }}
+            >
               ⚠️Pedido Devuelto
             </span>
           )}
@@ -256,36 +271,44 @@ export function OrderCard({
               key={`${item.category || "x"}-${i}`}
               className="flex items-start gap-2 bg-pizza-gray-2 border border-pizza-gray-3 rounded-lg px-3 py-2 3xl:px-4 3xl:py-3"
             >
-              <span className={`text-pizza-red flex-shrink-0 w-5 3xl:w-7 ${
-                compactText 
-                  ? "text-sm 3xl:text-base font-bold" 
-                  : "text-base 3xl:text-lg font-bold"
-              }`}>
+              <span
+                className={`text-pizza-red flex-shrink-0 w-5 3xl:w-7 ${
+                  compactText
+                    ? "text-sm 3xl:text-base font-bold"
+                    : "text-base 3xl:text-lg font-bold"
+                }`}
+              >
                 {item.qty}x
               </span>
               <div className="min-w-0 flex-1">
-                <p className={`text-pizza-dark leading-tight flex items-center gap-1.5 ${
-                  compactText 
-                    ? "text-sm 3xl:text-base font-medium" 
-                    : "text-xl 3xl:text-2xl font-bold"
-                }`}>
+                <p
+                  className={`text-pizza-dark leading-tight flex items-center gap-1.5 ${
+                    compactText
+                      ? "text-sm 3xl:text-base font-medium"
+                      : "text-xl 3xl:text-2xl font-bold"
+                  }`}
+                >
                   <span>{item.name}</span>
                 </p>
                 {item.size && (
-                  <p className={`text-pizza-muted ${
-                    compactText 
-                      ? "text-xs 3xl:text-sm" 
-                      : "text-sm 3xl:text-base font-medium"
-                  }`}>
+                  <p
+                    className={`text-pizza-muted ${
+                      compactText
+                        ? "text-xs 3xl:text-sm"
+                        : "text-sm 3xl:text-base font-medium"
+                    }`}
+                  >
                     {item.size}
                   </p>
                 )}
                 {item.extras && item.extras.length > 0 && (
-                  <p className={`text-sm mt-0.5 font-medium ${
-                    compactText 
-                      ? "text-xs 3xl:text-sm" 
-                      : "text-sm 3xl:text-base"
-                  }`}>
+                  <p
+                    className={`text-sm mt-0.5 font-medium ${
+                      compactText
+                        ? "text-xs 3xl:text-sm"
+                        : "text-sm 3xl:text-base"
+                    }`}
+                  >
                     +{" "}
                     {item.extras.map((e) => (
                       <span
@@ -302,11 +325,13 @@ export function OrderCard({
                   </p>
                 )}
                 {item.note && (
-                  <p className={`text-sm text-slate-600 mt-1 ${
-                    compactText 
-                      ? "text-xs 3xl:text-sm" 
-                      : "text-sm 3xl:text-base"
-                  }`}>
+                  <p
+                    className={`text-sm text-slate-600 mt-1 ${
+                      compactText
+                        ? "text-xs 3xl:text-sm"
+                        : "text-sm 3xl:text-base"
+                    }`}
+                  >
                     Nota: {item.note}
                   </p>
                 )}
@@ -333,7 +358,9 @@ export function OrderCard({
           <button
             onClick={onPrimary}
             disabled={!isFirst}
-            style={isReturnedFromOven ? { backgroundColor: "#ED4E09" } : undefined}
+            style={
+              isReturnedFromOven ? { backgroundColor: "#ED4E09" } : undefined
+            }
             className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-200 active:scale-95 ${
               isReturnedFromOven ? "text-white" : primaryBtnClass
             } ${!isFirst ? "opacity-40 cursor-not-allowed" : ""}`}
