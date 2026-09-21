@@ -58,16 +58,26 @@ export const exportCierrePDF = async (cierre) => {
     }
   }
 
-  // --- DYNAMIC BRANCH COLOR PALETTE ---
-  const palette = getSucursalPalette(cierre.id_sucursal);
-  const ACCENT = palette.bg; // e.g. [239, 68, 68]
-  const ACCENT_LIGHT = palette.light; // e.g. [254, 226, 226]
+  const esDelivery =
+    String(cierre.tipo_cierre || "").toLowerCase() === "delivery";
+
+  // --- DYNAMIC COLOR PALETTE ---
+  // Delivery usa una paleta amarilla/ámbar de alto contraste para distinguirlo claramente de la caja de salón
+  const branchPalette = getSucursalPalette(cierre.id_sucursal);
+  const ACCENT = esDelivery
+    ? [217, 119, 6] // Amber-600: amarillo dorado cálido y legible
+    : branchPalette.bg;
+  const ACCENT_LIGHT = esDelivery
+    ? [254, 243, 199] // Amber-100: amarillo claro suave
+    : branchPalette.light;
+  const BOX_BG = esDelivery
+    ? [255, 251, 235] // Amber-50: fondo cálido para tarjetas
+    : [248, 250, 252]; // Slate-50
 
   // Static colors
   const TEXT_DARK = [30, 41, 59]; // slate-800
   const TEXT_MUTED = [148, 163, 184]; // slate-400
   const SLATE_600 = [71, 85, 105];
-  const BG_LIGHT = [248, 250, 252]; // slate-50
   const WHITE = [255, 255, 255];
 
   // Money formatters
@@ -139,15 +149,36 @@ export const exportCierrePDF = async (cierre) => {
   // DOCUMENT TITLE
   // ═══════════════════════════════════════════════════════
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setTextColor(...TEXT_DARK);
   doc.text(
-    cierre.tipo_cierre === "delivery"
+    esDelivery
       ? "REPORTE DE CIERRE DE CAJA · DELIVERY"
-      : "REPORTE DE CIERRE DE CAJA",
+      : "REPORTE DE CIERRE DE CAJA · SALÓN",
     14,
     56,
   );
+
+  // Badge de tipo de caja
+  if (esDelivery) {
+    doc.setFillColor(254, 240, 138); // Yellow-200
+    doc.setDrawColor(217, 119, 6); // Amber-600
+    doc.setLineWidth(0.5);
+    doc.roundedRect(132, 51, 32, 6.5, 2, 2, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(120, 53, 15); // Amber-900
+    doc.text("CAJA DELIVERY", 148, 55.4, { align: "center" });
+  } else {
+    doc.setFillColor(241, 245, 249); // Slate-100
+    doc.setDrawColor(203, 213, 225); // Slate-300
+    doc.setLineWidth(0.5);
+    doc.roundedRect(134, 51, 30, 6.5, 2, 2, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(51, 65, 85); // Slate-700
+    doc.text("CAJA SALÓN", 149, 55.4, { align: "center" });
+  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
@@ -157,7 +188,7 @@ export const exportCierrePDF = async (cierre) => {
   // ═══════════════════════════════════════════════════════
   // METADATA GRID BOX
   // ═══════════════════════════════════════════════════════
-  doc.setFillColor(...BG_LIGHT);
+  doc.setFillColor(...BOX_BG);
   doc.roundedRect(14, 61, 182, 32, 4, 4, "F");
 
   // Left accent stripe inside box
@@ -166,8 +197,12 @@ export const exportCierrePDF = async (cierre) => {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.setTextColor(...SLATE_600);
-  doc.text("INFORMACIÓN DEL CIERRE", 21, 68);
+  doc.setTextColor(...(esDelivery ? ACCENT : SLATE_600));
+  doc.text(
+    esDelivery ? "INFORMACIÓN DEL CIERRE · DELIVERY" : "INFORMACIÓN DEL CIERRE",
+    21,
+    68,
+  );
 
   // Row 1
   doc.setFont("helvetica", "bold");
@@ -178,10 +213,14 @@ export const exportCierrePDF = async (cierre) => {
   doc.text(cierre.usuario_nombre || "Cajero Desconocido", 46, 76);
 
   doc.setFont("helvetica", "bold");
-  doc.text("Sucursal:", 120, 76);
-  doc.setFont("helvetica", "normal");
+  doc.text("Tipo de Caja:", 120, 76);
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(...ACCENT);
-  doc.text(sucursalNombre, 142, 76);
+  doc.text(
+    esDelivery ? "Caja Delivery (Repartos)" : "Caja Salón / Mostrador",
+    144,
+    76,
+  );
 
   // Row 2
   doc.setTextColor(...TEXT_DARK);
@@ -191,26 +230,23 @@ export const exportCierrePDF = async (cierre) => {
   doc.text(`${formattedDate}  •  ${formattedTime}`, 46, 83);
 
   doc.setFont("helvetica", "bold");
-  doc.text("Órdenes:", 120, 83);
+  doc.text("Sucursal:", 120, 83);
   doc.setFont("helvetica", "normal");
-  doc.text(`${cierre.num_ordenes || 0}`, 142, 83);
+  doc.setTextColor(...ACCENT);
+  doc.text(sucursalNombre, 144, 83);
 
   // Row 3
+  doc.setTextColor(...TEXT_DARK);
+  doc.setFont("helvetica", "bold");
+  doc.text("Órdenes:", 21, 90);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${cierre.num_ordenes || 0}`, 46, 90);
+
   if (tasa && tasa !== 1.0) {
     doc.setFont("helvetica", "bold");
-    doc.text("Tasa de Cambio:", 21, 90);
+    doc.text("Tasa de Cambio:", 120, 90);
     doc.setFont("helvetica", "normal");
-    doc.text(`Bs. ${tasa.toFixed(2)} / USD`, 58, 90);
-  }
-
-  if (sucursalDir) {
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...TEXT_DARK);
-    doc.text("Dirección:", 120, 90);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...SLATE_600);
-    const dirLines = doc.splitTextToSize(sucursalDir, 50);
-    doc.text(dirLines[0], 142, 90);
+    doc.text(`Bs. ${tasa.toFixed(2)} / USD`, 148, 90);
   }
 
   // ═══════════════════════════════════════════════════════
@@ -226,7 +262,13 @@ export const exportCierrePDF = async (cierre) => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...TEXT_DARK);
-  doc.text("TOTAL GENERAL CONCILIADO (USDT):", 22, 112);
+  doc.text(
+    esDelivery
+      ? "TOTAL GENERAL CONCILIADO · CAJA DELIVERY (USDT):"
+      : "TOTAL GENERAL CONCILIADO · CAJA SALÓN (USDT):",
+    22,
+    112,
+  );
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
@@ -385,6 +427,6 @@ export const exportCierrePDF = async (cierre) => {
 
   // Save
   doc.save(
-    `Cierre_${sucursalNombre.replace(/\s+/g, "_")}_#${cierre.id_cierre || "N_A"}_${formattedDate.replace(/\//g, "-")}.pdf`,
+    `Cierre_${esDelivery ? "Delivery_" : "Salon_"}${sucursalNombre.replace(/\s+/g, "_")}_#${cierre.id_cierre || "N_A"}_${formattedDate.replace(/\//g, "-")}.pdf`,
   );
 };

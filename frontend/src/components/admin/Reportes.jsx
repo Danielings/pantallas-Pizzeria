@@ -36,6 +36,9 @@ import {
   PieChart as PieIcon,
   Coffee,
   Package2,
+  Trophy,
+  Star,
+  CupSoda,
 } from "lucide-react";
 import { useReportes } from "../../hooks/useReportes";
 
@@ -182,6 +185,55 @@ const PAGO_ICONS = {
     icon: Coins,
     cls: "text-amber-600 bg-amber-50 border-amber-100",
   },
+};
+
+const CustomTopProductTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const item = payload[0];
+    const data = item.payload;
+    return (
+      <div className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 shadow-2xl backdrop-blur-md">
+        <p className="text-slate-200 font-extrabold text-xs mb-1.5 border-b border-slate-700/80 pb-1">
+          {data.producto_nombre}
+        </p>
+        <div className="flex flex-col gap-1 text-xs">
+          <p className="text-amber-400 font-bold flex items-center justify-between gap-4">
+            <span className="text-slate-400 font-medium">Unidades vendidas:</span>
+            <span className="font-mono font-black">{data.cantidad_vendida} uds</span>
+          </p>
+          {data.total_recaudado_usd > 0 && (
+            <p className="text-emerald-400 font-bold flex items-center justify-between gap-4">
+              <span className="text-slate-400 font-medium">Total recaudado:</span>
+              <span className="font-mono font-black">{fmtUSD(data.total_recaudado_usd)}</span>
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const getCategoryIcon = (tipo) => {
+  const t = String(tipo || "").toLowerCase();
+  if (t.includes("pizza")) {
+    return <Pizza className="w-3.5 h-3.5 text-amber-600 shrink-0" />;
+  }
+  if (t.includes("helad")) {
+    return <IceCream className="w-3.5 h-3.5 text-pink-600 shrink-0" />;
+  }
+  if (t.includes("bebid")) {
+    return <CupSoda className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+  }
+  return <ShoppingBag className="w-3.5 h-3.5 text-slate-500 shrink-0" />;
+};
+
+const getCategoryBadgeClass = (tipo) => {
+  const t = String(tipo || "").toLowerCase();
+  if (t.includes("pizza")) return "bg-amber-50 text-amber-700 border-amber-200";
+  if (t.includes("helad")) return "bg-pink-50 text-pink-700 border-pink-200";
+  if (t.includes("bebid")) return "bg-blue-50 text-blue-700 border-blue-200";
+  return "bg-slate-50 text-slate-600 border-slate-200";
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -600,18 +652,22 @@ export default function Reportes() {
 
         {/* ── FILA 2 DE GRÁFICOS (PRODUCTOS CON MÁS VENTAS Y DÍAS CON MÁS VENTAS) ── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {/* GRÁFICO 3: PRODUCTOS CON MÁS VENTAS Y CUÁNTOS */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-4">
+          {/* GRÁFICO 3: PRODUCTOS CON MÁS VENTAS (TOP 5) */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3.5">
               <div>
                 <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
                   <Award className="w-4.5 h-4.5 text-amber-500" />
                   Productos con Más Ventas
                 </h3>
                 <p className="text-slate-400 text-xs mt-0.5">
-                  Top productos y cuántas unidades se vendieron
+                  Top 5 productos con mayor volumen de venta
                 </p>
               </div>
+              <span className="text-xs font-black text-amber-800 bg-amber-100/70 border border-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <Star className="w-3 h-3 text-amber-600 fill-amber-500" />
+                Top 5
+              </span>
             </div>
 
             {loading ? (
@@ -626,10 +682,16 @@ export default function Reportes() {
             ) : (
               <ResponsiveContainer width="100%" height={210}>
                 <BarChart
-                  data={topProductos.slice(0, 6)}
+                  data={topProductos.slice(0, 5)}
                   layout="vertical"
-                  margin={{ top: 5, right: 25, bottom: 0, left: 30 }}
+                  margin={{ top: 5, right: 25, bottom: 0, left: 15 }}
                 >
+                  <defs>
+                    <linearGradient id="barGradTop5" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#f59e0b" />
+                      <stop offset="100%" stopColor="#fbbf24" />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="#f1f5f9"
@@ -644,17 +706,20 @@ export default function Reportes() {
                   <YAxis
                     type="category"
                     dataKey="producto_nombre"
-                    tick={{ fontSize: 10, fill: "#334155", fontWeight: 700 }}
+                    tick={{ fontSize: 11, fill: "#334155", fontWeight: 700 }}
                     axisLine={false}
                     tickLine={false}
-                    width={110}
+                    width={115}
                   />
-                  <Tooltip content={<CustomPieTooltip />} />
+                  <Tooltip
+                    content={<CustomTopProductTooltip />}
+                    cursor={{ fill: "#f8fafc" }}
+                  />
                   <Bar
                     dataKey="cantidad_vendida"
                     name="Unidades Vendidas"
-                    fill="#f59e0b"
-                    radius={[0, 6, 6, 0]}
+                    fill="url(#barGradTop5)"
+                    radius={[0, 8, 8, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -721,68 +786,150 @@ export default function Reportes() {
           </div>
         </div>
 
-        {/* ── SECCIÓN TOP PRODUCTOS VENDIDOS ── */}
+        {/* ── SECCIÓN PODIO TOP 5 PRODUCTOS MÁS VENDIDOS ── */}
         {topProductos.length > 0 && (
           <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3.5">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
                 <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-white ${
-                    modulo === "heladeria" ? "bg-pink-500" : "bg-amber-500"
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-xs ${
+                    modulo === "heladeria"
+                      ? "bg-gradient-to-br from-pink-500 to-pink-600"
+                      : "bg-gradient-to-br from-amber-500 to-yellow-500"
                   }`}
                 >
-                  <Award className="w-4 h-4" />
+                  <Trophy className="w-5 h-5 text-amber-950" />
                 </div>
                 <div>
                   <h3 className="font-extrabold text-slate-800 text-sm sm:text-base">
                     {modulo === "heladeria"
-                      ? "Top Helados Más Vendidos"
+                      ? "Podio de Helados Más Vendidos"
                       : modulo === "pizzeria"
-                        ? "Top Pizzas y Productos Más Vendidos"
-                        : "Productos Más Vendidos"}
+                        ? "Podio de Pizzas Más Vendidas"
+                        : "Podio de Productos Más Vendidos"}
                   </h3>
                   <p className="text-slate-400 text-xs">
-                    Ranking por unidades vendidas en este periodo
+                    Los 5 productos más destacados por volumen de ventas
                   </p>
                 </div>
               </div>
+              <span className="text-xs font-black text-amber-800 bg-amber-100/70 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                Top 5
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {topProductos.slice(0, 5).map((prod, idx) => (
-                <div
-                  key={idx}
-                  className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 flex flex-col justify-between hover:border-slate-300 transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-black text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded-md">
-                      #{idx + 1}
-                    </span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        prod.tipo_producto === "Helado"
-                          ? "bg-pink-100 text-pink-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {prod.tipo_producto}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-bold text-xs text-slate-800 line-clamp-1">
-                      {prod.producto_nombre}
-                    </p>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60 text-xs">
-                      <span className="text-slate-500 font-medium">
-                        {prod.cantidad_vendida} ud(s)
-                      </span>
-                      <span className="font-mono font-extrabold text-emerald-700">
-                        {fmtUSD(prod.total_recaudado_usd)}
-                      </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              {topProductos.slice(0, 5).map((prod, idx) => {
+                const maxUnits = Number(topProductos[0]?.cantidad_vendida || 1);
+                const currentUnits = Number(prod.cantidad_vendida || 0);
+                const pct = Math.round((currentUnits / (maxUnits || 1)) * 100);
+
+                const isGold = idx === 0;
+                const isSilver = idx === 1;
+                const isBronze = idx === 2;
+
+                return (
+                  <div
+                    key={idx}
+                    className={`rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 border relative overflow-hidden group ${
+                      isGold
+                        ? "bg-gradient-to-b from-amber-50/80 via-white to-white border-amber-300 shadow-sm ring-1 ring-amber-200"
+                        : isSilver
+                          ? "bg-gradient-to-b from-slate-50/80 via-white to-white border-slate-300 shadow-xs"
+                          : isBronze
+                            ? "bg-gradient-to-b from-amber-50/30 via-white to-white border-amber-200/90 shadow-xs"
+                            : "bg-white border-slate-200 hover:border-slate-300 shadow-2xs"
+                    }`}
+                  >
+                    {/* Línea decorativa superior dorada para el primer lugar */}
+                    {isGold && (
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500" />
+                    )}
+
+                    <div>
+                      {/* Badge de posición y categoría */}
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center gap-1">
+                          {isGold && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 shadow-xs">
+                              <Trophy className="w-3 h-3 text-amber-950" />
+                              1º Lugar
+                            </span>
+                          )}
+                          {isSilver && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black bg-slate-200 text-slate-800 shadow-xs">
+                              2º Lugar
+                            </span>
+                          )}
+                          {isBronze && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black bg-amber-100 text-amber-800">
+                              3º Lugar
+                            </span>
+                          )}
+                          {!isGold && !isSilver && !isBronze && (
+                            <span className="text-[10px] font-black text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                              #{idx + 1}
+                            </span>
+                          )}
+                        </div>
+
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getCategoryBadgeClass(prod.tipo_producto)}`}
+                        >
+                          {prod.tipo_producto}
+                        </span>
+                      </div>
+
+                      {/* Icono y Nombre del producto */}
+                      <div className="flex items-start gap-2 mb-3">
+                        <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                          {getCategoryIcon(prod.tipo_producto)}
+                        </div>
+                        <p className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 leading-tight">
+                          {prod.producto_nombre}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Métricas y barra de progreso */}
+                    <div>
+                      <div className="flex items-center justify-between text-xs py-2 border-t border-slate-100">
+                        <div>
+                          <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">
+                            Vendidos
+                          </p>
+                          <p className="font-black text-slate-800 text-xs">
+                            {prod.cantidad_vendida} uds
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">
+                            Recaudado
+                          </p>
+                          <p className="font-mono font-black text-emerald-600 text-xs">
+                            {fmtUSD(prod.total_recaudado_usd)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Mini barra de progreso relativa */}
+                      <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden mt-1">
+                        <div
+                          className={`h-full rounded-full ${
+                            isGold
+                              ? "bg-amber-400"
+                              : isSilver
+                                ? "bg-slate-400"
+                                : "bg-amber-300"
+                          }`}
+                          style={{ width: `${Math.max(6, pct)}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
