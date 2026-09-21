@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useApp } from "../../context/AppContext";
+import { useApp, isBoxItem } from "../../context/AppContext";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 import {
   X,
@@ -47,8 +47,6 @@ const PAYMENT_METHODS = [
   },
 ];
 
-const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
-
 export default function CheckoutModal({ onClose }) {
   const { total, currentOrder, confirmSale, clearCart, currentUser, boxPrice } =
     useApp();
@@ -71,12 +69,19 @@ export default function CheckoutModal({ onClose }) {
     );
 
   // Cajas vendidas en esta venta (solo pedidos nuevos que admiten caja)
-  const boxUnitPriceUSD = Number(boxPrice) || 0;
-  const soldBoxes =
-    !isPendingSale && BOX_ORDER_TYPES.has(ctxOrderType)
-      ? Number(currentOrder.boxQty) || 0
-      : 0;
-  const boxesTotalUSD = soldBoxes * boxUnitPriceUSD; // cantidad × precio de la caja
+  const newBoxItems = currentOrder.items.filter(
+    (item) => isBoxItem(item) && !item.isPendingExisting,
+  );
+  const soldBoxes = newBoxItems.reduce(
+    (sum, item) => sum + Number(item.qty || 0),
+    0,
+  );
+  const boxesTotalUSD = newBoxItems.reduce(
+    (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
+    0,
+  );
+  const boxUnitPriceUSD =
+    soldBoxes > 0 ? boxesTotalUSD / soldBoxes : Number(boxPrice) || 0;
 
   const ORDER_TYPE_LABELS = {
     local: "Local",
@@ -312,6 +317,12 @@ export default function CheckoutModal({ onClose }) {
       return;
     }
 
+    const productItems = currentOrder.items.filter((item) => !isBoxItem(item));
+    if (!productItems.length) {
+      setError("Debe haber al menos un producto además de las cajas.");
+      return;
+    }
+
     const despacho = mapOrderTypeToApiValue(orderType);
     if (!despacho) {
       setError("Debe seleccionar un tipo de despacho.");
@@ -380,7 +391,7 @@ export default function CheckoutModal({ onClose }) {
           };
         }),
 
-        detalles: currentOrder.items.map((item) => {
+        detalles: productItems.map((item) => {
           const idOrigen = getProductOriginId(item);
 
           return {
@@ -423,6 +434,10 @@ export default function CheckoutModal({ onClose }) {
               ).toFixed(2),
             ),
             detalles: payload.detalles,
+            cantidad_cajas: payload.cantidad_cajas,
+            precio_caja_usd: payload.precio_caja_usd,
+            monto_cajas_usd: payload.monto_cajas_usd,
+            monto_cajas_bs: payload.monto_cajas_bs,
             pagos: payload.pagos.slice(currentOrder.payments.length),
           }
         : payload;
@@ -483,7 +498,7 @@ export default function CheckoutModal({ onClose }) {
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
       <div
-        className="bg-white rounded-xl sm:rounded-2xl w-full max-w-md mx-h-[92vh] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-xl sm:rounded-2xl w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -713,14 +728,14 @@ export default function CheckoutModal({ onClose }) {
                       </span>
                     </div>
                   ))}
-                  {soldBoxes > 0 && (
+                  {/* {soldBoxes > 0 && (
                     <div className="flex justify-between font-semibold">
                       <span>
                         {soldBoxes}x {soldBoxes === 1 ? "Caja" : "Cajas"}
                       </span>
                       <span>{formatDisplay(boxesTotalUSD)}</span>
                     </div>
-                  )}
+                  )} */}
                 </div>
                 <div className="flex justify-between font-bold text-base border-t border-slate-300 pt-2">
                   <span>TOTAL PAGADO</span>

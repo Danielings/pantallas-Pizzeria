@@ -16,6 +16,34 @@ export const KITCHEN_CATEGORIES = ["pizzas", "combos"];
 const DEFAULT_BOX_PRICE = 1;
 const BOX_ORDER_TYPES = new Set(["takeaway", "pickup", "PickUp", "delivery"]);
 
+// ── Cajas como ítems del carrito
+export const BOX_CATEGORY = "cajas";
+const BOX_PRODUCT_ID = "caja";
+
+export const isBoxItem = (item) =>
+  String(item?.category || "").toLowerCase() === BOX_CATEGORY;
+
+// Caja "editable"
+const isEditableBox = (item) => isBoxItem(item) && !item.isPendingExisting;
+const findBoxIndex = (items) => items.findIndex(isEditableBox);
+const removeEditableBoxes = (items) =>
+  items.some(isEditableBox) ? items.filter((i) => !isEditableBox(i)) : items;
+
+const createBoxItem = (qty, price) => ({
+  id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+  productId: BOX_PRODUCT_ID,
+  productOriginId: BOX_PRODUCT_ID,
+  name: "Caja",
+  basePrice: price,
+  price,
+  size: null,
+  qty,
+  extras: [],
+  category: BOX_CATEGORY,
+  emoji: "📦",
+  isPendingExisting: false,
+});
+
 const initialState = {
   // Authentication
   currentUser: null,
@@ -252,8 +280,6 @@ function reducer(state, action) {
           items: [],
           payments: [],
           orderType: null,
-          includesBox: false,
-          boxQty: 0,
           paymentStatus: null,
           advanceAmount: 0,
           advancePaymentMethod: null,
@@ -277,12 +303,19 @@ function reducer(state, action) {
         customer,
         phoneLastDigits,
         deliveryId,
+        includesBox,
       } = action.payload;
-      const wantsBox = Boolean(action.payload.includesBox);
+      let items = state.currentOrder.items;
+      if (!BOX_ORDER_TYPES.has(orderType) || includesBox === false) {
+        items = removeEditableBoxes(items);
+      } else if (includesBox === true && findBoxIndex(items) === -1) {
+        items = [...items, createBoxItem(1, state.boxPrice)];
+      }
       return {
         ...state,
         currentOrder: {
           ...state.currentOrder,
+          items,
           orderType,
           paymentStatus: paymentStatus || null,
           advanceAmount: advanceAmount || 0,
@@ -291,76 +324,118 @@ function reducer(state, action) {
           customer: customer || null,
           phoneLastDigits: phoneLastDigits || "",
           deliveryId: deliveryId || null,
-          includesBox: wantsBox,
-          boxQty: wantsBox
-            ? Math.max(1, Number(state.currentOrder.boxQty) || 0)
-            : 0,
         },
       };
     }
 
-    case "SET_INCLUDES_BOX":
+    case "SET_INCLUDES_BOX": {
       // Compatibilidad: true => al menos 1 caja, false => quita todas
-      const current = Number(state.currentOrder.boxQty) || 0;
-      const boxQty = action.payload ? Math.max(1, current) : 0;
+      const { items, orderType } = state.currentOrder;
+      let nextItems = items;
+      if (!action.payload) {
+        nextItems = removeEditableBoxes(items);
+      } else if (BOX_ORDER_TYPES.has(orderType) && findBoxIndex(items) === -1) {
+        nextItems = [...items, createBoxItem(1, state.boxPrice)];
+      }
+      if (nextItems === items) return state;
       return {
         ...state,
-        currentOrder: {
-          ...state.currentOrder,
-          boxQty,
-          includesBox: boxQty > 0,
-        },
+        currentOrder: { ...state.currentOrder, items: nextItems },
       };
+    }
 
     case "SET_BOX_QTY": {
-      const boxQty = Math.max(0, Math.floor(Number(action.payload) || 0));
+      const qty = Math.max(0, Math.floor(Number(action.payload) || 0));
+      const { items, orderType } = state.currentOrder;
+      let nextItems = items;
+
+      if (qty === 0) {
+        nextItems = removeEditableBoxes(items);
+      } else if (BOX_ORDER_TYPES.has(orderType)) {
+        const idx = findBoxIndex(items);
+        nextItems =
+          idx >= 0
+            ? items.map((it, i) => (i === idx ? { ...it, qty } : it))
+            : [...items, createBoxItem(qty, state.boxPrice)];
+      }
+
+      if (nextItems === items) return state;
       return {
         ...state,
-        currentOrder: {
-          ...state.currentOrder,
-          boxQty,
-          includesBox: boxQty > 0,
-        },
+        currentOrder: { ...state.currentOrder, items: nextItems },
       };
     }
 
     case "ADD_BOXES": {
+      // Regla de negocio: solo takeaway / pickup / delivery
+      if (!BOX_ORDER_TYPES.has(state.currentOrder.orderType)) return state;
+
       const amount = Math.max(1, Math.floor(Number(action.payload) || 1));
-      const boxQty = (Number(state.currentOrder.boxQty) || 0) + amount;
+      const items = state.currentOrder.items;
+      const idx = findBoxIndex(items);
+
+      // Igual que ADD_TO_CART: si ya hay una caja, se incrementa su qty
+      const nextItems =
+        idx >= 0
+          ? items.map((it, i) =>
+              i === idx ? { ...it, qty: it.qty + amount } : it,
+            )
+          : [...items, createBoxItem(amount, state.boxPrice)];
+
       return {
         ...state,
-        currentOrder: {
-          ...state.currentOrder,
-          boxQty,
-          includesBox: true,
-        },
+        currentOrder: { ...state.currentOrder, items: nextItems },
       };
     }
 
-    case "SET_BOX_PRICE":
+    case "SET_BOX_PRICE": {
+      const boxPrice = Number(action.payload) || DEFAULT_BOX_PRICE;
+      // Si el precio llega después de agregar cajas, se actualizan las del carrito
+      const items = state.currentOrder.items.some(isEditableBox)
+        ? state.currentOrder.items.map((it) =>
+            isEditableBox(it)
+              ? { ...it, basePrice: boxPrice, price: boxPrice }
+              : it,
+          )
+        : state.currentOrder.items;
       return {
         ...state,
-        boxPrice: Number(action.payload) || DEFAULT_BOX_PRICE,
+        boxPrice,
+        currentOrder: { ...state.currentOrder, items },
       };
+    }
 
     case "LOAD_PENDING_ORDER": {
-      const payload = action.payload;
-      const hasBoxInfo = "boxQty" in payload || "includesBox" in payload;
-      const boxQty = hasBoxInfo
-        ? Number(payload.boxQty) > 0
-          ? Math.floor(Number(payload.boxQty))
-          : payload.includesBox
+      // boxQty / includesBox ahora se derivan de `items`.
+      const {
+        boxQty: legacyBoxQty,
+        includesBox: legacyIncludesBox,
+        ...payload
+      } = action.payload;
+
+      const items = Array.isArray(payload.items)
+        ? payload.items
+        : state.currentOrder.items;
+
+      const legacyQty =
+        Number(legacyBoxQty) > 0
+          ? Math.floor(Number(legacyBoxQty))
+          : legacyIncludesBox
             ? 1
-            : 0
-        : Number(state.currentOrder.boxQty) || 0;
+            : 0;
+
+      const finalItems =
+        legacyQty > 0 && !items.some(isBoxItem)
+          ? [...items, createBoxItem(legacyQty, state.boxPrice)]
+          : items;
+
       return {
         ...state,
         currentOrder: {
           ...state.currentOrder,
           ...payload,
+          items: finalItems,
           payments: payload.payments || [],
-          boxQty,
-          includesBox: boxQty > 0,
         },
       };
     }
@@ -433,11 +508,21 @@ export function AppProvider({ children }) {
     0,
   );
   const tax = 0; // IVA eliminado
-  const boxQty = Number(state.currentOrder.boxQty) || 0;
-  const hasBoxCharge =
-    boxQty > 0 && BOX_ORDER_TYPES.has(state.currentOrder.orderType);
-  const boxTotal = hasBoxCharge ? boxQty * state.boxPrice : 0; // cantidad × precio de la caja
-  const total = subtotal + boxTotal; // total = subtotal + caja, sin impuestos
+  // Cajas: ahora son ítems de `items`, así que ya están dentro del subtotal.
+  const boxItems = state.currentOrder.items.filter(isBoxItem);
+  const boxQty = boxItems.reduce((sum, i) => sum + Number(i.qty || 0), 0);
+  const includesBox = boxQty > 0;
+  const boxTotal = boxItems.reduce(
+    (sum, i) => sum + Number(i.price || 0) * Number(i.qty || 0),
+    0,
+  ); // informativo: NO se suma al total (ya está en subtotal)
+  const total = subtotal + tax;
+
+  // currentOrder con boxQty / includesBox calculados (lo leen otros componentes)
+  const currentOrder = useMemo(
+    () => ({ ...state.currentOrder, boxQty, includesBox }),
+    [state.currentOrder, boxQty, includesBox],
+  );
   const amountPaid = state.currentOrder.payments.reduce(
     (sum, p) => sum + p.amount,
     0,
@@ -615,10 +700,12 @@ export function AppProvider({ children }) {
   const contextValue = useMemo(
     () => ({
       ...state,
+      currentOrder,
       subtotal,
       tax,
       total,
       boxQty,
+      includesBox,
       boxTotal,
       amountPaid,
       remaining,
@@ -645,10 +732,12 @@ export function AppProvider({ children }) {
     }),
     [
       state,
+      currentOrder,
       subtotal,
       tax,
       total,
       boxQty,
+      includesBox,
       boxTotal,
       amountPaid,
       remaining,

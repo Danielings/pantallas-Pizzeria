@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
-import { useApp } from "../../context/AppContext";
+import { useApp, isBoxItem } from "../../context/AppContext";
 import { tieneExtrasGratis } from "../../utils/extrasPrecio";
 import { Minus, Plus, Trash2, ChevronDown, Edit3 } from "lucide-react";
 
@@ -159,6 +159,8 @@ export default function OrderItem({ item }) {
   const [noteValue, setNoteValue] = useState(item.note || "");
 
   const hasSize = item.category === "pizzas";
+  const isBox = isBoxItem(item);
+  const itemExtras = item.extras || [];
 
   const canHaveNote = !NO_NOTE_CATEGORIES.includes(
     String(item.category || "").toLowerCase(),
