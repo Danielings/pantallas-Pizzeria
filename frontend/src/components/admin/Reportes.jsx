@@ -198,13 +198,21 @@ const CustomTopProductTooltip = ({ active, payload }) => {
         </p>
         <div className="flex flex-col gap-1 text-xs">
           <p className="text-amber-400 font-bold flex items-center justify-between gap-4">
-            <span className="text-slate-400 font-medium">Unidades vendidas:</span>
-            <span className="font-mono font-black">{data.cantidad_vendida} uds</span>
+            <span className="text-slate-400 font-medium">
+              Unidades vendidas:
+            </span>
+            <span className="font-mono font-black">
+              {data.cantidad_vendida} uds
+            </span>
           </p>
           {data.total_recaudado_usd > 0 && (
             <p className="text-emerald-400 font-bold flex items-center justify-between gap-4">
-              <span className="text-slate-400 font-medium">Total recaudado:</span>
-              <span className="font-mono font-black">{fmtUSD(data.total_recaudado_usd)}</span>
+              <span className="text-slate-400 font-medium">
+                Total recaudado:
+              </span>
+              <span className="font-mono font-black">
+                {fmtUSD(data.total_recaudado_usd)}
+              </span>
             </p>
           )}
         </div>
@@ -412,7 +420,7 @@ export default function Reportes() {
         )}
 
         {/* ── METRIC CARDS (ESTILO EXACTO A PRODUCTOS/CIERRES ADMIN) ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 shrink-0">
           {/* TOTAL USD */}
           <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-3 sm:p-4 w-full min-w-0 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
@@ -428,9 +436,6 @@ export default function Reportes() {
                 </p>
               </div>
             </div>
-            <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
-              {resumen ? `${resumen.total_ordenes} órdenes` : "—"}
-            </span>
           </div>
 
           {/* TOTAL ÓRDENES */}
@@ -687,7 +692,13 @@ export default function Reportes() {
                   margin={{ top: 5, right: 25, bottom: 0, left: 15 }}
                 >
                   <defs>
-                    <linearGradient id="barGradTop5" x1="0" y1="0" x2="1" y2="0">
+                    <linearGradient
+                      id="barGradTop5"
+                      x1="0"
+                      y1="0"
+                      x2="1"
+                      y2="0"
+                    >
                       <stop offset="0%" stopColor="#f59e0b" />
                       <stop offset="100%" stopColor="#fbbf24" />
                     </linearGradient>
