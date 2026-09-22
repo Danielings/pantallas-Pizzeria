@@ -369,31 +369,31 @@ export default function CierresAdminScreen() {
             <Lock className="w-6 h-6 text-pizza-red" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+            <h1 className="text-lg sm:text-2xl font-black text-slate-800 tracking-tight leading-tight sm:leading-none truncate">
               Control de Cierres de Caja
             </h1>
-            <p className="text-xs font-semibold text-slate-400 mt-1.5">
+            <p className="text-[11px] sm:text-xs font-semibold text-slate-400 mt-1 sm:mt-1.5 truncate">
               {getHeaderDate()}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:fles-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setOpenPinModal(true)}
-            className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-[background-color,transform] shrink-0 active:scale-[0.98] cursor-pointer"
+            className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-4 sm:px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-[background-color,transform] sm:shrink-0 active:scale-[0.98] cursor-pointer w-full sm:w-auto"
             title="Administrar PINs de cierres para cajeros"
           >
             <Key className="w-4 h-4" />
             <span>Claves Cajeros</span>
           </button>
-          <span className="text-sm font-bold text-slate-500 bg-slate-100 border border-slate-200 px-4 py-2.5 rounded-xl flex items-center gap-1 shrink-0">
+          <span className="text-xs sm:text-sm font-bold text-slate-500 bg-slate-100 border border-slate-200 px-4 py-2.5 rounded-xl flex items-center gap-1 sm:w-auto sm:shrink-0 whitespace-nowrap">
             Total: {filteredAndSortedCierres.length} registros
           </span>
         </div>
       </header>
 
       {/* Cards de Métricas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+      <div className="grid grip-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 shrink-0">
         {/* Cantidad Cierres del Mes */}
         <div className="bg-purple-50/70 border border-purple-100/80 rounded-2xl p-3 sm:p-4 flex w-full min-w-0 items-center justify-between shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
@@ -429,9 +429,6 @@ export default function CierresAdminScreen() {
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 sm:px-2 py-0.5 rounded-full">
-            {metrics.mes || "Mes"}
-          </span>
         </div>
 
         {/* Última Hora de Cierre del Día Anterior */}
@@ -444,7 +441,7 @@ export default function CierresAdminScreen() {
               <p className="text-[8px] sm:text-[9px] font-extrabold text-blue-500 uppercase tracking-wider whitespace-nowrap">
                 Cierre de ayer
               </p>
-              <p className="text-slate-800 text-xl font-black leading-none mt-1.5 truncate max-w-[140px]">
+              <p className="text-slate-800 text-xl font-black leading-none mt-1.5 truncate">
                 {isLoading ? "—" : metrics.ultima_hora_ayer}
               </p>
             </div>
@@ -469,14 +466,11 @@ export default function CierresAdminScreen() {
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 sm:px-2 py-0.5 rounded-full">
-            Ticket Prom.
-          </span>
         </div>
       </div>
 
       {/* Tabla de Cierres */}
-      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0 flex-1 flex flex-col min-h-0">
+      <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden lg:flex-1 flex flex-col lg:min-h-0 min-h-[520px] max-h-[calc(100vh-280px)]">
         <div className="px-4 sm:px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
             <h3 className="font-extrabold text-slate-800 text-base">
@@ -487,7 +481,7 @@ export default function CierresAdminScreen() {
             </p>
           </div>
           {/* Filtros de fecha, tipo de caja, sucursal y orden */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
             {/* Filtro rápido por tipo de caja (Select para móviles/compacto) */}
             <div className="sm:hidden w-full">
               <select
@@ -495,9 +489,15 @@ export default function CierresAdminScreen() {
                 onChange={(e) => setTipoCierreFilter(e.target.value)}
                 className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-colors shadow-sm"
               >
-                <option value="todos">Todas las Cajas ({countsByType.todos})</option>
-                <option value="delivery">🛵 Cajas Delivery ({countsByType.delivery})</option>
-                <option value="general">🏪 Caja General ({countsByType.general})</option>
+                <option value="todos">
+                  Todas las Cajas ({countsByType.todos})
+                </option>
+                <option value="delivery">
+                  🛵 Cajas Delivery ({countsByType.delivery})
+                </option>
+                <option value="general">
+                  🏪 Caja General ({countsByType.general})
+                </option>
               </select>
             </div>
 
@@ -667,7 +667,8 @@ export default function CierresAdminScreen() {
                 </tr>
               ) : (
                 paginatedCierres.map((cierre, index) => {
-                  const esDelivery = String(cierre.tipo_cierre).toLowerCase() === "delivery";
+                  const esDelivery =
+                    String(cierre.tipo_cierre).toLowerCase() === "delivery";
                   return (
                     <tr
                       key={cierre.id_cierre}
@@ -770,7 +771,8 @@ export default function CierresAdminScreen() {
               </div>
             ) : (
               paginatedCierres.map((cierre, index) => {
-                const esDelivery = String(cierre.tipo_cierre).toLowerCase() === "delivery";
+                const esDelivery =
+                  String(cierre.tipo_cierre).toLowerCase() === "delivery";
                 return (
                   <div
                     key={cierre.id_cierre}
@@ -799,11 +801,13 @@ export default function CierresAdminScreen() {
                             </p>
                             {esDelivery ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-300 text-amber-950 border border-amber-400 text-[10px] font-black shrink-0 shadow-2xs">
-                                <Bike className="w-3 h-3 text-amber-900" /> Delivery
+                                <Bike className="w-3 h-3 text-amber-900" />{" "}
+                                Delivery
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold shrink-0">
-                                <Store className="w-3 h-3 text-slate-500" /> Caja General
+                                <Store className="w-3 h-3 text-slate-500" />{" "}
+                                Caja General
                               </span>
                             )}
                           </div>
@@ -822,51 +826,51 @@ export default function CierresAdminScreen() {
                       />
                     </div>
 
-                  {/* Métricas Clave en Grid */}
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-center">
-                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                        Total
-                      </p>
-                      <p className="text-sm font-black text-emerald-700 truncate mt-0.5">
-                        {formatMoney(cierre.total_usdt)}
-                      </p>
+                    {/* Métricas Clave en Grid */}
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-center">
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                          Total
+                        </p>
+                        <p className="text-sm font-black text-emerald-700 truncate mt-0.5">
+                          {formatMoney(cierre.total_usdt)}
+                        </p>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-center">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          Efectivo
+                        </p>
+                        <p className="text-sm font-bold text-slate-700 truncate mt-0.5">
+                          {formatMoney(cierre.monto_efectivo_usd)}
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 text-center">
+                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+                          Órdenes
+                        </p>
+                        <p className="text-sm font-black text-blue-700 mt-0.5">
+                          {cierre.num_ordenes}
+                        </p>
+                      </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-center">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        Efectivo
-                      </p>
-                      <p className="text-sm font-bold text-slate-700 truncate mt-0.5">
-                        {formatMoney(cierre.monto_efectivo_usd)}
-                      </p>
-                    </div>
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-2.5 text-center">
-                      <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
-                        Órdenes
-                      </p>
-                      <p className="text-sm font-black text-blue-700 mt-0.5">
-                        {cierre.num_ordenes}
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Acciones */}
-                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                    <button
-                      onClick={() => setSelectedCierre(cierre)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors border border-slate-200"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Ver Detalle
-                    </button>
-                    <button
-                      onClick={() => exportCierrePDF(cierre)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors border border-emerald-200"
-                    >
-                      <Download className="w-4 h-4" />
-                      Descargar PDF
-                    </button>
-                  </div>
+                    {/* Acciones */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => setSelectedCierre(cierre)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors border border-slate-200"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Ver Detalle
+                      </button>
+                      <button
+                        onClick={() => exportCierrePDF(cierre)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors border border-emerald-200"
+                      >
+                        <Download className="w-4 h-4" />
+                        Descargar PDF
+                      </button>
+                    </div>
                   </div>
                 );
               })
@@ -927,7 +931,8 @@ export default function CierresAdminScreen() {
             {/* Contenido Modal */}
             <div className="p-6 flex flex-col gap-4 overflow-y-auto">
               {/* Banner Tipo de Caja */}
-              {String(selectedCierre.tipo_cierre).toLowerCase() === "delivery" ? (
+              {String(selectedCierre.tipo_cierre).toLowerCase() ===
+              "delivery" ? (
                 <div className="flex items-center gap-3 p-3.5 bg-amber-100/80 border border-amber-300 rounded-xl shadow-xs">
                   <div className="w-10 h-10 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center font-bold shadow-xs shrink-0">
                     <Bike className="w-5 h-5" />
@@ -1174,7 +1179,8 @@ export default function CierresAdminScreen() {
                     >
                       {cajeros.map((c) => (
                         <option key={c.id_usuario} value={c.id_usuario}>
-                          {c.nombre_completo} ({rolLabel(c.rol)}){c.email ? ` · ${c.email}` : ""}
+                          {c.nombre_completo} ({rolLabel(c.rol)})
+                          {c.email ? ` · ${c.email}` : ""}
                         </option>
                       ))}
                     </select>

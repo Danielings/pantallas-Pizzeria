@@ -161,31 +161,31 @@ export default function Dashboard() {
   return (
     <div className="flex-1 overflow-y-auto bg-[#f8fafc] text-slate-800 p-4 sm:p-6 lg:p-8 hide-scrollbar font-sans">
       {/* ── Encabezado Estilo Banner (Fijo en Última Semana) ── */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
         {/* Left Side: Icon + Title + Date */}
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-red-50 text-pizza-red flex items-center justify-center shrink-0 shadow-xs">
-            <LayoutDashboard className="w-6 h-6 stroke-[2.2]" />
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="w-10 h-10 sm:w-12 sm:w-12 rounded-xl sm:rounded-2xl bg-red-50 text-pizza-red flex items-center justify-center shrink-0 shadow-xs">
+            <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-black text-slate-900 leading-tight truncate max-w-[60vw] sm:max-w-none">
                 Dashboard Administrador
               </h1>
-              <span className="bg-red-50 text-pizza-red border border-red-200/60 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold tracking-wide uppercase">
+              <span className="bg-red-50 text-pizza-red border border-red-200/60 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold tracking-wide uppercase whitespace-nowrap shrink-0">
                 Última Semana
               </span>
             </div>
-            <p className="text-slate-400 text-xs font-medium mt-0.5">
+            <p className="text-slate-400 text-[11px] sm:text-xs font-medium mt-0.5 truncate">
               {fullDateFormatted}
             </p>
           </div>
         </div>
 
         {/* Right Side: Week Range + Refresh */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full lg:w-auto shrink-0">
           {/* Bloque de rango de fechas */}
-          <div className="flex flex-col items-end text-right">
+          <div className="flex flex-col items-start sm:items-end text-left sm:text-right">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
               <Calendar className="w-3.5 h-3.5 text-pizza-red shrink-0" />
               <span>{weekRangeLabel}</span>
@@ -198,7 +198,7 @@ export default function Dashboard() {
           <button
             onClick={fetchDashboardStats}
             title="Actualizar datos"
-            className="p-2.5 text-slate-400 hover:text-pizza-red bg-slate-50 border border-slate-200/60 rounded-2xl transition-colors shadow-xs"
+            className="p-2.5 text-slate-400 hover:text-pizza-red bg-slate-50 border border-slate-200/60 rounded-xl sm:rounded-2xl transition-colors shadow-xs shrink-0"
           >
             <RefreshCw
               className={`w-4 h-4 ${loading ? "animate-spin text-pizza-red" : ""}`}

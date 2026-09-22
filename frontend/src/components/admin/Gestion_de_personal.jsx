@@ -373,7 +373,7 @@ export default function StaffManagement() {
       </div>
 
       {/* Tabla y Filtros */}
-      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden shrink-0 flex-1 flex flex-col min-h-0 max-h-[calc(100vh-280px)]">
+      <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden flex flex-col min-h-[520px] lg:min-h-0 lg:max-h-[calc(100vh-280px)]">
         <div className="px-4 sm:px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
             <h3 className="font-extrabold text-slate-800 text-base">
@@ -426,7 +426,7 @@ export default function StaffManagement() {
           </div>
         </div>
 
-        <div className="overflow-auto flex-1 min-h-0">
+        <div className="hidden lg:block lg:flex-1 lg:min-h-0 lg:overflow-auto">
           <table className="w-full text-sm min-w-[860px] hidden lg:table">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 font-bold text-xs uppercase tracking-wider text-left sticky top-0 animate-fade-in z-10">
@@ -562,7 +562,7 @@ export default function StaffManagement() {
           </table>
         </div>
         {/* Vista Móvil: Cards */}
-        <div className="lg:hidden flex flex-col gap-3 p-4 overflow-y-auto">
+        <div className="lg:hidden flex-1 min-h-0 flex flex-col gap-3 p-4 overflow-y-auto">
           {staffLoading || branchesLoading ? (
             <div className="text-center py-12 text-slate-400">
               <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>

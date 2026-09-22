@@ -257,10 +257,10 @@ export default function ClientesScreen() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <button
             onClick={openCreate}
-            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all flex flex-1 sm:flex-none items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Nuevo Cliente
           </button>
@@ -351,7 +351,7 @@ export default function ClientesScreen() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 min-h-0 flex flex-col max-h-[calc(100vh-320px)]">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden lg:min-h-0 lg:flex-1 flex flex-col min-h-[520px] max-h-[calc(100vh-280px)]">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
           <div>
             <h2 className="font-bold text-slate-800 text-base">

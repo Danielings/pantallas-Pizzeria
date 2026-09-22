@@ -478,10 +478,10 @@ export default function ProductosScreen() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <button
             onClick={handleNewClick}
-            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+            className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all flex flex-1 sm:flex-none items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Nuevo Producto
           </button>
@@ -596,31 +596,33 @@ export default function ProductosScreen() {
           </div>
         </div>
         {boxPrice !== null && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto">
             <span className="text-sm font-bold text-slate-500">
               Actual: ${boxPrice.toFixed(2)}
             </span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={boxPriceInput}
-              onChange={(e) => setBoxPriceInput(e.target.value)}
-              className="w-28 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all"
-              placeholder="0.00"
-            />
-            <button
-              onClick={handleSaveBoxPrice}
-              disabled={savingBox}
-              className="bg-slate-900 hover:bg-black disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
-            >
-              {savingBox ? "Guardando..." : "Guardar"}
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={boxPriceInput}
+                onChange={(e) => setBoxPriceInput(e.target.value)}
+                className="flex-1 sm:flex-none sm:w-28 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold focus:outline-none focus:border-pizza-red focus:ring-1 focus:ring-pizza-red transition-all"
+                placeholder="0.00"
+              />
+              <button
+                onClick={handleSaveBoxPrice}
+                disabled={savingBox}
+                className="bg-slate-900 hover:bg-black disabled:opacity-50 text-white px-3 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+              >
+                {savingBox ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-[520px] lg:min-h-0 lg:flex-1 lg:max-h-[calc(100vh-280px)]">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col gap-3 shrink-0">
           {/* Fila superior: título + buscador */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -673,7 +675,7 @@ export default function ProductosScreen() {
             ))}
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
           <table className="w-full text-sm min-w-[720px] hidden lg:table">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
