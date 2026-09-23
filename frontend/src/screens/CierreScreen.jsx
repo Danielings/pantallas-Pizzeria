@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,9 +34,101 @@ export default function CierreScreen() {
   const [selectedMethodForModal, setSelectedMethodForModal] = useState(null);
   const [modalPage, setModalPage] = useState(1);
 
+  // ── Carrusel de Wallet Cards ──
+  const walletTrackRef = useRef(null);
+  const walletDragRef = useRef({
+    isDragging: false,
+    startX: 0,
+    startScrollLeft: 0,
+    moved: false,
+  });
+  const [isWalletHovering, setIsWalletHovering] = useState(false);
+  const [isWalletDragging, setIsWalletDragging] = useState(false);
+  const [walletActiveIndex, setWalletActiveIndex] = useState(0);
+  const WALLET_CARD_WIDTH = 280; // ancho fijo de cada tarjeta (px)
+  const WALLET_CARD_GAP = 20; // debe coincidir con el gap del track (gap-5 = 20px)
+  const WALLET_CARDS_COUNT = 5; // cantidad de métodos de pago (tarjetas únicas)
+  // El autoscroll se pausa si el usuario está encima (hover) o arrastrando (mouse/touch)
+  const isWalletPaused = isWalletHovering || isWalletDragging;
+
   useEffect(() => {
     fetchResumenDia();
   }, []);
+
+  // Autoscroll infinito y continuo del carrusel de wallet cards.
+  useEffect(() => {
+    let rafId;
+    const speed = 0.5; // px por frame (ajustable para controlar la velocidad)
+    const cardFullWidth = WALLET_CARD_WIDTH + WALLET_CARD_GAP;
+
+    const step = () => {
+      const track = walletTrackRef.current;
+      if (track && !isWalletPaused) {
+        const singleSetWidth = track.scrollWidth / 2;
+        track.scrollLeft += speed;
+
+        // Al llegar a la mitad (fin del primer set), regresamos al inicio
+        if (singleSetWidth > 0 && track.scrollLeft >= singleSetWidth) {
+          track.scrollLeft -= singleSetWidth;
+        }
+
+        const idx =
+          Math.round(track.scrollLeft / cardFullWidth) % WALLET_CARDS_COUNT;
+        setWalletActiveIndex(idx);
+      }
+      rafId = requestAnimationFrame(step);
+    };
+
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [isWalletPaused]);
+
+  // ── Arrastre manual del carrusel (mouse y touch) ──
+  const handleWalletPointerDown = (e) => {
+    const track = walletTrackRef.current;
+    if (!track) return;
+    walletDragRef.current.isDragging = true;
+    walletDragRef.current.moved = false;
+    walletDragRef.current.startX = e.clientX;
+    walletDragRef.current.startScrollLeft = track.scrollLeft;
+    setIsWalletDragging(true);
+  };
+
+  const handleWalletPointerMove = (e) => {
+    const track = walletTrackRef.current;
+    if (!track || !walletDragRef.current.isDragging) return;
+
+    const delta = e.clientX - walletDragRef.current.startX;
+    if (!walletDragRef.current.moved) {
+      // Umbral mínimo para distinguir un "click" de un arrastre real.
+      // Mientras no se supere, no tocamos el scroll ni capturamos el puntero.
+      if (Math.abs(delta) <= 5) return;
+      walletDragRef.current.moved = true;
+      track.setPointerCapture?.(e.pointerId);
+    }
+
+    track.scrollLeft = walletDragRef.current.startScrollLeft - delta;
+
+    // Mantiene el loop infinito también mientras se arrastra hacia adelante
+    const singleSetWidth = track.scrollWidth / 2;
+    if (singleSetWidth > 0 && track.scrollLeft >= singleSetWidth) {
+      track.scrollLeft -= singleSetWidth;
+      walletDragRef.current.startScrollLeft -= singleSetWidth;
+    }
+  };
+
+  const endWalletDrag = (e) => {
+    const track = walletTrackRef.current;
+    walletDragRef.current.isDragging = false;
+    setIsWalletDragging(false);
+    if (
+      track &&
+      e?.pointerId != null &&
+      track.hasPointerCapture?.(e.pointerId)
+    ) {
+      track.releasePointerCapture(e.pointerId);
+    }
+  };
 
   const fetchResumenDia = async () => {
     try {
@@ -287,8 +379,7 @@ export default function CierreScreen() {
   const pvUSD = tasa > 0 ? desglose_pagos.punto_de_venta_bs / tasa : 0;
   const trUSD = tasa > 0 ? desglose_pagos.transferencia_bs / tasa : 0;
   const bnUSD = Number(desglose_pagos.binance_usd || 0);
-  const totalMetodosUSD =
-    desglose_pagos.efectivo_usd + pvUSD + trUSD + bnUSD;
+  const totalMetodosUSD = desglose_pagos.efectivo_usd + pvUSD + trUSD + bnUSD;
   const pctEfectivo =
     totalMetodosUSD > 0
       ? Math.round((desglose_pagos.efectivo_usd / totalMetodosUSD) * 100)
@@ -336,9 +427,7 @@ export default function CierreScreen() {
           return metodo.includes("punto") || metodo.includes("tarjeta");
         }
         if (methodKey === "binance_usd") {
-          return (
-            metodo.includes("binance") || metodo.includes("zelle")
-          );
+          return metodo.includes("binance") || metodo.includes("zelle");
         }
         if (methodKey === "transferencia_bs") {
           return (
@@ -362,15 +451,36 @@ export default function CierreScreen() {
     t.pagos.forEach((p) => {
       const metodo = p.metodo_pago?.toLowerCase() || "";
       const ref = p.referencia?.toUpperCase() || "";
-      if (methodKey === "efectivo_usd" && metodo.includes("efectivo") && ref !== "BS") {
+      if (
+        methodKey === "efectivo_usd" &&
+        metodo.includes("efectivo") &&
+        ref !== "BS"
+      ) {
         totalUSD += Number(p.monto_usd || 0);
-      } else if (methodKey === "efectivo_bs" && metodo.includes("efectivo") && ref === "BS") {
+      } else if (
+        methodKey === "efectivo_bs" &&
+        metodo.includes("efectivo") &&
+        ref === "BS"
+      ) {
         totalBS += Number(p.monto_bs || 0);
-      } else if (methodKey === "punto_de_venta_bs" && (metodo.includes("punto") || metodo.includes("tarjeta"))) {
+      } else if (
+        methodKey === "punto_de_venta_bs" &&
+        (metodo.includes("punto") || metodo.includes("tarjeta"))
+      ) {
         totalBS += Number(p.monto_bs || 0);
-      } else if (methodKey === "transferencia_bs" && !metodo.includes("efectivo") && !metodo.includes("punto") && !metodo.includes("tarjeta") && !metodo.includes("binance") && !metodo.includes("zelle")) {
+      } else if (
+        methodKey === "transferencia_bs" &&
+        !metodo.includes("efectivo") &&
+        !metodo.includes("punto") &&
+        !metodo.includes("tarjeta") &&
+        !metodo.includes("binance") &&
+        !metodo.includes("zelle")
+      ) {
         totalBS += Number(p.monto_bs || 0);
-      } else if (methodKey === "binance_usd" && (metodo.includes("binance") || metodo.includes("zelle"))) {
+      } else if (
+        methodKey === "binance_usd" &&
+        (metodo.includes("binance") || metodo.includes("zelle"))
+      ) {
         totalUSD += Number(p.monto_usd || 0);
       }
     });
@@ -554,89 +664,159 @@ export default function CierreScreen() {
       </div>
 
       {/* ── WALLET CARDS (CLICKABLE) ── */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
-        {[
-          {
-            key: "efectivo_usd",
-            gradient: "from-[#f59e0b] to-[#ea580c]",
-            icon: "$",
-            label: "Efectivo USD",
-            sub: "Billetes en Caja",
-            value: `$${desglose_pagos.efectivo_usd.toFixed(2)}`,
-            textLight: "text-orange-100",
-          },
-          {
-            key: "efectivo_bs",
-            gradient: "from-[#60a5fa] to-[#2563eb]",
-            icon: "Bs",
-            label: "Efectivo Local (Bs.)",
-            sub: "Bolívares en Caja",
-            value: `Bs. ${fmtBs(desglose_pagos.efectivo_bs)}`,
-            textLight: "text-blue-100",
-          },
-          {
-            key: "punto_de_venta_bs",
-            gradient: "from-[#22d3ee] to-[#0891b2]",
-            icon: <CreditCard className="w-5 h-5" />,
-            label: "Punto de Venta",
-            sub: "Tarjeta / Débito — en Bs.",
-            value: `Bs. ${fmtBs(desglose_pagos.punto_de_venta_bs)}`,
-            textLight: "text-cyan-100",
-          },
-          {
-            key: "transferencia_bs",
-            gradient: "from-[#34d399] to-[#059669]",
-            icon: <Smartphone className="w-5 h-5" />,
-            label: "Transferencia / PM",
-            sub: "Pago Móvil & Transf. — en Bs.",
-            value: `Bs. ${fmtBs(desglose_pagos.transferencia_bs)}`,
-            textLight: "text-emerald-100",
-          },
-          {
-            key: "binance_usd",
-            gradient: "from-[#fbbf24] to-[#d97706]",
-            icon: <Coins className="w-5 h-5" />,
-            label: "Binance / Zelle",
-            sub: "Cripto / Transferencia US",
-            value: `$${Number(desglose_pagos.binance_usd || 0).toFixed(2)}`,
-            textLight: "text-amber-100",
-          },
-        ].map(({ key, gradient, icon, label, sub, value, textLight }) => {
-          const methodTxs = getTransactionsForMethod(key);
-          return (
+      <section
+        className="relative"
+        onMouseEnter={() => setIsWalletPaused(true)}
+        onMouseLeave={() => setIsWalletPaused(false)}
+      >
+        <div
+          ref={walletTrackRef}
+          onPointerDown={handleWalletPointerDown}
+          onPointerMove={handleWalletPointerMove}
+          onPointerUp={endWalletDrag}
+          onPointerLeave={endWalletDrag}
+          onPointerCancel={endWalletDrag}
+          className={`flex gap-5 overflow-x-auto select-none [&::-webkit-scrollbar]:hidden ${
+            isWalletDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
+          style={{
+            scrollBehavior: "auto",
+            touchAction: "pan-y",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          {(() => {
+            const walletCards = [
+              {
+                key: "efectivo_usd",
+                gradient: "from-[#f59e0b] to-[#ea580c]",
+                icon: "$",
+                label: "Efectivo USD",
+                sub: "Billetes en Caja",
+                value: `$${desglose_pagos.efectivo_usd.toFixed(2)}`,
+                textLight: "text-orange-100",
+              },
+              {
+                key: "efectivo_bs",
+                gradient: "from-[#60a5fa] to-[#2563eb]",
+                icon: "Bs",
+                label: "Efectivo Local (Bs.)",
+                sub: "Bolívares en Caja",
+                value: `Bs. ${fmtBs(desglose_pagos.efectivo_bs)}`,
+                textLight: "text-blue-100",
+              },
+              {
+                key: "punto_de_venta_bs",
+                gradient: "from-[#22d3ee] to-[#0891b2]",
+                icon: <CreditCard className="w-5 h-5" />,
+                label: "Punto de Venta",
+                sub: "Tarjeta / Débito — en Bs.",
+                value: `Bs. ${fmtBs(desglose_pagos.punto_de_venta_bs)}`,
+                textLight: "text-cyan-100",
+              },
+              {
+                key: "transferencia_bs",
+                gradient: "from-[#34d399] to-[#059669]",
+                icon: <Smartphone className="w-5 h-5" />,
+                label: "Transferencia / PM",
+                sub: "Pago Móvil & Transf. — en Bs.",
+                value: `Bs. ${fmtBs(desglose_pagos.transferencia_bs)}`,
+                textLight: "text-emerald-100",
+              },
+              {
+                key: "binance_usd",
+                gradient: "from-[#fbbf24] to-[#d97706]",
+                icon: <Coins className="w-5 h-5" />,
+                label: "Binance / Zelle",
+                sub: "Cripto / Transferencia US",
+                value: `$${Number(desglose_pagos.binance_usd || 0).toFixed(2)}`,
+                textLight: "text-amber-100",
+              },
+            ];
+
+            // Duplicamos el set de tarjetas para lograr un loop infinito:
+            // cuando el track llega al final del primer set, se resetea el scrollLeft
+            const carouselCards = [...walletCards, ...walletCards];
+
+            return carouselCards.map(
+              ({ key, gradient, icon, label, sub, value, textLight }, idx) => {
+                const methodTxs = getTransactionsForMethod(key);
+                return (
+                  <button
+                    key={`${key}-${idx}`}
+                    onClick={() => {
+                      // Si el usuario arrastró el carrusel, no abrir el modal
+                      if (walletDragRef.current.moved) return;
+                      setModalPage(1);
+                      setSelectedMethodForModal({
+                        key,
+                        label,
+                        value,
+                        txs: methodTxs,
+                      });
+                    }}
+                    onDragStart={(e) => e.preventDefault()}
+                    style={{
+                      width: WALLET_CARD_WIDTH,
+                      minWidth: WALLET_CARD_WIDTH,
+                    }}
+                    className={`shrink-0 bg-gradient-to-b ${gradient} rounded-3xl p-6 shadow-sm text-white flex flex-col justify-between h-52 relative overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group`}
+                  >
+                    <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
+                      <DollarSign className="w-36 h-36" />
+                    </div>
+                    <div className="flex justify-between items-start w-full">
+                      <div
+                        className={`w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center font-bold text-base`}
+                      >
+                        {icon}
+                      </div>
+                      <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-black">
+                        {methodTxs.length} pedido
+                        {methodTxs.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div>
+                      <p
+                        className={`text-xs font-semibold ${textLight} mb-1.5`}
+                      >
+                        {label}
+                      </p>
+                      <p className="text-2xl font-black truncate leading-tight">
+                        {value}
+                      </p>
+                      <p className={`text-xs ${textLight} mt-1`}>{sub}</p>
+                    </div>
+                  </button>
+                );
+              },
+            );
+          })()}
+        </div>
+
+        {/* Paginación del carrusel */}
+        <div className="flex justify-center items-center gap-2 mt-4">
+          {Array.from({ length: WALLET_CARDS_COUNT }).map((_, i) => (
             <button
-              key={label}
+              key={i}
+              type="button"
+              aria-label={`Ir a la tarjeta ${i + 1}`}
               onClick={() => {
-                setModalPage(1);
-                setSelectedMethodForModal({ key, label, value, txs: methodTxs });
+                const track = walletTrackRef.current;
+                if (track) {
+                  track.scrollLeft = i * (WALLET_CARD_WIDTH + WALLET_CARD_GAP);
+                }
+                setWalletActiveIndex(i);
               }}
-              className={`bg-gradient-to-b ${gradient} rounded-3xl p-6 shadow-sm text-white flex flex-col justify-between h-52 relative overflow-hidden text-left hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group`}
-            >
-              <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
-                <DollarSign className="w-36 h-36" />
-              </div>
-              <div className="flex justify-between items-start w-full">
-                <div
-                  className={`w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center font-bold text-base`}
-                >
-                  {icon}
-                </div>
-                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-black">
-                  {methodTxs.length} pedido{methodTxs.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-              <div>
-                <p
-                  className={`text-xs font-semibold ${textLight} mb-1.5`}
-                >
-                  {label}
-                </p>
-                <p className="text-2xl font-black truncate leading-tight">{value}</p>
-                <p className={`text-xs ${textLight} mt-1`}>{sub}</p>
-              </div>
-            </button>
-          );
-        })}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                walletActiveIndex === i
+                  ? "w-6 bg-pizza-red"
+                  : "w-2 bg-slate-300 hover:bg-slate-400"
+              }`}
+            />
+          ))}
+        </div>
       </section>
 
       {/* ── REEMBOLSOS DEL DÍA ── */}
@@ -729,12 +909,16 @@ export default function CierreScreen() {
                             {t.nombre_cliente || "Cliente General"}
                           </p>
                           <p className="text-xs text-slate-400 font-bold mt-0.5">
-                            {t.hora} • <span className="text-pizza-red">{t.despacho}</span>
+                            {t.hora} •{" "}
+                            <span className="text-pizza-red">{t.despacho}</span>
                           </p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-black text-emerald-600">
-                            {getPaymentAmountForMethod(t, selectedMethodForModal.key)}
+                            {getPaymentAmountForMethod(
+                              t,
+                              selectedMethodForModal.key,
+                            )}
                           </p>
                           <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
                             Total Pedido: ${t.monto_total_usd.toFixed(2)}
@@ -755,16 +939,23 @@ export default function CierreScreen() {
                         Anterior
                       </button>
                       <span className="text-xs font-extrabold text-slate-500">
-                        Pág. {modalPage} de {Math.ceil(selectedMethodForModal.txs.length / 10)}
+                        Pág. {modalPage} de{" "}
+                        {Math.ceil(selectedMethodForModal.txs.length / 10)}
                       </span>
                       <button
                         type="button"
                         onClick={() =>
                           setModalPage((p) =>
-                            Math.min(p + 1, Math.ceil(selectedMethodForModal.txs.length / 10))
+                            Math.min(
+                              p + 1,
+                              Math.ceil(selectedMethodForModal.txs.length / 10),
+                            ),
                           )
                         }
-                        disabled={modalPage >= Math.ceil(selectedMethodForModal.txs.length / 10)}
+                        disabled={
+                          modalPage >=
+                          Math.ceil(selectedMethodForModal.txs.length / 10)
+                        }
                         className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                       >
                         Siguiente
@@ -775,7 +966,9 @@ export default function CierreScreen() {
               ) : (
                 <div className="text-center py-12 text-slate-400">
                   <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm font-bold">No hay transacciones registradas hoy con este método.</p>
+                  <p className="text-sm font-bold">
+                    No hay transacciones registradas hoy con este método.
+                  </p>
                 </div>
               )}
             </div>
@@ -880,7 +1073,9 @@ export default function CierreScreen() {
                   maxLength={4}
                   placeholder="••••"
                   value={claveCierre}
-                  onChange={(e) => setClaveCierre(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) =>
+                    setClaveCierre(e.target.value.replace(/\D/g, ""))
+                  }
                   className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-pizza-red/20 focus:border-pizza-red transition-all text-sm font-semibold"
                   autoFocus
                 />
