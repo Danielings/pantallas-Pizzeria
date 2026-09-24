@@ -9,7 +9,7 @@ import TasaScreen from "../components/admin/TasaScreen";
 
 export default function AdminScreen({ activeView }) {
   return (
-    <div className="flex flex-col h-full bg-slate-50 w-full overflow-hidden pt:14 lg:pt-0">
+    <div className="flex flex-col h-full bg-slate-50 w-full overflow-hidden pt-14 lg:pt-0">
       {/* Content */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {activeView === "dashboard" && <Dashboard />}

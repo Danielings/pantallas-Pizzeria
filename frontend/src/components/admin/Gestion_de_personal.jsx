@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBranches, useStaff } from "../../hooks/useBranches";
 import axios from "axios";
+import Pagination from "../ui/Pagination";
 import {
   Users,
   Building2,
@@ -95,6 +96,22 @@ export default function StaffManagement() {
     }
     return result;
   }, [safeStaff, searchBranch, searchRole]);
+
+  // Paginación (10 elementos por página)
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchBranch, searchRole]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredStaff.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedStaff = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filteredStaff.slice(start, start + PAGE_SIZE);
+  }, [filteredStaff, safePage]);
 
   const metrics = useMemo(() => {
     const counts = {
@@ -314,7 +331,7 @@ export default function StaffManagement() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 hide-scrollbar flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300">
+    <div className="flex-1 min-h-0 overflow-y-auto bg-slate-50 p-4 sm:p-6 pb-16 flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300">
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 shrink-0">
         <div className="flex items-center gap-4">
@@ -342,7 +359,7 @@ export default function StaffManagement() {
       </header>
 
       {/* Cards de Métricas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 shrink-0">
         {ROLES.map((r) => {
           const cfg = ROLE_CONFIG[r];
           return (
@@ -373,7 +390,7 @@ export default function StaffManagement() {
       </div>
 
       {/* Tabla y Filtros */}
-      <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden flex flex-col min-h-[520px] lg:min-h-0 lg:max-h-[calc(100vh-280px)]">
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden flex flex-col w-full shrink-0">
         <div className="px-4 sm:px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
             <h3 className="font-extrabold text-slate-800 text-base">
@@ -426,7 +443,7 @@ export default function StaffManagement() {
           </div>
         </div>
 
-        <div className="hidden lg:block lg:flex-1 lg:min-h-0 lg:overflow-auto">
+        <div className="hidden lg:block overflow-x-auto w-full">
           <table className="w-full text-sm min-w-[860px] hidden lg:table">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 font-bold text-xs uppercase tracking-wider text-left sticky top-0 animate-fade-in z-10">
@@ -456,7 +473,7 @@ export default function StaffManagement() {
                   </td>
                 </tr>
               ) : (
-                filteredStaff.map((user, index) => {
+                paginatedStaff.map((user, index) => {
                   const cfg = ROLE_CONFIG[user.role] || {
                     label: user.role,
                     color: "bg-slate-100 text-slate-600 border-slate-200",
@@ -468,7 +485,7 @@ export default function StaffManagement() {
                       className={`hover:bg-slate-50/50 transition-colors group ${!isActive ? "opacity-60" : ""}`}
                     >
                       <td className="px-5 py-3.5 text-slate-400 text-xs font-bold">
-                        {index + 1}
+                        {(safePage - 1) * PAGE_SIZE + index + 1}
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
@@ -562,7 +579,7 @@ export default function StaffManagement() {
           </table>
         </div>
         {/* Vista Móvil: Cards */}
-        <div className="lg:hidden flex-1 min-h-0 flex flex-col gap-3 p-4 overflow-y-auto">
+        <div className="lg:hidden flex flex-col gap-3 p-4">
           {staffLoading || branchesLoading ? (
             <div className="text-center py-12 text-slate-400">
               <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>
@@ -576,7 +593,7 @@ export default function StaffManagement() {
               </p>
             </div>
           ) : (
-            filteredStaff.map((user, index) => {
+            paginatedStaff.map((user) => {
               const cfg = ROLE_CONFIG[user.role] || {
                 label: user.role,
                 color: "bg-slate-100 text-slate-600 border-slate-200",
@@ -686,13 +703,15 @@ export default function StaffManagement() {
             })
           )}
         </div>
-        <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/50 shrink-0 select-none">
-          <p className="text-xs font-bold text-slate-500 text-center sm:text-left">
-            Mostrando {filteredStaff.length} empleado(s)
-            <span className="hidden lg:inline"> en vista de tabla</span>
-            <span className="lg:hidden"> en vista de tarjetas</span>
-          </p>
-        </div>
+        {!staffLoading && !branchesLoading && filteredStaff.length > 0 && (
+          <Pagination
+            currentPage={safePage}
+            totalItems={filteredStaff.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+            itemName="empleado(s)"
+          />
+        )}
       </div>
 
       {/* Modal de Creación / Edición */}
