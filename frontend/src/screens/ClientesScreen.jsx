@@ -14,10 +14,11 @@ import {
   Clock,
 } from "lucide-react";
 import ClienteForm from "../components/admin/clientes/ClienteForm";
+import Pagination from "../components/ui/Pagination";
 
 const API_BASE = "http://localhost:3001/api";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 // Caché a nivel de módulo: muestra los datos al instante al volver a abrir la pantalla
 let cachedCustomers = null;
@@ -128,26 +129,6 @@ export default function ClientesScreen() {
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, safePage]);
 
-  const pageNumbers = useMemo(() => {
-    const pages = [];
-    const delta = 2;
-    const rangeStart = Math.max(1, safePage - delta);
-    const rangeEnd = Math.min(totalPages, safePage + delta);
-    if (rangeStart > 1) {
-      pages.push(1);
-      if (rangeStart > 2) pages.push("...");
-    }
-    for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
-    if (rangeEnd < totalPages) {
-      if (rangeEnd < totalPages - 1) pages.push("...");
-      pages.push(totalPages);
-    }
-    return pages;
-  }, [safePage, totalPages]);
-
-  const pageFrom = filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
-  const pageTo = Math.min(safePage * PAGE_SIZE, filtered.length);
-
   // ─── Cards de estadísticas ───
   const stats = useMemo(() => {
     const total = customers.length;
@@ -241,7 +222,7 @@ export default function ClientesScreen() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto lg:overflow-hidden w-full h-full bg-slate-50">
+    <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-6 pb-16 gap-4 sm:gap-6 overflow-y-auto w-full h-full bg-slate-50">
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 shrink-0">
         <div className="flex items-center gap-4">
@@ -351,7 +332,7 @@ export default function ClientesScreen() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden lg:min-h-0 lg:flex-1 flex flex-col min-h-[520px] max-h-[calc(100vh-280px)]">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col w-full shrink-0">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
           <div>
             <h2 className="font-bold text-slate-800 text-base">
@@ -386,7 +367,7 @@ export default function ClientesScreen() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto min-h-0">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-sm min-w-[860px] hidden lg:table">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
@@ -483,7 +464,7 @@ export default function ClientesScreen() {
             </tbody>
           </table>
           {/* Vista Móvil: Cards */}
-          <div className="lg:hidden flex flex-col gap-3 p-4 overflow-y-auto">
+          <div className="lg:hidden flex flex-col gap-3 p-4">
             {isLoading ? (
               <div className="text-center py-12 text-slate-400">
                 <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>
@@ -559,55 +540,13 @@ export default function ClientesScreen() {
 
         {/* Pie de tabla: paginación */}
         {!isLoading && filtered.length > 0 && (
-          <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex flex-wrap items-center justify-between gap-3 shrink-0">
-            <div className="text-xs font-semibold text-slate-500">
-              Mostrando <span className="text-slate-800">{pageFrom}</span> -{" "}
-              <span className="text-slate-800">{pageTo}</span> de{" "}
-              <span className="text-slate-800">{filtered.length}</span>{" "}
-              cliente(s)
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setPage(Math.max(1, safePage - 1))}
-                disabled={safePage === 1}
-                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                ←
-              </button>
-
-              {pageNumbers.map((p, i) =>
-                p === "..." ? (
-                  <span
-                    key={`ellipsis-${i}`}
-                    className="px-1 text-slate-400 text-xs self-center"
-                  >
-                    ...
-                  </span>
-                ) : (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
-                      p === safePage
-                        ? "bg-slate-800 text-white shadow-sm"
-                        : "text-slate-500 hover:bg-slate-100 border border-transparent"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ),
-              )}
-
-              <button
-                onClick={() => setPage(Math.min(totalPages, safePage + 1))}
-                disabled={safePage === totalPages}
-                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                →
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={safePage}
+            totalItems={filtered.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            itemName="cliente(s)"
+          />
         )}
       </div>
 

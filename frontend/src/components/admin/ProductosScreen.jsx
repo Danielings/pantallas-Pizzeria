@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import {
   Search,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import ProductForm from "./products/ProductForm";
 import ComboForm from "./products/ComboForm";
+import Pagination from "../ui/Pagination";
 import { useBranches } from "../../hooks/useBranches";
 import { useProducts } from "../../hooks/useProducts";
 
@@ -180,6 +181,22 @@ export default function ProductosScreen() {
       String(p.id_sucursal) === String(selectedBranchFilter);
     return matchesSearch && matchesCategory && matchesBranch;
   });
+
+  // Paginación (10 productos por página)
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, categoryFilter, selectedBranchFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, safePage]);
 
   const counts = products.reduce(
     (acc, p) => {
@@ -462,7 +479,7 @@ export default function ProductosScreen() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto w-full h-full bg-slate-50">
+    <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-6 pb-16 gap-4 sm:gap-6 overflow-y-auto w-full h-full bg-slate-50">
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 shrink-0">
         <div className="flex items-center gap-4">
@@ -622,7 +639,7 @@ export default function ProductosScreen() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-[520px] lg:min-h-0 lg:flex-1 lg:max-h-[calc(100vh-280px)]">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col w-full shrink-0">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col gap-3 shrink-0">
           {/* Fila superior: título + buscador */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -675,7 +692,7 @@ export default function ProductosScreen() {
             ))}
           </div>
         </div>
-        <div className="overflow-x-auto lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-sm min-w-[720px] hidden lg:table">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
@@ -709,14 +726,14 @@ export default function ProductosScreen() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((product, index) => (
+                paginatedProducts.map((product, index) => (
                   <tr
                     key={`${product.category}-${product.id}`}
                     className="hover:bg-slate-50/80 transition-colors group"
                   >
                     <td className="px-4 py-4 text-center">
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-bold">
-                        {index + 1}
+                        {(safePage - 1) * PAGE_SIZE + index + 1}
                       </span>
                     </td>
                     <td className="px-5 py-4">
@@ -801,7 +818,7 @@ export default function ProductosScreen() {
             </tbody>
           </table>
           {/* Vista Móvil: Cards */}
-          <div className="lg:hidden flex flex-col gap-3 p-4 overflow-y-auto">
+          <div className="lg:hidden flex flex-col gap-3 p-4">
             {isLoading ? (
               <div className="text-center py-12 text-slate-400">
                 <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>
@@ -813,7 +830,7 @@ export default function ProductosScreen() {
                 <p className="font-medium">No se encontraron productos</p>
               </div>
             ) : (
-              filtered.map((product, index) => {
+              paginatedProducts.map((product) => {
                 const categoryLabel =
                   CATEGORY_TYPES.find((c) => c.id === product.category)
                     ?.label || product.category;
@@ -901,6 +918,15 @@ export default function ProductosScreen() {
             )}
           </div>
         </div>
+        {!isLoading && filtered.length > 0 && (
+          <Pagination
+            currentPage={safePage}
+            totalItems={filtered.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+            itemName="producto(s)"
+          />
+        )}
       </div>
 
       {/* Modal */}

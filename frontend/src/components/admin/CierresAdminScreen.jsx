@@ -20,6 +20,7 @@ import {
   Layers,
 } from "lucide-react";
 import { exportCierrePDF } from "../../utils/pdfCierre";
+import Pagination from "../ui/Pagination";
 
 const API_BASE = "http://localhost:3001/api";
 
@@ -301,7 +302,10 @@ export default function CierresAdminScreen() {
     return result;
   }, [cierres, searchDate, sortOrder, sucursalFilter, tipoCierreFilter]);
 
-  const totalPages = Math.ceil(filteredAndSortedCierres.length / 10);
+  // Reiniciar a la primera página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchDate, sortOrder, sucursalFilter, tipoCierreFilter]);
 
   const paginatedCierres = useMemo(() => {
     const startIndex = (currentPage - 1) * 10;
@@ -361,7 +365,7 @@ export default function CierresAdminScreen() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 hide-scrollbar flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300">
+    <div className="flex-1 min-h-0 overflow-y-auto bg-slate-50 p-4 sm:p-6 pb-16 flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-300">
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 shrink-0">
         <div className="flex items-center gap-4">
@@ -470,7 +474,7 @@ export default function CierresAdminScreen() {
       </div>
 
       {/* Tabla de Cierres */}
-      <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden lg:flex-1 flex flex-col lg:min-h-0 min-h-[520px] max-h-[calc(100vh-280px)]">
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden flex flex-col w-full shrink-0">
         <div className="px-4 sm:px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
             <h3 className="font-extrabold text-slate-800 text-base">
@@ -631,7 +635,7 @@ export default function CierresAdminScreen() {
           </div>
         </div>
 
-        <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-sm min-w-[960px] hidden lg:table">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-slate-200 bg-white text-slate-400 font-bold text-xs uppercase tracking-wider text-left shadow-sm">
@@ -756,7 +760,7 @@ export default function CierresAdminScreen() {
             </tbody>
           </table>
           {/* Vista Móvil: Cards */}
-          <div className="lg:hidden flex flex-col gap-3 p-4 overflow-y-auto">
+          <div className="lg:hidden flex flex-col gap-3 p-4">
             {isLoading ? (
               <div className="text-center py-12 text-slate-400">
                 <div className="w-8 h-8 rounded-full border-4 border-pizza-red/20 border-t-pizza-red animate-spin mx-auto mb-2"></div>
@@ -879,28 +883,14 @@ export default function CierresAdminScreen() {
         </div>
 
         {/* Controles de paginación */}
-        {!isLoading && totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0 select-none">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3.5 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-1"
-            >
-              Anterior
-            </button>
-            <span className="text-xs font-extrabold text-slate-500">
-              Página {currentPage} de {totalPages}
-            </span>
-            <button
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-              className="px-3.5 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-1"
-            >
-              Siguiente
-            </button>
-          </div>
+        {!isLoading && filteredAndSortedCierres.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredAndSortedCierres.length}
+            pageSize={10}
+            onPageChange={setCurrentPage}
+            itemName="cierre(s)"
+          />
         )}
       </div>
 
