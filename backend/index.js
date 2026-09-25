@@ -6,8 +6,6 @@ import productos from "./routes/productos.route.js";
 import ventas from "./routes/ventas.route.js";
 import pedidos from "./routes/pedidos.route.js";
 import usuarios from "./routes/usuarios.route.js";
-import { actualizarTasaDesdeApi } from "./controllers/ventas.controller.js";
-import cron from "node-cron";
 import { getTransporter } from "./config/mailer.js";
 import autenticacion from "./routes/autenticacion.route.js";
 import cierre from "./routes/cierre.route.js";
@@ -47,15 +45,6 @@ app.use("/api", pusherRoutes);
 app.use("/api", reportes);
 app.use("/api", combos);
 app.use("/api", dashboardRoutes);
-
-cron.schedule("*/30 * * * *", async () => {
-  try {
-    await actualizarTasaDesdeApi();
-    console.log("Tasa actualizada automáticamente desde la API.");
-  } catch (error) {
-    console.error("Error actualizando la tasa automáticamente:", error);
-  }
-});
 
 app.listen(3001, () => {
   console.log("Escuchandoo, oh oh");

@@ -1006,12 +1006,14 @@ export const obtenerRegistro = async () => {
 export const obtenerTasaDesdeBD = async (_req, res) => {
   try {
     const antiguedad = await db.execute({
-      sql: "SELECT (strftime('%s','now') - strftime('%s', fecha_actualizacion)) AS diff_secs FROM configuracion_tasa WHERE id_config = 1",
+      sql: "SELECT (strftime('%s','now') - strftime('%s', fecha_actualizacion)) AS diff_secs, CAST(strftime('%H', datetime('now', '-4 hours')) AS INTEGER) AS hora_local FROM configuracion_tasa WHERE id_config = 1",
     });
     const diffSecs = Number(antiguedad.rows?.[0]?.diff_secs ?? NaN);
+    const horaLocal = Number(antiguedad.rows?.[0]?.hora_local ?? NaN);
 
-    const desactualizada = !Number.isFinite(diffSecs) || diffSecs > 30 * 60;
-    if (desactualizada) {
+    const desactualizada = !Number.isFinite(diffSecs) || diffSecs > 2 * 60 * 60;
+    const horarioValido = Number.isFinite(horaLocal) && horaLocal >= 8;
+    if (horarioValido && desactualizada) {
       await actualizarTasaDesdeApi();
     }
 
