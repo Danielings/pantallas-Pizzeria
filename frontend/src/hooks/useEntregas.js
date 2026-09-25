@@ -13,8 +13,8 @@ export function useEntregas() {
   const query = useQuery({
     queryKey: ["entregas"],
     staleTime: 5000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async () => {
       const res = await axios.get("http://localhost:3001/api/entregas", {
         withCredentials: true,
@@ -39,7 +39,6 @@ export function useEntregas() {
   useEffect(() => {
     const refreshEntregas = () => {
       queryClient.invalidateQueries({ queryKey: ["entregas"] });
-      queryClient.refetchQueries({ queryKey: ["entregas"] });
     };
 
     const unsubscribeOrders = subscribeToPusher({
