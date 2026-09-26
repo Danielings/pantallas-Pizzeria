@@ -175,6 +175,7 @@ const armarPedidosConExtras = async (ventas, estado) => {
 
 export const obtenerPedidosCocina = async (req, res) => {
   try {
+    const { id_sucursal } = req.user;
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
@@ -188,6 +189,7 @@ export const obtenerPedidosCocina = async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
       WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
+        AND (v.id_sucursal = ? OR v.id_sucursal IS NULL)
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -195,6 +197,7 @@ export const obtenerPedidosCocina = async (req, res) => {
             AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
+      [id_sucursal],
     );
 
     const pedidosCocina = await armarPedidosConExtras(ventas, "Pendiente");
@@ -208,6 +211,7 @@ export const obtenerPedidosCocina = async (req, res) => {
 
 export const obtenerPedidosHorno = async (req, res) => {
   try {
+    const { id_sucursal } = req.user;
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
@@ -221,6 +225,7 @@ export const obtenerPedidosHorno = async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
       WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
+        AND (v.id_sucursal = ? OR v.id_sucursal IS NULL)
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -228,6 +233,7 @@ export const obtenerPedidosHorno = async (req, res) => {
             AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
+      [id_sucursal],
     );
 
     const pedidosHorno = await armarPedidosConExtras(ventas, "Horno");
@@ -241,6 +247,7 @@ export const obtenerPedidosHorno = async (req, res) => {
 
 export const obtenerPedidosDespacho = async (req, res) => {
   try {
+    const { id_sucursal } = req.user;
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
@@ -254,6 +261,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
       WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
+        AND (v.id_sucursal = ? OR v.id_sucursal IS NULL)
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -261,6 +269,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
             AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
+      [id_sucursal],
     );
 
     const pedidosCompletado = await armarPedidosConExtras(ventas, "Despacho");
@@ -274,6 +283,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
 
 export const obtenerPedidosMesero = async (req, res) => {
   try {
+    const { id_sucursal } = req.user;
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
@@ -285,6 +295,7 @@ export const obtenerPedidosMesero = async (req, res) => {
       FROM ventas v
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
+        AND (v.id_sucursal = ? OR v.id_sucursal IS NULL)
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -292,6 +303,7 @@ export const obtenerPedidosMesero = async (req, res) => {
             AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
+      [id_sucursal],
     );
 
     const pedidosMesero = await armarPedidosConExtras(ventas, "Despacho");
@@ -305,6 +317,7 @@ export const obtenerPedidosMesero = async (req, res) => {
 
 export const obtenerPedidosPendiente = async (req, res) => {
   try {
+    const { id_sucursal } = req.user;
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
@@ -318,6 +331,7 @@ export const obtenerPedidosPendiente = async (req, res) => {
       LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
       LEFT JOIN delivery d ON d.id_delivery = v.id_delivery
       WHERE DATE(v.fecha_hora) = DATE('now', '-4 hours')
+        AND (v.id_sucursal = ? OR v.id_sucursal IS NULL)
         AND EXISTS (
           SELECT 1 FROM venta_detalle vd
           WHERE vd.id_venta = v.id_venta
@@ -325,6 +339,7 @@ export const obtenerPedidosPendiente = async (req, res) => {
             AND vd.tipo_producto IN ('Pizza', 'Combo')
         )
       ORDER BY v.fecha_hora ASC`,
+      [id_sucursal],
     );
 
     const pedidosPendiente = await armarPedidosConExtras(ventas, "pDespacho");
@@ -360,6 +375,7 @@ export const obtenerContadorCajero = async (req, res) => {
 
 export const actualizarEstadoPedido = async (req, res) => {
   const { id_venta } = req.params;
+  const { id_sucursal } = req.user;
   const { status } = req.body;
 
   let nuevoEstado = "";
@@ -396,8 +412,13 @@ export const actualizarEstadoPedido = async (req, res) => {
       `UPDATE venta_detalle
        SET estado = ? 
        WHERE id_venta = ? 
-         AND tipo_producto IN ('Pizza', 'Combo')`,
-      [nuevoEstado, id_venta],
+         AND tipo_producto IN ('Pizza', 'Combo')
+         AND EXISTS (
+           SELECT 1 FROM ventas v
+           WHERE v.id_venta = venta_detalle.id_venta
+             AND v.id_sucursal = ?
+         )`,
+      [nuevoEstado, id_venta, id_sucursal],
     );
 
     if (result.rowsAffected === 0) {
@@ -547,13 +568,19 @@ export const obtenerEntregas = async (req, res) => {
 
 export const actualizarEntrega = async (req, res) => {
   const { id_venta } = req.params;
+  const { id_sucursal } = req.user;
 
   try {
     const result = await executeCommand(
       `UPDATE venta_detalle
        SET estado = 'Completado' 
-       WHERE id_venta = ?`,
-      [id_venta],
+       WHERE id_venta = ?
+         AND EXISTS (
+           SELECT 1 FROM ventas v
+           WHERE v.id_venta = venta_detalle.id_venta
+             AND v.id_sucursal = ?
+         )`,
+      [id_venta, id_sucursal],
     );
 
     if (result.rowsAffected === 0) {
