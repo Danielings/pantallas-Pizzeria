@@ -62,16 +62,11 @@ export const obtenerResumenDia = async (req, res) => {
   const { id_sucursal } = req.user;
   // Vista: 'delivery' solo muestra ventas de delivery; sin despacho (null) muestra TODO.
   const esDelivery =
-    String(req.query.despacho || "").trim().toLowerCase() === "delivery";
+    String(req.query.despacho || "")
+      .trim()
+      .toLowerCase() === "delivery";
   const despacho = esDelivery ? "Delivery" : null;
   try {
-    // 1. Determinar el día lógico a mostrar: si hay un cierre pendiente de un
-    //    día anterior se muestra ESE día; si no, el día lógico actual.
-    //    Se incluyen ventas 'Completado' Y 'Cerrado' que no hayan sido consumidas
-    //    por ESTE tipo de cierre (cierre_general=0 o cierre_delivery=0).
-    //    Esto permite que el cierre delivery muestre números aunque el cierre
-    //    general ya haya marcado todas las ventas como 'Cerrado'.
-    //    Día lógico: corte 5:00 AM local (UTC-4) => aplicar '-9 hours' sobre UTC.
     const diaRow = await db.execute({
       sql: `
         SELECT COALESCE(
@@ -181,6 +176,15 @@ export const obtenerResumenDia = async (req, res) => {
     if (tasaRows.rows.length > 0) {
       tasa_cambio = Number(tasaRows.rows[0].tasa_sistema);
     }
+
+    // Información de la sucursal para el PDF
+    const sucursalRow = await db.execute({
+      sql: `SELECT id_sucursal, sucursal, direccion
+            FROM sucursal
+            WHERE id_sucursal = ? LIMIT 1`,
+      args: [id_sucursal],
+    });
+    const sucursalInfo = sucursalRow.rows[0] || {};
 
     const salidas_efectivo = 15.0;
     const propinas = ventas_totales * 0.05;
@@ -308,6 +312,9 @@ export const obtenerResumenDia = async (req, res) => {
     };
 
     const resumen = {
+      id_sucursal: sucursalInfo.id_sucursal ?? id_sucursal,
+      sucursal: sucursalInfo.sucursal || "Sucursal Principal",
+      direccion: sucursalInfo.direccion || "",
       fecha_consulta: dateLabel,
       tasa_cambio,
       total_divisa,
@@ -348,9 +355,10 @@ export const cerrarCaja = async (req, res) => {
     tipo_cierre = "general",
   } = req.body;
   const { id_sucursal } = req.user;
-  const tipo = String(tipo_cierre || "general").toLowerCase() === "delivery"
-    ? "delivery"
-    : "general";
+  const tipo =
+    String(tipo_cierre || "general").toLowerCase() === "delivery"
+      ? "delivery"
+      : "general";
 
   if (!pin || !String(pin).trim()) {
     return res
@@ -358,7 +366,7 @@ export const cerrarCaja = async (req, res) => {
       .json({ success: false, mensaje: "La clave de cierre es obligatoria." });
   }
 
-  const LIMITE_CIERRES_DIARIOS = 3;
+  const LIMITE_CIERRES_DIARIOS = 5;
   let tx = null;
 
   try {

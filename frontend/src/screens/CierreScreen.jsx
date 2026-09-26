@@ -280,8 +280,16 @@ export default function CierreScreen() {
       try {
         await exportCierrePDF({
           id_cierre: newCierreId,
+          id_sucursal: data?.id_sucursal,
+          sucursal: data?.sucursal,
+          sucursal_direccion: data?.direccion,
+          transacciones: data?.transacciones || [],
           fecha_hora: new Date(),
-          usuario_nombre: currentUser?.nombre_completo || "Cajero Responsable",
+          usuario_nombre:
+            currentUser?.name ||
+            currentUser?.nombre_completo ||
+            currentUser?.email ||
+            "Cajero Responsable",
           monto_efectivo_usd: Number(desglose_pagos.efectivo_usd || 0),
           monto_efectivo_bs: Number(desglose_pagos.efectivo_bs || 0),
           monto_punto_bs: Number(desglose_pagos.punto_de_venta_bs || 0),
