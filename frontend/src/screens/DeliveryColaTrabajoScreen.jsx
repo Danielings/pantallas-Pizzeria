@@ -88,7 +88,9 @@ function KpiCard({
   return (
     <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
       <div className="min-w-0">
-        <p className="text-slate-400 font-medium text-xs sm:text-sm mb-1.5">{label}</p>
+        <p className="text-slate-400 font-medium text-xs sm:text-sm mb-1.5">
+          {label}
+        </p>
         <div className="flex items-end gap-2">
           {loading ? (
             <div className="h-8 w-20 bg-slate-100 rounded-md animate-pulse" />
@@ -152,7 +154,7 @@ export default function DeliveryColaTrabajoScreen() {
   const allDeliveryOrders = useMemo(() => {
     const rawList = Array.isArray(pedidosActivos) ? pedidosActivos : [];
     return rawList.filter(
-      (p) => String(p.despacho || "").toLowerCase() === "delivery"
+      (p) => String(p.despacho || "").toLowerCase() === "delivery",
     );
   }, [pedidosActivos]);
 
@@ -160,7 +162,7 @@ export default function DeliveryColaTrabajoScreen() {
   const pedidos = useMemo(() => {
     if (viewFilter === "mis" && currentUser?.id) {
       return allDeliveryOrders.filter(
-        (p) => Number(p.id_usuario) === Number(currentUser.id)
+        (p) => Number(p.id_usuario) === Number(currentUser.id),
       );
     }
     return allDeliveryOrders;
@@ -181,7 +183,7 @@ export default function DeliveryColaTrabajoScreen() {
   // Numeración cronológica
   const numMap = useMemo(() => {
     const sorted = [...pedidos].sort(
-      (a, b) => new Date(a?.fecha_hora ?? 0) - new Date(b?.fecha_hora ?? 0)
+      (a, b) => new Date(a?.fecha_hora ?? 0) - new Date(b?.fecha_hora ?? 0),
     );
     return Object.fromEntries(sorted.map((p, i) => [p?.id_venta ?? i, i + 1]));
   }, [pedidos]);
@@ -226,7 +228,8 @@ export default function DeliveryColaTrabajoScreen() {
           {activos > 0 && (
             <span className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-800 text-xs font-bold px-3 py-1.5 rounded-full">
               <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              {activos} delivery{activos !== 1 ? "s" : ""} activo{activos !== 1 ? "s" : ""}
+              {activos} delivery{activos !== 1 ? "s" : ""} activo
+              {activos !== 1 ? "s" : ""}
             </span>
           )}
           <button
@@ -332,9 +335,9 @@ export default function DeliveryColaTrabajoScreen() {
         </div>
 
         {/* Contenedor de la tabla */}
-        <div className="flex-1 overflow-auto bg-slate-50/30 p-3 sm:p-4 md:p-5">
+        <div className="flex-1 overflow-auto bg-slate-50/30 p-3 sm:p-4 md:p-5 w-full">
           <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
-            <div className="overflow-x-auto pb-32">
+            <div className="overflow-x-auto pb-4">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/70 border-b border-slate-100 text-xs sm:text-sm font-bold text-slate-500">
@@ -344,9 +347,9 @@ export default function DeliveryColaTrabajoScreen() {
                     <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">
                       Cliente y Dirección
                     </th>
-                    <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">
+                    {/* <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">
                       Despacho
-                    </th>
+                    </th> */}
                     <th className="py-2.5 px-3 sm:px-4 sm:py-3 md:px-6 md:py-3.5">
                       Productos / Detalle
                     </th>
@@ -364,7 +367,10 @@ export default function DeliveryColaTrabajoScreen() {
                 <tbody className="divide-y divide-slate-100 text-sm">
                   {pedidos.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-20 text-center text-slate-400">
+                      <td
+                        colSpan={7}
+                        className="py-20 text-center text-slate-400"
+                      >
                         <Bike className="w-12 h-12 mx-auto mb-2 text-slate-300" />
                         <p className="font-bold text-slate-600 text-base">
                           No hay pedidos delivery activos
@@ -396,7 +402,9 @@ export default function DeliveryColaTrabajoScreen() {
                         estadoObj = ESTADO_BADGES.Despacho;
 
                       // Extraer posible dirección de notas
-                      const primerDetalleConNota = pedido.detalles?.find((d) => d.nota);
+                      const primerDetalleConNota = pedido.detalles?.find(
+                        (d) => d.nota,
+                      );
                       const notaTexto = primerDetalleConNota?.nota || "";
 
                       return (
@@ -405,13 +413,10 @@ export default function DeliveryColaTrabajoScreen() {
                           className="hover:bg-slate-50/60 transition-colors group"
                         >
                           {/* Col 1: Pedido */}
-                          <td className="py-3 px-3 sm:px-4 md:px-6 align-top">
+                          <td className="py-3 px-3 sm:px-4 sm:py-3.5 md:px-6 md:py-3.5">
                             <div className="flex flex-col">
                               <span className="font-black text-slate-800 text-sm">
                                 #{num}
-                              </span>
-                              <span className="text-[11px] text-slate-400 font-medium">
-                                Id: {pedido.id_venta}
                               </span>
                               <span className="text-[10px] text-slate-500 font-semibold flex items-center gap-1 mt-1">
                                 <Clock className="w-3 h-3 text-slate-400" />
@@ -421,7 +426,7 @@ export default function DeliveryColaTrabajoScreen() {
                           </td>
 
                           {/* Col 2: Cliente y Dirección */}
-                          <td className="py-3 px-3 sm:px-4 md:px-6 align-top max-w-[220px]">
+                          <td className="py-3 px-3 sm:px-4 md:px-6 align-top min-w-[160px]">
                             <div className="flex flex-col gap-0.5">
                               <span className="font-bold text-slate-800 text-xs sm:text-sm truncate">
                                 {pedido.nombre_cliente || "Cliente Delivery"}
@@ -445,15 +450,14 @@ export default function DeliveryColaTrabajoScreen() {
                           </td>
 
                           {/* Col 3: Tipo Despacho */}
-                          <td className="py-3 px-3 sm:px-4 md:px-6 align-top whitespace-nowrap">
+                          {/* <td className="py-3 px-3 sm:px-4 md:px-6 align-top">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-red-100 text-red-700 border border-red-200">
-                              <Bike className="w-3.5 h-3.5" />
                               Delivery
                             </span>
-                          </td>
+                          </td> */}
 
                           {/* Col 4: Productos */}
-                          <td className="py-3 px-3 sm:px-4 md:px-6 align-top max-w-[280px]">
+                          <td className="py-3 px-3 sm:px-4 md:px-6 align-top min-w-[200px]">
                             <div className="flex flex-col gap-1">
                               {(pedido.detalles || []).map((det, idx) => (
                                 <div
@@ -482,7 +486,8 @@ export default function DeliveryColaTrabajoScreen() {
                               ${Number(pedido.monto_total_usd || 0).toFixed(2)}
                             </div>
                             <div className="text-[11px] text-slate-400 font-medium">
-                              Bs. {Number(pedido.monto_total_bs || 0).toFixed(2)}
+                              Bs.{" "}
+                              {Number(pedido.monto_total_bs || 0).toFixed(2)}
                             </div>
                           </td>
 

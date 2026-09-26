@@ -104,7 +104,7 @@ function KpiCard({
           {loading ? (
             <div className="h-9 w-24 bg-slate-100 rounded-md animate-pulse" />
           ) : (
-            <h3 className="text-4xl font-black text-slate-800 leading-none whitespace-nowrap shrink-0">
+            <h3 className="text-3xl font-black text-slate-800 leading-none whitespace-nowrap shrink-0">
               {value}
             </h3>
           )}
@@ -232,7 +232,6 @@ export default function ColaTrabajoScreen() {
           icon={DollarSign}
           label="Ingresos del Día"
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${totalTx} ventas`}
           iconBg="bg-red-40"
           iconColor="text-pizza-red"
           loading={loading}
@@ -250,16 +249,14 @@ export default function ColaTrabajoScreen() {
           icon={ShoppingBag}
           label="Pedidos Activos"
           value={activos}
-          sub={`${totalTx} ventas`}
           iconBg="bg-blue-40"
           iconColor="text-blue-500"
           loading={loading}
         />
         <KpiCard
           icon={TrendingUp}
-          label="Ticket Promedio"
-          value={`$${avgTicket.toFixed(2)}`}
-          sub="Por pedido"
+          label="Total Ventas"
+          value={`${totalTx}`}
           iconBg="bg-emerald-40"
           iconColor="text-emerald-500"
           loading={loading}

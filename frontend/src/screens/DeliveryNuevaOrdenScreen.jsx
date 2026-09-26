@@ -5,13 +5,7 @@ import DeliveryCheckoutModal from "../components/cajero-delivery/DeliveryCheckou
 import CategoryFilter from "../components/cajero/CategoryFilter";
 import PendingNotifications from "../components/cajero/PendingNotifications";
 import { useApp } from "../context/AppContext";
-import {
-  Receipt,
-  Trash2,
-  ChevronUp,
-  Bike,
-  ShoppingCart,
-} from "lucide-react";
+import { Receipt, Trash2, ChevronUp, Bike, ShoppingCart } from "lucide-react";
 
 export default function DeliveryNuevaOrdenScreen() {
   const [showCheckout, setShowCheckout] = useState(false);
@@ -24,21 +18,18 @@ export default function DeliveryNuevaOrdenScreen() {
   return (
     <div className="flex-1 flex flex-col p-3 gap-4 md:gap-6 sm:p-4 md:p-6 overflow-hidden w-full h-full relative">
       {/* Cabecera y Filtros */}
-      <header className="bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 flex flex-wrap lg:flex-nowrap gap-3 sm:gap-4 justify-between items-center shadow-sm shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="bg-white border border-slate-200/60 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 flex flex-row flex-nowrap gap-3 sm:gap-4 items-center shadow-sm shrink-0 overflow-hidden">
+        <div className="flex items-center gap-4 shrink-0">
           <div className="w-11 h-11 bg-red-100 text-pizza-red rounded-xl flex items-center justify-center shrink-0">
             <Bike className="w-6 h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none truncate">
                 Caja Delivery
               </h1>
-              <span className="bg-red-50 text-red-700 border border-red-200 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                Solo Delivery
-              </span>
             </div>
-            <p className="text-xs font-medium text-slate-500 mt-1 capitalize">
+            <p className="text-xs font-medium text-slate-500 mt-1 capitalize truncate">
               {new Date().toLocaleDateString("es-ES", {
                 weekday: "long",
                 day: "numeric",
@@ -49,12 +40,16 @@ export default function DeliveryNuevaOrdenScreen() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end">
-          <CategoryFilter
-            selected={selectedCategory}
-            onSelect={setSelectedCategory}
-          />
-          <PendingNotifications />
+        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 justify-end">
+          <div className="flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]">
+            <CategoryFilter
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+          </div>
+          <div className="shrink-0">
+            <PendingNotifications />
+          </div>
         </div>
       </header>
 
@@ -84,7 +79,9 @@ export default function DeliveryNuevaOrdenScreen() {
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Receipt className="w-5 h-5 text-white shrink-0" />
-            <h2 className="text-white font-bold text-sm shrink-0">Ticket Delivery</h2>
+            <h2 className="text-white font-bold text-sm shrink-0">
+              Ticket Delivery
+            </h2>
             {items.length > 0 && (
               <span className="bg-white text-[#EA2A33] text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
                 {items.length}

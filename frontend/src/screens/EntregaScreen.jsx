@@ -123,19 +123,10 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
               <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
                 <Phone className="w-3 h-3 text-slate-400" />
               </div>
-              <span className="font-medium truncate">{order.phone || "Sin teléfono"}</span>
+              <span className="font-medium truncate">
+                {order.phone || "Sin teléfono"}
+              </span>
             </div>
-
-            {(order.type === "delivery" || order.type === "pickup") && order.phone && (
-              <div className="bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 shadow-inner flex items-center gap-1.5 shrink-0">
-                <span className="text-[9px] font-extrabold text-blue-600 uppercase">
-                  Verif:
-                </span>
-                <span className="text-xl font-black text-blue-700 tracking-wider">
-                  {String(order.phone).slice(-4)}
-                </span>
-              </div>
-            )}
           </div>
 
           {isDelivery && order.address && (
@@ -235,22 +226,15 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
               {order.phone || "Sin teléfono"}
             </span>
             {isDelivery && order.address && (
-              <span className="flex items-center gap-1 max-w-md truncate" title={order.address}>
+              <span
+                className="flex items-center gap-1 max-w-md truncate"
+                title={order.address}
+              >
                 <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 {order.address}
               </span>
             )}
           </div>
-          {(order.type === "delivery" || order.type === "pickup") && order.phone && (
-            <div className="inline-flex items-center gap-2 mt-1.5 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">
-               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
-                 Verif:
-               </span>
-               <span className="text-xl font-black text-blue-700 tracking-widest">
-                 {String(order.phone).slice(-4)}
-               </span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -264,7 +248,8 @@ function DeliveredRow({ order, onViewDetails, deliveryTime }) {
           </div>
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
             <Package className="w-3.5 h-3.5" />
-            {(order.items || []).length} artículo{(order.items || []).length !== 1 ? "s" : ""}
+            {(order.items || []).length} artículo
+            {(order.items || []).length !== 1 ? "s" : ""}
           </div>
         </div>
 
@@ -384,8 +369,10 @@ export default function EntregaScreen() {
   });
 
   const sortedDeliveredOrders = [...filteredDeliveredOrders].sort((a, b) => {
-    const timeA = new Date(deliveryTimes[a?.id] || a?.orderedAt || 0).getTime() || 0;
-    const timeB = new Date(deliveryTimes[b?.id] || b?.orderedAt || 0).getTime() || 0;
+    const timeA =
+      new Date(deliveryTimes[a?.id] || a?.orderedAt || 0).getTime() || 0;
+    const timeB =
+      new Date(deliveryTimes[b?.id] || b?.orderedAt || 0).getTime() || 0;
     return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
   });
 
@@ -482,13 +469,10 @@ export default function EntregaScreen() {
                   <h3 className="text-4xl font-black text-slate-800 leading-none">
                     {orders.filter((o) => o.type === "delivery").length}
                   </h3>
-                  <span className="text-slate-400 font-semibold text-base mb-1">
-                    total
-                  </span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-red-50 group-hover:bg-red-500 group-hover:text-white text-red-500 rounded-2xl flex items-center justify-center transition-colors">
-                <Bike className="w-7 h-7" />
+              <div className="w-12 h-12 bg-red-50 group-hover:bg-red-500 group-hover:text-white text-red-500 rounded-2xl flex items-center justify-center transition-colors">
+                <Bike className="w-6 h-6" />
               </div>
             </div>
 
@@ -506,8 +490,8 @@ export default function EntregaScreen() {
                   </span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center border border-red-200/50 shadow-inner group-hover:scale-105 transition-transform">
-                <Clock className="w-7 h-7" />
+              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center border border-red-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                <Clock className="w-6 h-6" />
               </div>
             </div>
 
@@ -521,13 +505,10 @@ export default function EntregaScreen() {
                     <h3 className="text-4xl font-black text-slate-800 leading-none">
                       {orders.filter((o) => o.type === "pickup").length}
                     </h3>
-                    <span className="text-slate-400 font-semibold text-base mb-1">
-                      total
-                    </span>
                   </div>
                 </div>
-                <div className="w-14 h-14 bg-green-50 group-hover:bg-green-500 group-hover:text-white text-green-500 rounded-2xl flex items-center justify-center transition-colors">
-                  <Store className="w-7 h-7" />
+                <div className="w-12 h-12 bg-green-50 group-hover:bg-green-500 group-hover:text-white text-green-500 rounded-2xl flex items-center justify-center transition-colors">
+                  <Store className="w-6 h-6" />
                 </div>
               </div>
             )}
@@ -547,8 +528,8 @@ export default function EntregaScreen() {
                     </span>
                   </div>
                 </div>
-                <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center border border-green-200/50 shadow-inner group-hover:scale-105 transition-transform">
-                  <Clock className="w-7 h-7" />
+                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center border border-green-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                  <Clock className="w-6 h-6" />
                 </div>
               </div>
             )}
@@ -564,13 +545,10 @@ export default function EntregaScreen() {
                   <h3 className="text-4xl font-black text-slate-800 leading-none">
                     {orders.filter((o) => o.type === "local").length}
                   </h3>
-                  <span className="text-slate-400 font-semibold text-base mb-1">
-                    total
-                  </span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-blue-50 group-hover:bg-blue-500 group-hover:text-white text-blue-500 rounded-2xl flex items-center justify-center transition-colors">
-                <Utensils className="w-7 h-7" />
+              <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-500 group-hover:text-white text-blue-500 rounded-2xl flex items-center justify-center transition-colors">
+                <Utensils className="w-6 h-6" />
               </div>
             </div>
 
@@ -588,8 +566,8 @@ export default function EntregaScreen() {
                   </span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-200/50 shadow-inner group-hover:scale-105 transition-transform">
-                <Clock className="w-7 h-7" />
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-200/50 shadow-inner group-hover:scale-105 transition-transform">
+                <Clock className="w-6 h-6" />
               </div>
             </div>
 
@@ -602,13 +580,10 @@ export default function EntregaScreen() {
                   <h3 className="text-4xl font-black text-slate-800 leading-none">
                     {orders.filter((o) => o.type === "llevar").length}
                   </h3>
-                  <span className="text-slate-400 font-semibold text-base mb-1">
-                    total
-                  </span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-purple-50 group-hover:bg-purple-500 group-hover:text-white text-purple-500 rounded-2xl flex items-center justify-center transition-colors">
-                <ShoppingBag className="w-7 h-7" />
+              <div className="w-12 h-12 bg-purple-50 group-hover:bg-purple-500 group-hover:text-white text-purple-500 rounded-2xl flex items-center justify-center transition-colors">
+                <ShoppingBag className="w-6 h-6" />
               </div>
             </div>
 
@@ -690,7 +665,9 @@ export default function EntregaScreen() {
                   {pendingPickup.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
                       <Store className="w-12 h-12 opacity-20" />
-                      <p className="font-bold">No hay órdenes de pick up activas</p>
+                      <p className="font-bold">
+                        No hay órdenes de pick up activas
+                      </p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
@@ -763,7 +740,9 @@ export default function EntregaScreen() {
                 {pendingLlevar.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
                     <ShoppingBag className="w-12 h-12 opacity-20" />
-                    <p className="font-bold">No hay órdenes para Llevar activas</p>
+                    <p className="font-bold">
+                      No hay órdenes para Llevar activas
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
@@ -801,7 +780,10 @@ export default function EntregaScreen() {
               {/* Filter buttons */}
               <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
                 <button
-                  onClick={() => { setHistoryFilter("all"); setCurrentPage(1); }}
+                  onClick={() => {
+                    setHistoryFilter("all");
+                    setCurrentPage(1);
+                  }}
                   className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${historyFilter === "all" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
                 >
                   Todos
@@ -809,7 +791,10 @@ export default function EntregaScreen() {
                 {selectedGroup === "delivery_pickup" ? (
                   <>
                     <button
-                      onClick={() => { setHistoryFilter("delivery"); setCurrentPage(1); }}
+                      onClick={() => {
+                        setHistoryFilter("delivery");
+                        setCurrentPage(1);
+                      }}
                       className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "delivery" ? "bg-red-600 text-white shadow-sm" : "text-slate-600 hover:text-red-600"}`}
                     >
                       <Bike className="w-3.5 h-3.5" />
@@ -817,7 +802,10 @@ export default function EntregaScreen() {
                     </button>
                     {!soloDelivery && (
                       <button
-                        onClick={() => { setHistoryFilter("pickup"); setCurrentPage(1); }}
+                        onClick={() => {
+                          setHistoryFilter("pickup");
+                          setCurrentPage(1);
+                        }}
                         className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "pickup" ? "bg-green-600 text-white shadow-sm" : "text-slate-600 hover:text-green-600"}`}
                       >
                         <Store className="w-3.5 h-3.5" />
@@ -828,14 +816,20 @@ export default function EntregaScreen() {
                 ) : (
                   <>
                     <button
-                      onClick={() => { setHistoryFilter("local"); setCurrentPage(1); }}
+                      onClick={() => {
+                        setHistoryFilter("local");
+                        setCurrentPage(1);
+                      }}
                       className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "local" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-blue-600"}`}
                     >
                       <Utensils className="w-3.5 h-3.5" />
                       Local
                     </button>
                     <button
-                      onClick={() => { setHistoryFilter("llevar"); setCurrentPage(1); }}
+                      onClick={() => {
+                        setHistoryFilter("llevar");
+                        setCurrentPage(1);
+                      }}
                       className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${historyFilter === "llevar" ? "bg-purple-600 text-white shadow-sm" : "text-slate-600 hover:text-purple-600"}`}
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
@@ -848,13 +842,19 @@ export default function EntregaScreen() {
               {/* Sort buttons */}
               <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
                 <button
-                  onClick={() => { setSortOrder("desc"); setCurrentPage(1); }}
+                  onClick={() => {
+                    setSortOrder("desc");
+                    setCurrentPage(1);
+                  }}
                   className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${sortOrder === "desc" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
                 >
                   Recientes (Desc)
                 </button>
                 <button
-                  onClick={() => { setSortOrder("asc"); setCurrentPage(1); }}
+                  onClick={() => {
+                    setSortOrder("asc");
+                    setCurrentPage(1);
+                  }}
                   className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${sortOrder === "asc" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
                 >
                   Antiguos (Asc)
@@ -926,137 +926,142 @@ export default function EntregaScreen() {
       </div>
 
       {/* Order Details Modal */}
-      {selectedOrder && (() => {
-        const modalTheme = themes[selectedOrder.type] || themes.delivery;
-        return (
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
-            onClick={() => setSelectedOrder(null)}
-          >
+      {selectedOrder &&
+        (() => {
+          const modalTheme = themes[selectedOrder.type] || themes.delivery;
+          return (
             <div
-              className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+              onClick={() => setSelectedOrder(null)}
             >
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${modalTheme.badge}`}
-                  >
-                    <modalTheme.Icon className={`w-5 h-5 ${modalTheme.iconColor}`} />
+              <div
+                className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${modalTheme.badge}`}
+                    >
+                      <modalTheme.Icon
+                        className={`w-5 h-5 ${modalTheme.iconColor}`}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-slate-800 text-lg leading-tight">
+                        Pedido #{selectedOrder.id}
+                      </h3>
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                        {modalTheme.label}
+                      </span>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setSelectedOrder(null)}
+                    className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors shadow-sm border border-slate-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="mb-6 space-y-3">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <FileText className="w-4 h-4" /> Datos del Cliente
+                    </h4>
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="font-bold text-slate-800 mb-1">
+                        {selectedOrder.customerName}
+                      </p>
+                      {selectedOrder.phone && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
+                          <Phone className="w-4 h-4 text-slate-400" />
+                          <span>{selectedOrder.phone}</span>
+                        </div>
+                      )}
+                      {selectedOrder.address && (
+                        <div className="flex items-start gap-2 text-sm text-slate-600">
+                          <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                          <span className="leading-snug">
+                            {selectedOrder.address}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div>
-                    <h3 className="font-black text-slate-800 text-lg leading-tight">
-                      Pedido #{selectedOrder.id}
-                    </h3>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                      {modalTheme.label}
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-3">
+                      <Package className="w-4 h-4" /> Productos (
+                      {(selectedOrder.items || []).length})
+                    </h4>
+                    <div className="space-y-2">
+                      {(selectedOrder.items || []).map((item, idx) => {
+                        const isPizza = item.type === "Pizza";
+                        const isDrink = item.type === "Bebida";
+                        const isIceCream = item.type === "Helado";
+
+                        let badgeColor =
+                          "bg-slate-100 text-slate-600 border-slate-200";
+                        let qtyColor = "bg-slate-100 text-slate-600";
+
+                        if (isPizza) {
+                          badgeColor =
+                            "bg-orange-100 text-orange-600 border-orange-200";
+                          qtyColor = "bg-orange-100 text-orange-600";
+                        } else if (isDrink) {
+                          badgeColor =
+                            "bg-blue-100 text-blue-600 border-blue-200";
+                          qtyColor = "bg-blue-100 text-blue-600";
+                        } else if (isIceCream) {
+                          badgeColor =
+                            "bg-pink-100 text-pink-600 border-pink-200";
+                          qtyColor = "bg-pink-100 text-pink-600";
+                        }
+
+                        return (
+                          <div
+                            key={idx}
+                            className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`w-8 h-8 rounded-lg ${qtyColor} flex items-center justify-center font-black`}
+                              >
+                                {item.quantity}
+                              </span>
+                              <span className="text-slate-700 font-bold">
+                                {item.name}
+                              </span>
+                            </div>
+                            {item.type && (
+                              <span
+                                className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md border ${badgeColor}`}
+                              >
+                                {item.type}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-500 uppercase tracking-wider text-sm">
+                      Total a pagar
+                    </span>
+                    <span className="text-2xl font-black text-slate-800">
+                      ${Number(selectedOrder.total || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors shadow-sm border border-slate-100"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6">
-                <div className="mb-6 space-y-3">
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> Datos del Cliente
-                  </h4>
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <p className="font-bold text-slate-800 mb-1">
-                      {selectedOrder.customerName}
-                    </p>
-                    {selectedOrder.phone && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
-                        <Phone className="w-4 h-4 text-slate-400" />
-                        <span>{selectedOrder.phone}</span>
-                      </div>
-                    )}
-                    {selectedOrder.address && (
-                      <div className="flex items-start gap-2 text-sm text-slate-600">
-                        <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                        <span className="leading-snug">
-                          {selectedOrder.address}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-3">
-                    <Package className="w-4 h-4" /> Productos (
-                    {(selectedOrder.items || []).length})
-                  </h4>
-                  <div className="space-y-2">
-                    {(selectedOrder.items || []).map((item, idx) => {
-                      const isPizza = item.type === "Pizza";
-                      const isDrink = item.type === "Bebida";
-                      const isIceCream = item.type === "Helado";
-
-                      let badgeColor =
-                        "bg-slate-100 text-slate-600 border-slate-200";
-                      let qtyColor = "bg-slate-100 text-slate-600";
-
-                      if (isPizza) {
-                        badgeColor =
-                          "bg-orange-100 text-orange-600 border-orange-200";
-                        qtyColor = "bg-orange-100 text-orange-600";
-                      } else if (isDrink) {
-                        badgeColor = "bg-blue-100 text-blue-600 border-blue-200";
-                        qtyColor = "bg-blue-100 text-blue-600";
-                      } else if (isIceCream) {
-                        badgeColor = "bg-pink-100 text-pink-600 border-pink-200";
-                        qtyColor = "bg-pink-100 text-pink-600";
-                      }
-
-                      return (
-                        <div
-                          key={idx}
-                          className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-sm"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={`w-8 h-8 rounded-lg ${qtyColor} flex items-center justify-center font-black`}
-                            >
-                              {item.quantity}
-                            </span>
-                            <span className="text-slate-700 font-bold">
-                              {item.name}
-                            </span>
-                          </div>
-                          {item.type && (
-                            <span
-                              className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md border ${badgeColor}`}
-                            >
-                              {item.type}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-500 uppercase tracking-wider text-sm">
-                    Total a pagar
-                  </span>
-                  <span className="text-2xl font-black text-slate-800">
-                    ${Number(selectedOrder.total || 0).toFixed(2)}
-                  </span>
-                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
     </div>
   );
 }
