@@ -145,6 +145,7 @@ const adaptVenta = (venta, status) => ({
   table: venta.despacho,
   customerName: venta.nombre_cliente,
   phoneLastDigits: venta.digitos_delivery || "",
+  boxCount: Number(venta.cantidad_caja) || 0,
   items: (venta.detalles || []).map((detalle) => ({
     id_detalle: detalle.id_detalle,
     name: detalle.nombre_producto,
