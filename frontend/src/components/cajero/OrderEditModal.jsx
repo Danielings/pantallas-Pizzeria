@@ -50,6 +50,8 @@ const SIZE_TO_CATEGORY = {
   Gigante: 3,
 };
 
+const DESPACHOS_CON_CAJA = ["Llevar", "Delivery", "Pick Up"];
+
 export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
   const safePedido = pedido ?? {};
   const { exchangeRate } = useExchangeRate();
@@ -83,6 +85,16 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
     id: p.id,
     name: p.name,
     price: typeof p.price === "number" ? p.price : parseFloat(p.price) || 0,
+  }));
+
+  // ── Combos disponibles (cargados diferidamente con TanStack Query) ─────────
+  const safeCatalogCombos = Array.isArray(catalog?.combos)
+    ? catalog.combos
+    : [];
+  const availableCombos = safeCatalogCombos.map((c) => ({
+    id: c.id,
+    name: c.name,
+    price: typeof c.price === "number" ? c.price : parseFloat(c.price) || 0,
   }));
 
   // ── Extras disponibles ─────────
@@ -132,7 +144,7 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
   // calcular cajas preexistentes comparando monto_total_usd con la suma de detalles
   const [cajasAgregadas, setCajasAgregadas] = useState(() => {
     const despachoOriginal = safePedido.despacho ?? "Local";
-    if (despachoOriginal === "Llevar" || despachoOriginal === "Delivery") {
+    if (DESPACHOS_CON_CAJA.includes(despachoOriginal)) {
       const baseDetallesTotal = safePedidoDetalles.reduce(
         (s, d) => s + (parseFloat(d.monto_total) || 0),
         0,
@@ -175,6 +187,28 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
     );
   };
 
+  const [comboSelections, setComboSelections] = useState({});
+
+  const handleChangeComboType = (idDetalle, comboId) => {
+    const c = availableCombos.find((x) => String(x.id) === String(comboId));
+    if (!c) return;
+
+    setComboSelections((prev) => ({ ...prev, [idDetalle]: String(c.id) }));
+    setLocalDetalles((prev) =>
+      prev.map((d) =>
+        d.id_detalle !== idDetalle
+          ? d
+          : {
+              ...d,
+              id_producto_origen: c.id,
+              nombre_producto: c.name,
+              precio_unitario: c.price,
+              monto_total: recalcTotal(d, c.price, d.extras || []),
+            },
+      ),
+    );
+  };
+
   const handleToggleExtra = (idDetalle, extra) => {
     setLocalDetalles((prev) =>
       prev.map((d) => {
@@ -208,7 +242,14 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
     () => localDetalles.reduce((s, d) => s + (d.monto_total || 0), 0),
     [localDetalles],
   );
-  const totalCajas = localDespacho === "Llevar" ? cajasAgregadas * boxPrice : 0;
+
+  const totalCajas = DESPACHOS_CON_CAJA.includes(localDespacho)
+    ? cajasAgregadas * boxPrice
+    : 0;
+
+  const cajaBloqueHabilitado =
+    localDespacho === "Llevar" ||
+    (DESPACHOS_CON_CAJA.includes(localDespacho) && cajasAgregadas === 0);
   const newTotal = totalDetalles + totalCajas;
   const diff = newTotal - originalTotal;
 
@@ -247,7 +288,7 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
     setIsSaving(true);
     try {
       // Solo enviar productos válidos (Pizza, Bebida, Helado) para evitar errores 400
-      const tiposValidos = new Set(["Pizza", "Bebida", "Helado"]);
+      const tiposValidos = new Set(["Pizza", "Bebida", "Helado", "Combo"]);
 
       // Construir nota con info de cajas si aplica
       let notaFinal = observacion;
@@ -487,8 +528,10 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
                   {(localDetalles || []).map((item) => {
                     const safeItem = item ?? {};
                     const isPizza = safeItem.tipo_producto === "Pizza";
+                    const isCombo = safeItem.tipo_producto === "Combo";
                     const isEditable =
-                      isPizza && safeItem.estado_detalle == "Pendiente";
+                      (isPizza || isCombo) &&
+                      safeItem.estado_detalle == "Pendiente";
 
                     // 3. AÑADIDO: Filtramos los extras justo aquí para este item en específico
                     // NOTA: Asegúrate de que el campo "size" viene en tu detalle de la BD.
@@ -515,7 +558,7 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            {isEditable ? (
+                            {isEditable && isPizza ? (
                               <>
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
                                   Cambiar Especialidad
@@ -561,10 +604,59 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
                                   ))}
                                 </select>
                               </>
+                            ) : isEditable && isCombo ? (
+                              <>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                                  Cambiar Combo
+                                </span>
+                                <select
+                                  value={
+                                    comboSelections[item.id_detalle] ??
+                                    (availableCombos.find(
+                                      (c) =>
+                                        String(c.id) ===
+                                        String(item.id_producto_origen),
+                                    )?.id
+                                      ? String(
+                                          availableCombos.find(
+                                            (c) =>
+                                              String(c.id) ===
+                                              String(item.id_producto_origen),
+                                          ).id,
+                                        )
+                                      : "")
+                                  }
+                                  onChange={(e) =>
+                                    handleChangeComboType(
+                                      item.id_detalle,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="w-full text-base font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pizza-red/20 focus:border-pizza-red cursor-pointer transition-all"
+                                >
+                                  {!(
+                                    comboSelections[item.id_detalle] ??
+                                    availableCombos.find(
+                                      (c) =>
+                                        String(c.id) ===
+                                        String(item.id_producto_origen),
+                                    )
+                                  ) && (
+                                    <option value="">
+                                      {resolveDisplayName(item)}
+                                    </option>
+                                  )}
+                                  {availableCombos.map((c) => (
+                                    <option key={c.id} value={String(c.id)}>
+                                      {c.name} — $
+                                      {Number(c.price || 0).toFixed(2)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </>
                             ) : (
                               <h5 className="font-bold text-slate-800 text-lg leading-tight truncate">
-                                {safeItem.nombre_producto ||
-                                  safeItem.tipo_producto}
+                                {resolveDisplayName(safeItem)}
                               </h5>
                             )}
 
@@ -748,7 +840,7 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
                   {/* ── BLOQUE DE COBRO DE CAJAS ─────────────────────────────── */}
                   <div
                     className={`rounded-2xl border-2 border-dashed p-4 transition-all ${
-                      localDespacho === "Llevar"
+                      cajaBloqueHabilitado
                         ? "border-slate-300 bg-white"
                         : "border-slate-200 bg-slate-50 opacity-50 pointer-events-none select-none"
                     }`}
