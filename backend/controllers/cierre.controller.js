@@ -366,7 +366,7 @@ export const cerrarCaja = async (req, res) => {
       .json({ success: false, mensaje: "La clave de cierre es obligatoria." });
   }
 
-  const LIMITE_CIERRES_DIARIOS = 5;
+  const LIMITE_CIERRES_DIARIOS = 7;
   let tx = null;
 
   try {

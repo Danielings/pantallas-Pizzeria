@@ -15,13 +15,17 @@ import esCajero from "../middleware/esCajero.js";
 
 const router = Router();
 
-router.get("/obtener-pedidos-cocina", obtenerPedidosCocina);
-router.get("/obtener-pedidos-horno", obtenerPedidosHorno);
-router.get("/obtener-pedidos-despacho", obtenerPedidosDespacho);
-router.get("/obtener-pedidos-mesero", obtenerPedidosMesero);
-router.get("/obtener-pedidos-pendiente", obtenerPedidosPendiente);
+router.get("/obtener-pedidos-cocina", verificarToken, obtenerPedidosCocina);
+router.get("/obtener-pedidos-horno", verificarToken, obtenerPedidosHorno);
+router.get("/obtener-pedidos-despacho", verificarToken, obtenerPedidosDespacho);
+router.get("/obtener-pedidos-mesero", verificarToken, obtenerPedidosMesero);
+router.get("/obtener-pedidos-pendiente", verificarToken, obtenerPedidosPendiente);
 router.get("/obtener-contador-cajero", verificarToken, obtenerContadorCajero);
-router.put("/actualizar-estado-pedido/:id_venta", actualizarEstadoPedido);
+router.put(
+  "/actualizar-estado-pedido/:id_venta",
+  verificarToken,
+  actualizarEstadoPedido,
+);
 router.get("/entregas", verificarToken, obtenerEntregas);
 router.put(
   "/entregas/:id_venta/completar",
