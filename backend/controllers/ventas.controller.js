@@ -24,6 +24,7 @@ export const procesarVenta = async (req, res) => {
     tasa_cambio,
     monto_total_usd,
     monto_total_bs,
+    cantidad_cajas = 0,
     pagos,
     detalles,
   } = req.body;
@@ -44,8 +45,8 @@ export const procesarVenta = async (req, res) => {
 
     const resultVenta = await tx.execute({
       sql: `INSERT INTO ventas 
-      (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, id_sucursal) 
-      VALUES (?, ?, ?, ?, 'Completado', datetime('now', '-4 hours'), ?, ?, ?, ?)`,
+      (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, cantidad_caja, id_sucursal) 
+      VALUES (?, ?, ?, ?, 'Completado', datetime('now', '-4 hours'), ?, ?, ?, ?, ?)`,
       args: [
         id_cliente,
         finalUserId,
@@ -54,6 +55,7 @@ export const procesarVenta = async (req, res) => {
         tasa_cambio,
         monto_total_usd,
         monto_total_bs,
+        Number(cantidad_cajas) || 0,
         id_sucursal,
       ],
     });
@@ -151,6 +153,7 @@ export const registrarPedidoPendiente = async (req, res) => {
     monto_total_usd,
     monto_total_bs,
     monto_pendiente,
+    cantidad_cajas = 0,
     pagos = [],
     detalles = [],
   } = req.body;
@@ -187,8 +190,8 @@ export const registrarPedidoPendiente = async (req, res) => {
 
     const resultVenta = await tx.execute({
       sql: `INSERT INTO ventas
-       (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, id_sucursal)
-      VALUES (?, ?, ?, ?, 'Pendiente', datetime('now', '-4 hours'), ?, ?, ?, ?)`,
+       (id_cliente, id_usuario, id_delivery, despacho, estado, fecha_hora, tasa_cambio, monto_total_usd, monto_total_bs, cantidad_caja, id_sucursal)
+      VALUES (?, ?, ?, ?, 'Pendiente', datetime('now', '-4 hours'), ?, ?, ?, ?, ?)`,
       args: [
         id_cliente,
         id_usuario,
@@ -197,6 +200,7 @@ export const registrarPedidoPendiente = async (req, res) => {
         tasa_cambio || 0,
         monto_total_usd || 0,
         monto_total_bs || 0,
+        Number(cantidad_cajas) || 0,
         id_sucursal,
       ],
     });
@@ -305,6 +309,7 @@ export const completarVentaPendiente = async (req, res) => {
     detalles = [],
     monto_total_usd,
     monto_total_bs,
+    cantidad_cajas = 0,
   } = req.body;
   if (!Array.isArray(detalles) || !validarDetallesNuevos(detalles)) {
     return res.status(400).json({
@@ -391,12 +396,13 @@ export const completarVentaPendiente = async (req, res) => {
     const estadoNotificacionesListo = "Listo";
     await tx.execute({
       sql: `UPDATE ventas
-       SET id_usuario = ?, estado = 'Completado', monto_total_usd = ?, monto_total_bs = ?
+       SET id_usuario = ?, estado = 'Completado', monto_total_usd = ?, monto_total_bs = ?, cantidad_caja = ?
        WHERE id_venta = ?`,
       args: [
         id_usuario || 1,
         monto_total_usd || 0,
         monto_total_bs || 0,
+        Number(cantidad_cajas) || 0,
         id_venta,
       ],
     });

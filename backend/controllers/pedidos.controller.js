@@ -178,6 +178,7 @@ export const obtenerPedidosCocina = async (req, res) => {
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
+        v.cantidad_caja,
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
@@ -210,6 +211,7 @@ export const obtenerPedidosHorno = async (req, res) => {
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
+        v.cantidad_caja,
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
@@ -242,6 +244,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
+        v.cantidad_caja,
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
@@ -274,6 +277,7 @@ export const obtenerPedidosMesero = async (req, res) => {
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
+        v.cantidad_caja,
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
@@ -304,6 +308,7 @@ export const obtenerPedidosPendiente = async (req, res) => {
     const ventas = await queryRows(
       `SELECT DISTINCT
         v.id_venta,
+        v.cantidad_caja,
         v.fecha_hora,
         v.despacho,
         c.nombre AS nombre_cliente,
@@ -433,6 +438,7 @@ export const obtenerEntregas = async (req, res) => {
   try {
     let query = `SELECT DISTINCT
         v.id_venta,
+        v.cantidad_caja,
         v.fecha_hora,
         v.despacho,
         v.monto_total_usd,
@@ -507,6 +513,7 @@ export const obtenerEntregas = async (req, res) => {
 
         return {
           id: venta.id_venta,
+          boxes: Number(venta.cantidad_caja) || 0,
           type:
             venta.despacho === "Delivery"
               ? "delivery"

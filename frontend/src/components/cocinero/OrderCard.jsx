@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Clock, User, Phone } from "lucide-react";
+import { Clock, Package, User, Phone } from "lucide-react";
 
 const BOX_CATEGORY = "cajas";
 const isBoxItem = (item) =>
@@ -254,6 +254,12 @@ export function OrderCard({
                 </span>
               </div>
             )}
+          {Number(order.boxCount || 0) > 0 && (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-bold w-max bg-amber-50 border-amber-200 text-amber-700">
+              <Package className="w-3.5 h-3.5" />
+              {order.boxCount} {order.boxCount === 1 ? "caja" : "cajas"}
+            </div>
+          )}
         </div>
       )}
 

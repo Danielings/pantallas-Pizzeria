@@ -142,6 +142,17 @@ function OrderCard({ order, onConfirm, onViewDetails }) {
               </span>
             </div>
           )}
+
+          {Number(order.boxes || 0) > 0 && (
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
+              <div className="w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+                <Package className="w-3 h-3 text-amber-600" />
+              </div>
+              <span>
+                {order.boxes} {order.boxes === 1 ? "caja" : "cajas"}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Items toggle */}
