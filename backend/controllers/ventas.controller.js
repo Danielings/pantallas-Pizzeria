@@ -861,10 +861,14 @@ export const obtenerPedidosActivos = async (req, res) => {
     const result = await db.execute({ sql: query, args });
     const ventas = result.rows;
 
-    const pedidos = await Promise.all(
-      ventas.map(async (venta) => {
-        const detallesResult = await db.execute({
-          sql: `SELECT 
+    const idsVentas = ventas.map((v) => v.id_venta);
+    const detallesBatch =
+      idsVentas.length === 0
+        ? []
+        : (
+            await db.execute({
+              sql: `SELECT 
+            vd.id_venta,
             vd.id_detalle,
             vd.tipo_producto,
             vd.id_producto_origen,
@@ -878,27 +882,50 @@ export const obtenerPedidosActivos = async (req, res) => {
           LEFT JOIN pizza     p  ON p.id_pizza      = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
           LEFT JOIN bebidas   b  ON b.id_bebida     = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
           LEFT JOIN heladeria h  ON h.id_heladeria  = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
-          WHERE vd.id_venta = ?`,
-          args: [venta.id_venta],
-        });
-        const detalles = detallesResult.rows;
+          WHERE vd.id_venta IN (${idsVentas.map(() => "?").join(", ")})`,
+              args: idsVentas,
+            })
+          ).rows;
 
-        const detallesConExtras = await Promise.all(
-          detalles.map(async (det) => {
-            const extrasResult = await db.execute({
-              sql: `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
+    const idsDetalles = detallesBatch.map((d) => d.id_detalle);
+    const extrasBatch =
+      idsDetalles.length === 0
+        ? []
+        : (
+            await db.execute({
+              sql: `SELECT dve.id_detalle, e.id_extras AS id, e.nombre AS name, e.precio AS price
                FROM detalle_venta_extras dve
                JOIN extras e ON e.id_extras = dve.id_extra
-               WHERE dve.id_detalle = ?`,
-              args: [det.id_detalle],
-            });
-            return { ...det, extras: extrasResult.rows };
-          }),
-        );
+               WHERE dve.id_detalle IN (${idsDetalles.map(() => "?").join(", ")})`,
+              args: idsDetalles,
+            })
+          ).rows;
 
-        return { ...venta, detalles: detallesConExtras };
-      }),
-    );
+    const extrasPorDetalle = new Map();
+    for (const extra of extrasBatch) {
+      if (!extrasPorDetalle.has(extra.id_detalle)) {
+        extrasPorDetalle.set(extra.id_detalle, []);
+      }
+      extrasPorDetalle.get(extra.id_detalle).push(extra);
+    }
+
+    const detallesPorVenta = new Map();
+    for (const detalle of detallesBatch) {
+      if (!detallesPorVenta.has(detalle.id_venta)) {
+        detallesPorVenta.set(detalle.id_venta, []);
+      }
+      detallesPorVenta.get(detalle.id_venta).push(detalle);
+    }
+
+    const pedidos = ventas.map((venta) => {
+      const detalles = (detallesPorVenta.get(venta.id_venta) || []).map(
+        (det) => ({
+          ...det,
+          extras: extrasPorDetalle.get(det.id_detalle) || [],
+        }),
+      );
+      return { ...venta, detalles };
+    });
 
     res.json({ success: true, data: pedidos });
   } catch (error) {
@@ -932,7 +959,7 @@ export const actualizarTasaDesdeApi = async () => {
 
     if (!rows.length) {
       await db.execute({
-        sql: "INSERT INTO configuracion_tasa (id_config, tasa_api, tasa_sistema, anclado) VALUES (1, ?, ?, 0)",
+        sql: "INSERT INTO configuracion_tasa (id_config, tasa_api, tasa_sistema, anclado, fecha_actualizacion) VALUES (1, ?, ?, 0, datetime('now', '-4 hours'))",
         args: [tasaApi, tasaApi],
       });
     } else if (rows[0].anclado) {
@@ -940,18 +967,18 @@ export const actualizarTasaDesdeApi = async () => {
 
       if (tasaApi > tasaSistemaActual) {
         await db.execute({
-          sql: "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
+          sql: "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ?, fecha_actualizacion = datetime('now', '-4 hours') WHERE id_config = 1",
           args: [tasaApi, tasaApi],
         });
       } else {
         await db.execute({
-          sql: "UPDATE configuracion_tasa SET tasa_api = ? WHERE id_config = 1",
+          sql: "UPDATE configuracion_tasa SET tasa_api = ?, fecha_actualizacion = datetime('now', '-4 hours') WHERE id_config = 1",
           args: [tasaApi],
         });
       }
     } else {
       await db.execute({
-        sql: "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ? WHERE id_config = 1",
+        sql: "UPDATE configuracion_tasa SET tasa_api = ?, tasa_sistema = ?, fecha_actualizacion = datetime('now', '-4 hours') WHERE id_config = 1",
         args: [tasaApi, tasaApi],
       });
     }
@@ -978,7 +1005,18 @@ export const obtenerRegistro = async () => {
 // ---- Obtener la tasa para las peticiones de las rutas
 export const obtenerTasaDesdeBD = async (_req, res) => {
   try {
-    await actualizarTasaDesdeApi();
+    const antiguedad = await db.execute({
+      sql: "SELECT (strftime('%s','now') - strftime('%s', fecha_actualizacion)) AS diff_secs, CAST(strftime('%H', datetime('now', '-4 hours')) AS INTEGER) AS hora_local FROM configuracion_tasa WHERE id_config = 1",
+    });
+    const diffSecs = Number(antiguedad.rows?.[0]?.diff_secs ?? NaN);
+    const horaLocal = Number(antiguedad.rows?.[0]?.hora_local ?? NaN);
+
+    const desactualizada = !Number.isFinite(diffSecs) || diffSecs > 2 * 60 * 60;
+    const horarioValido = Number.isFinite(horaLocal) && horaLocal >= 8;
+    if (horarioValido && desactualizada) {
+      await actualizarTasaDesdeApi();
+    }
+
     const data = await obtenerRegistro();
     if (!data) {
       return res.status(404).json({

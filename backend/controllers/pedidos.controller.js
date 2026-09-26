@@ -8,10 +8,15 @@ const queryRows = async (sql, args = []) => {
 
 const executeCommand = (sql, args = []) => db.execute({ sql, args });
 
-const obtenerDetallesCocina = async (idVenta, estado) => {
-  const detalles = await queryRows(
+const obtenerDetallesCocinaBatch = async (ventas, estado) => {
+  const idsVentas = ventas.map((v) => v.id_venta);
+  if (idsVentas.length === 0) return [];
+
+  const marcas = idsVentas.map(() => "?").join(", ");
+  return queryRows(
     `
       SELECT
+        vd.id_venta,
         vd.id_detalle,
         vd.cantidad,
         vd.nota,
@@ -22,13 +27,14 @@ const obtenerDetallesCocina = async (idVenta, estado) => {
       FROM venta_detalle vd
       INNER JOIN pizza p ON p.id_pizza = vd.id_producto_origen
       LEFT JOIN categoria_pizza cp ON cp.id_categoria_pizza = p.id_categoria_pizza
-      WHERE vd.id_venta = ?
+      WHERE vd.id_venta IN (${marcas})
         AND vd.estado = ?
         AND vd.tipo_producto = 'Pizza'
 
       UNION ALL
 
       SELECT
+        vd.id_venta,
         vd.id_detalle,
         vd.cantidad * cd.cantidad AS cantidad,
         vd.nota,
@@ -40,7 +46,7 @@ const obtenerDetallesCocina = async (idVenta, estado) => {
       INNER JOIN combo_detalle cd ON cd.id_combo = vd.id_producto_origen
       INNER JOIN pizza p ON p.id_pizza = cd.id_pizza
       LEFT JOIN categoria_pizza cp ON cp.id_categoria_pizza = p.id_categoria_pizza
-      WHERE vd.id_venta = ?
+      WHERE vd.id_venta IN (${marcas})
         AND vd.estado = ?
         AND (
           vd.tipo_producto = 'Combo'
@@ -56,10 +62,68 @@ const obtenerDetallesCocina = async (idVenta, estado) => {
 
       ORDER BY id_detalle ASC
     `,
-    [idVenta, estado, idVenta, estado],
+    [...idsVentas, estado, ...idsVentas, estado],
+  );
+};
+
+const consultarExtrasBatch = async (detalles) => {
+  const idsDetalles = detalles.map((d) => d.id_detalle);
+  if (idsDetalles.length === 0) return new Map();
+
+  const marcas = idsDetalles.map(() => "?").join(", ");
+  const filas = await queryRows(
+    `SELECT dve.id_detalle, e.id_extras AS id, e.nombre AS name, e.precio AS price
+     FROM detalle_venta_extras dve
+     JOIN extras e ON e.id_extras = dve.id_extra
+     WHERE dve.id_detalle IN (${marcas})
+     ORDER BY dve.id_detalle ASC`,
+    idsDetalles,
   );
 
-  return detalles;
+  const porDetalle = new Map();
+  for (const fila of filas) {
+    if (!porDetalle.has(fila.id_detalle)) {
+      porDetalle.set(fila.id_detalle, []);
+    }
+    porDetalle.get(fila.id_detalle).push({
+      id: fila.id,
+      name: fila.name,
+      price: fila.price,
+    });
+  }
+  return porDetalle;
+};
+
+const agruparDetallesPorVenta = (detalles) => {
+  const porVenta = new Map();
+  for (const detalle of detalles) {
+    if (!porVenta.has(detalle.id_venta)) {
+      porVenta.set(detalle.id_venta, []);
+    }
+    porVenta.get(detalle.id_venta).push(detalle);
+  }
+  return porVenta;
+};
+
+const armarPedidosConExtras = async (ventas, estado) => {
+  const detalles = await obtenerDetallesCocinaBatch(ventas, estado);
+  const extrasPorDetalle = await consultarExtrasBatch(detalles);
+  const detallesPorVenta = agruparDetallesPorVenta(detalles);
+
+  return ventas.map((venta) => {
+    const detallesVenta = (detallesPorVenta.get(venta.id_venta) || []).map(
+      (detalle) => ({
+        ...detalle,
+        extras: extrasPorDetalle.get(detalle.id_detalle) || [],
+      }),
+    );
+
+    return {
+      ...venta,
+      codigo_orden: `ORD-${String(venta.id_venta).padStart(3, "0")}`,
+      detalles: detallesVenta,
+    };
+  });
 };
 
 //--------------------------Pedidos
@@ -87,33 +151,7 @@ export const obtenerPedidosCocina = async (req, res) => {
       ORDER BY v.fecha_hora ASC`,
     );
 
-    const pedidosCocina = await Promise.all(
-      ventas.map(async (venta) => {
-        const detalles = await obtenerDetallesCocina(
-          venta.id_venta,
-          "Pendiente",
-        );
-
-        const detallesConExtras = await Promise.all(
-          detalles.map(async (det) => {
-            const extras = await queryRows(
-              `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
-               FROM detalle_venta_extras dve
-               JOIN extras e ON e.id_extras = dve.id_extra
-               WHERE dve.id_detalle = ?`,
-              [det.id_detalle],
-            );
-            return { ...det, extras };
-          }),
-        );
-
-        return {
-          ...venta,
-          codigo_orden: `ORD-${String(venta.id_venta).padStart(3, "0")}`,
-          detalles: detallesConExtras,
-        };
-      }),
-    );
+    const pedidosCocina = await armarPedidosConExtras(ventas, "Pendiente");
 
     res.json({ success: true, data: pedidosCocina });
   } catch (error) {
@@ -145,30 +183,7 @@ export const obtenerPedidosHorno = async (req, res) => {
       ORDER BY v.fecha_hora ASC`,
     );
 
-    const pedidosHorno = await Promise.all(
-      ventas.map(async (venta) => {
-        const detalles = await obtenerDetallesCocina(venta.id_venta, "Horno");
-
-        const detallesConExtras = await Promise.all(
-          detalles.map(async (det) => {
-            const extras = await queryRows(
-              `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
-               FROM detalle_venta_extras dve
-               JOIN extras e ON e.id_extras = dve.id_extra
-               WHERE dve.id_detalle = ?`,
-              [det.id_detalle],
-            );
-            return { ...det, extras };
-          }),
-        );
-
-        return {
-          ...venta,
-          codigo_orden: `ORD-${String(venta.id_venta).padStart(3, "0")}`,
-          detalles: detallesConExtras,
-        };
-      }),
-    );
+    const pedidosHorno = await armarPedidosConExtras(ventas, "Horno");
 
     res.json({ success: true, data: pedidosHorno });
   } catch (error) {
@@ -200,33 +215,7 @@ export const obtenerPedidosDespacho = async (req, res) => {
       ORDER BY v.fecha_hora ASC`,
     );
 
-    const pedidosCompletado = await Promise.all(
-      ventas.map(async (venta) => {
-        const detalles = await obtenerDetallesCocina(
-          venta.id_venta,
-          "Despacho",
-        );
-
-        const detallesConExtras = await Promise.all(
-          detalles.map(async (det) => {
-            const extras = await queryRows(
-              `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
-               FROM detalle_venta_extras dve
-               JOIN extras e ON e.id_extras = dve.id_extra
-               WHERE dve.id_detalle = ?`,
-              [det.id_detalle],
-            );
-            return { ...det, extras };
-          }),
-        );
-
-        return {
-          ...venta,
-          codigo_orden: `ORD-${String(venta.id_venta).padStart(3, "0")}`,
-          detalles: detallesConExtras,
-        };
-      }),
-    );
+    const pedidosCompletado = await armarPedidosConExtras(ventas, "Despacho");
 
     res.json({ success: true, data: pedidosCompletado });
   } catch (error) {
@@ -256,35 +245,9 @@ export const obtenerPedidosMesero = async (req, res) => {
       ORDER BY v.fecha_hora ASC`,
     );
 
-    const pedidosCompletado = await Promise.all(
-      ventas.map(async (venta) => {
-        const detalles = await obtenerDetallesCocina(
-          venta.id_venta,
-          "Despacho",
-        );
+    const pedidosMesero = await armarPedidosConExtras(ventas, "Despacho");
 
-        const detallesConExtras = await Promise.all(
-          detalles.map(async (det) => {
-            const extras = await queryRows(
-              `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
-               FROM detalle_venta_extras dve
-               JOIN extras e ON e.id_extras = dve.id_extra
-               WHERE dve.id_detalle = ?`,
-              [det.id_detalle],
-            );
-            return { ...det, extras };
-          }),
-        );
-
-        return {
-          ...venta,
-          codigo_orden: `ORD-${String(venta.id_venta).padStart(3, "0")}`,
-          detalles: detallesConExtras,
-        };
-      }),
-    );
-
-    res.json({ success: true, data: pedidosCompletado });
+    res.json({ success: true, data: pedidosMesero });
   } catch (error) {
     console.error("Error al obtener pedidos del mesero:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -314,35 +277,9 @@ export const obtenerPedidosPendiente = async (req, res) => {
       ORDER BY v.fecha_hora ASC`,
     );
 
-    const pedidosCompletado = await Promise.all(
-      ventas.map(async (venta) => {
-        const detalles = await obtenerDetallesCocina(
-          venta.id_venta,
-          "pDespacho",
-        );
+    const pedidosPendiente = await armarPedidosConExtras(ventas, "pDespacho");
 
-        const detallesConExtras = await Promise.all(
-          detalles.map(async (det) => {
-            const extras = await queryRows(
-              `SELECT e.id_extras AS id, e.nombre AS name, e.precio AS price
-               FROM detalle_venta_extras dve
-               JOIN extras e ON e.id_extras = dve.id_extra
-               WHERE dve.id_detalle = ?`,
-              [det.id_detalle],
-            );
-            return { ...det, extras };
-          }),
-        );
-
-        return {
-          ...venta,
-          codigo_orden: `ORD-${String(venta.id_venta).padStart(3, "0")}`,
-          detalles: detallesConExtras,
-        };
-      }),
-    );
-
-    res.json({ success: true, data: pedidosCompletado });
+    res.json({ success: true, data: pedidosPendiente });
   } catch (error) {
     console.error("Error al obtener pedidos de horno:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -469,26 +406,33 @@ export const obtenerEntregas = async (req, res) => {
     let paparamericano = [id_sucursal];
     const ventas = await queryRows(query, paparamericano);
 
-    const ordenes = await Promise.all(
-      ventas.map(async (venta) => {
-        const detalles = await queryRows(
-          `SELECT
-            vd.id_detalle,
-            vd.cantidad,
-            vd.tipo_producto,
-            vd.estado AS estado_detalle,
-            CASE 
-              WHEN vd.tipo_producto = 'Pizza' THEN p.nombre
-              WHEN vd.tipo_producto = 'Bebida' THEN b.nombre
-              WHEN vd.tipo_producto = 'Helado' THEN h.nombre
-            END AS nombre_producto
-          FROM venta_detalle vd
-          LEFT JOIN pizza p ON vd.tipo_producto = 'Pizza' AND p.id_pizza = vd.id_producto_origen
-          LEFT JOIN bebidas b ON vd.tipo_producto = 'Bebida' AND b.id_bebida = vd.id_producto_origen
-          LEFT JOIN heladeria h ON vd.tipo_producto = 'Helado' AND h.id_heladeria = vd.id_producto_origen
-          WHERE vd.id_venta = ?`,
-          [venta.id_venta],
-        );
+    const idsVentas = ventas.map((v) => v.id_venta);
+    const detallesBatch =
+      idsVentas.length === 0
+        ? []
+        : await queryRows(
+            `SELECT
+              vd.id_venta,
+              vd.id_detalle,
+              vd.cantidad,
+              vd.tipo_producto,
+              vd.estado AS estado_detalle,
+              CASE 
+                WHEN vd.tipo_producto = 'Pizza' THEN p.nombre
+                WHEN vd.tipo_producto = 'Bebida' THEN b.nombre
+                WHEN vd.tipo_producto = 'Helado' THEN h.nombre
+              END AS nombre_producto
+            FROM venta_detalle vd
+            LEFT JOIN pizza p ON vd.tipo_producto = 'Pizza' AND p.id_pizza = vd.id_producto_origen
+            LEFT JOIN bebidas b ON vd.tipo_producto = 'Bebida' AND b.id_bebida = vd.id_producto_origen
+            LEFT JOIN heladeria h ON vd.tipo_producto = 'Helado' AND h.id_heladeria = vd.id_producto_origen
+            WHERE vd.id_venta IN (${idsVentas.map(() => "?").join(", ")})`,
+            idsVentas,
+          );
+    const detallesPorVenta = agruparDetallesPorVenta(detallesBatch);
+
+    const ordenes = ventas.map((venta) => {
+        const detalles = detallesPorVenta.get(venta.id_venta) || [];
 
         const items = detalles.map((det) => ({
           name: det.nombre_producto || det.tipo_producto,
@@ -538,8 +482,7 @@ export const obtenerEntregas = async (req, res) => {
               ? "ready"
               : "preparing",
         };
-      }),
-    );
+    });
 
     const ordenesFiltradas = ordenes.filter((o) => o !== null);
 

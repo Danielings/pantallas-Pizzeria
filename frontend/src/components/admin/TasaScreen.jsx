@@ -36,7 +36,9 @@ export default function TasaScreen() {
   const loadRate = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get(`${API_BASE}/tasa`);
+      const { data } = await axios.get(`${API_BASE}/tasa`, {
+        withCredentials: true,
+      });
       if (!data.success) throw new Error(data.message);
       setRate(data.data);
       setManualRate(String(data.data.tasa_sistema));
@@ -69,6 +71,8 @@ export default function TasaScreen() {
     try {
       const { data } = await axios.put(`${API_BASE}/tasa/anclar`, {
         tasa_manual: value,
+      }, {
+        withCredentials: true,
       });
       setRate(data.data);
       updateExchangeRate(data.data.tasa_sistema);
@@ -89,7 +93,9 @@ export default function TasaScreen() {
   const handleUnanchor = async () => {
     setSaving(true);
     try {
-      const { data } = await axios.put(`${API_BASE}/tasa/desanclar`);
+      const { data } = await axios.put(`${API_BASE}/tasa/desanclar`, {
+        withCredentials: true,
+      });
       setRate(data.data);
       setManualRate(String(data.data.tasa_sistema));
       updateExchangeRate(data.data.tasa_sistema);

@@ -23,10 +23,11 @@ export const recuperarPassword = async (req, res) => {
   const correo = email.trim().toLowerCase();
 
   try {
-    const [rows] = await pool.query(
-      "SELECT id_usuario FROM usuarios WHERE email = ? LIMIT 1",
-      [correo],
-    );
+    const results = await db.execute({
+      sql: "SELECT id_usuario FROM usuarios WHERE email = ? LIMIT 1",
+      args: [correo],
+    });
+    const rows = results.rows || [];
     if (rows.length === 0) {
       return res.status(200).json({ message: GENERIC_MESSAGE });
     }
@@ -35,10 +36,10 @@ export const recuperarPassword = async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
     const tokenExpires = new Date(Date.now() + TOKEN_EXPIRY_MS).toISOString();
 
-    await pool.query(
-      "UPDATE usuarios SET reset_token = ?, token_expires = ? WHERE id_usuario = ?",
-      [resetToken, tokenExpires, id_usuario],
-    );
+    await db.execute({
+      sql: "UPDATE usuarios SET reset_token = ?, token_expires = ? WHERE id_usuario = ?",
+      args: [resetToken, tokenExpires, id_usuario],
+    });
 
     const frontendUrl = env("FRONTEND_URL") || "http://localhost:5173";
     const resetLink = `${frontendUrl}/nueva-password?token=${resetToken}`;
@@ -50,10 +51,10 @@ export const recuperarPassword = async (req, res) => {
         "[recuperar-password] Error al enviar correo:",
         mailError.message,
       );
-      await pool.query(
-        "UPDATE usuarios SET reset_token = '', token_expires = '' WHERE id_usuario = ?",
-        [id_usuario],
-      );
+      await db.execute({
+        sql: "UPDATE usuarios SET reset_token = '', token_expires = '' WHERE id_usuario = ?",
+        args: [id_usuario],
+      });
       return res.status(500).json({
         message:
           "No se pudo enviar el correo. Verifica SMTP en .env e intenta de nuevo.",
@@ -76,10 +77,11 @@ export const validarToken = async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query(
-      "SELECT token_expires FROM usuarios WHERE reset_token = ? AND reset_token <> '' LIMIT 1",
-      [token],
-    );
+    const results = await db.execute({
+      sql: "SELECT token_expires FROM usuarios WHERE reset_token = ? AND reset_token <> '' LIMIT 1",
+      args: [token],
+    });
+    const rows = results.rows || [];
     if (rows.length === 0) {
       return res
         .status(400)
@@ -116,10 +118,11 @@ export const restablecerPassword = async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query(
-      "SELECT id_usuario, token_expires FROM usuarios WHERE reset_token = ? AND reset_token <> '' LIMIT 1",
-      [token],
-    );
+    const results = await db.execute({
+      sql: "SELECT id_usuario, token_expires FROM usuarios WHERE reset_token = ? AND reset_token <> '' LIMIT 1",
+      args: [token],
+    });
+    const rows = results.rows || [];
     if (rows.length === 0) {
       return res.status(400).json({ message: "Enlace inválido o expirado." });
     }
@@ -129,10 +132,10 @@ export const restablecerPassword = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await pool.query(
-      "UPDATE usuarios SET password = ?, reset_token = '', token_expires = '' WHERE id_usuario = ?",
-      [hashedPassword, rows[0].id_usuario],
-    );
+    await db.execute({
+      sql: "UPDATE usuarios SET password = ?, reset_token = '', token_expires = '' WHERE id_usuario = ?",
+      args: [hashedPassword, rows[0].id_usuario],
+    });
     res.status(200).json({
       message:
         "Contraseña actualizada correctamente. Ya puedes iniciar sesión.",
@@ -196,7 +199,7 @@ export const login = async (req, res) => {
         .json({ message: "El usuario no se encuentra activo" });
     }
 
-    // 1 hora de expiración (3600 segundos)
+    // 12 horas de expiración (43200 segundos)
     const token = jwt.sign(
       {
         id: usuario.id_usuario,
@@ -206,14 +209,14 @@ export const login = async (req, res) => {
         id_sucursal: usuario.id_sucursal,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" },
+      { expiresIn: "12h" },
     );
 
     res.cookie("acceso_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 3600000,
+      maxAge: 12 * 60 * 60 * 1000,
     });
 
     const userPayload = {

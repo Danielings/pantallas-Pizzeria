@@ -85,17 +85,14 @@ function AuthenticatedLayout() {
 
   useEffect(() => {
     const refreshOrderQueries = () => {
-      queryClient.refetchQueries({
+      queryClient.invalidateQueries({
         queryKey: ["ventasHoy"],
-        type: "all",
       });
-      queryClient.refetchQueries({
+      queryClient.invalidateQueries({
         queryKey: ["pedidosActivos"],
-        type: "all",
       });
-      queryClient.refetchQueries({
+      queryClient.invalidateQueries({
         queryKey: ["entregas"],
-        type: "all",
       });
     };
 
