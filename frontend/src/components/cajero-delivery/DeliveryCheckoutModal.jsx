@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useApp } from "../../context/AppContext";
+import { useApp, isBoxItem } from "../../context/AppContext";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
 import {
   X,
@@ -98,6 +98,20 @@ export default function DeliveryCheckoutModal({ onClose }) {
   const totalToUse = total;
   const paidSoFar = paymentsInternal.reduce((s, p) => s + p.amount, 0);
   const remainingLocalUSD = Math.max(0, totalToUse - paidSoFar);
+
+  const boxItems = currentOrder.items.filter(
+    (item) => isBoxItem(item) && !item.isPendingExisting,
+  );
+  const soldBoxes = boxItems.reduce(
+    (sum, i) => sum + Number(i.qty || 0),
+    0,
+  );
+  const boxesTotalUSD = boxItems.reduce(
+    (sum, i) => sum + Number(i.price || 0) * Number(i.qty || 0),
+    0,
+  );
+  const boxUnitPriceUSD =
+    soldBoxes > 0 ? boxesTotalUSD / soldBoxes : Number(boxPrice) || 0;
 
   const formatDisplay = (usd) => {
     if (currency === "Bs") {
@@ -210,6 +224,12 @@ export default function DeliveryCheckoutModal({ onClose }) {
         tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
         monto_total_usd: Number(totalToUse.toFixed(2)),
         monto_total_bs: Number((totalToUse * (exchangeRate || 0)).toFixed(2)),
+        cantidad_cajas: soldBoxes,
+        precio_caja_usd: Number(boxUnitPriceUSD.toFixed(2)),
+        monto_cajas_usd: Number(boxesTotalUSD.toFixed(2)),
+        monto_cajas_bs: Number(
+          (boxesTotalUSD * (exchangeRate || 0)).toFixed(2),
+        ),
         pagos: paymentsInternal.map((payment) => ({
           metodo: mapPaymentMethodToApi(payment.method),
           monto_usd: Number(payment.amount.toFixed(2)),
@@ -218,16 +238,18 @@ export default function DeliveryCheckoutModal({ onClose }) {
           ),
           referencia: payment.reference || payment.currency,
         })),
-        detalles: currentOrder.items.map((item) => ({
-          tipo_producto: getProductTypeForApi(item.category),
-          id_producto_origen: getProductOriginId(item),
-          cantidad: Number(item.qty || 1),
-          monto_total: Number(
-            (Number(item.price || 0) * Number(item.qty || 1)).toFixed(2)
-          ),
-          nota: item.note || "",
-          extras: (item.extras || []).map((extra) => Number(extra.id)),
-        })),
+        detalles: currentOrder.items
+          .filter((item) => !isBoxItem(item))
+          .map((item) => ({
+            tipo_producto: getProductTypeForApi(item.category),
+            id_producto_origen: getProductOriginId(item),
+            cantidad: Number(item.qty || 1),
+            monto_total: Number(
+              (Number(item.price || 0) * Number(item.qty || 1)).toFixed(2)
+            ),
+            nota: item.note || "",
+            extras: (item.extras || []).map((extra) => Number(extra.id)),
+          })),
       };
     } catch (validationError) {
       setError(validationError.message);
