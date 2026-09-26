@@ -119,7 +119,7 @@ export const exportCierrePDF = async (cierre) => {
 
   // Branch name (colored)
   const sucursalNombre = cierre.sucursal || "Sucursal Principal";
-  const sucursalDir = cierre.sucursal_direccion || "";
+  const sucursalDir = cierre.sucursal_direccion || cierre.direccion || "";
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -413,17 +413,108 @@ export const exportCierrePDF = async (cierre) => {
   }
 
   // ═══════════════════════════════════════════════════════
+  // VENTAS DEL DÍA POR TIPO DE DESPACHO
+  // ═══════════════════════════════════════════════════════
+  const transacciones = cierre.transacciones || [];
+
+  const gruposPorTipo = (["Local", "Delivery", "Pick Up", "Llevar"])
+    .map((tipo) => ({
+      tipo,
+      ventas: transacciones.filter(
+        (tx) =>
+          String(tx.despacho || "").trim().toLowerCase() ===
+          tipo.toLowerCase(),
+      ),
+      totalUSD: transacciones
+        .filter(
+          (tx) =>
+            String(tx.despacho || "").trim().toLowerCase() ===
+            tipo.toLowerCase(),
+        )
+        .reduce((s, v) => s + Number(v.monto_total_usd || 0), 0),
+    }))
+    .filter((g) => g.ventas.length > 0);
+
+  if (gruposPorTipo.length > 0) {
+    let cursorY = (doc.lastAutoTable?.finalY || 150) + 12;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...TEXT_DARK);
+    doc.text("VENTAS DEL DÍA POR TIPO DE DESPACHO", 14, cursorY);
+
+    const totalVentasUSD = gruposPorTipo.reduce(
+      (s, g) => s + g.totalUSD,
+      0,
+    );
+    const totalOrdenesDia = transacciones.length;
+
+    const filas = gruposPorTipo.map((g) => [
+      g.tipo.toUpperCase(),
+      String(g.ventas.length),
+      fmtMoneyUSD(g.totalUSD),
+    ]);
+    const idxTotal = filas.length;
+
+    autoTable(doc, {
+      startY: cursorY + 5,
+      head: [["Tipo de Despacho", "Órdenes", "Total (USD)"]],
+      body: [
+        ...filas,
+        ["TOTAL GENERAL", String(totalOrdenesDia), fmtMoneyUSD(totalVentasUSD)],
+      ],
+      headStyles: {
+        fillColor: ACCENT,
+        textColor: WHITE,
+        fontStyle: "bold",
+        fontSize: 9,
+      },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 122 },
+        1: { halign: "center", cellWidth: 28 },
+        2: {
+          halign: "right",
+          cellWidth: 34,
+          fontStyle: "bold",
+          textColor: ACCENT,
+        },
+      },
+      styles: { fontSize: 9, cellPadding: 4, valign: "middle" },
+      alternateRowStyles: { fillColor: ACCENT_LIGHT },
+      margin: { left: 14, right: 14 },
+      theme: "striped",
+      didParseCell: (data) => {
+        if (data.section === "body" && data.row.index === idxTotal) {
+          data.cell.styles.fillColor = TEXT_DARK;
+          data.cell.styles.textColor = WHITE;
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.halign =
+            data.column.index === 1
+              ? "center"
+              : data.column.index === 2
+                ? "right"
+                : "left";
+        }
+      },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════
   // FOOTER
   // ═══════════════════════════════════════════════════════
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...TEXT_MUTED);
-  doc.text(
-    `Documento generado el ${new Date().toLocaleString("es-VE")} · ${sucursalNombre}`,
-    14,
-    285,
-  );
-  doc.text("Pág 1 de 1", 196, 285, { align: "right" });
+  const totalPaginas = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPaginas; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text(
+      `Documento generado el ${new Date().toLocaleString("es-VE")} · ${sucursalNombre}`,
+      14,
+      285,
+    );
+    doc.text(`Pág ${i} de ${totalPaginas}`, 196, 285, { align: "right" });
+  }
 
   // Save
   doc.save(
