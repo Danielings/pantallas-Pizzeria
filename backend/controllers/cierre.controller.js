@@ -366,7 +366,7 @@ export const cerrarCaja = async (req, res) => {
       .json({ success: false, mensaje: "La clave de cierre es obligatoria." });
   }
 
-  const LIMITE_CIERRES_DIARIOS = 7;
+  const LIMITE_CIERRES_DIARIOS = 4;
   let tx = null;
 
   try {
@@ -393,7 +393,9 @@ export const cerrarCaja = async (req, res) => {
     const cierresHoy = await db.execute({
       sql: `SELECT COUNT(*) as totalCierres 
             FROM cierres_caja 
-            WHERE DATE(fecha_hora) = DATE('now', '-4 hours')`,
+            WHERE DATE(fecha_hora) = DATE('now', '-4 hours')
+              AND id_usuario = ?`,
+      args: [usuarioEjecutor],
     });
 
     const totalCierresRealizados = Number(cierresHoy.rows[0].totalCierres);
@@ -401,7 +403,7 @@ export const cerrarCaja = async (req, res) => {
     if (totalCierresRealizados >= LIMITE_CIERRES_DIARIOS) {
       return res.status(403).json({
         success: false,
-        mensaje: `Límite alcanzado: Ya se han realizado los ${LIMITE_CIERRES_DIARIOS} cierres permitidos para hoy.`,
+        mensaje: `Límite alcanzado: Ya realizaste tus ${LIMITE_CIERRES_DIARIOS} cierres permitidos para hoy.`,
         cierres_restantes: 0,
       });
     }
@@ -511,7 +513,7 @@ export const cerrarCaja = async (req, res) => {
     return res.status(200).json({
       ok: true,
       success: true,
-      mensaje: `Cierre de caja realizado exitosamente. Te quedan ${cierresRestantes} cierres disponibles por hoy.`,
+      mensaje: `Cierre de caja realizado exitosamente. Hoy te quedan ${cierresRestantes} cierres disponibles.`,
       id_cierre: Number(insertResult.lastInsertRowid),
       cierres_restantes: cierresRestantes,
     });
