@@ -7,13 +7,21 @@ export default function ModalBloqueoCierre() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { currentUser } = useApp();
-  const { data: pendiente } = useVerificarCierre();
+  const { data } = useVerificarCierre();
 
-  // Solo bloquea al cajero, nunca sobre la pantalla de cierre que lo desbloquea.
+  const esCajero = currentUser?.role === "cashier";
+  const esDelivery = currentUser?.role === "cashierdelivery";
+  const rutaCierre = esDelivery ? "/cierre-delivery" : "/cierre";
+
+  const pendienteBloqueo = esDelivery
+    ? Boolean(data?.pendiente_delivery)
+    : Boolean(data?.pendiente);
+
+  // Solo bloquea a cajero/cashierDelivery, nunca sobre la pantalla de cierre que lo desbloquea.
   if (
-    currentUser?.role !== "cashier" ||
-    pathname === "/cierre" ||
-    pendiente !== true
+    (!esCajero && !esDelivery) ||
+    pathname === rutaCierre ||
+    !pendienteBloqueo
   ) {
     return null;
   }
@@ -30,9 +38,9 @@ export default function ModalBloqueoCierre() {
         </h2>
 
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          Existe un cierre de caja pendiente del día de negocio anterior.
-          Para continuar operando es obligatorio realizar el cierre antes de
-          iniciar la jornada.
+          Existe un {esDelivery ? "cierre delivery " : ""}cierre de caja
+          pendiente del día de negocio anterior. Para continuar operando es
+          obligatorio realizar el cierre antes de iniciar la jornada.
         </p>
 
         <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-left">
@@ -44,10 +52,10 @@ export default function ModalBloqueoCierre() {
         </div>
 
         <button
-          onClick={() => navigate("/cierre")}
+          onClick={() => navigate(rutaCierre)}
           className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
         >
-          Ir a Cierre de Caja
+          Ir a Cierre {esDelivery ? "de Delivery" : "de Caja"}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>

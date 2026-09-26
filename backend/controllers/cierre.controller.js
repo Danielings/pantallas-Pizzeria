@@ -36,11 +36,10 @@ export const verificarPedidosPendientes = async (req, res) => {
 export const verificarCierrePendiente = async (req, res) => {
   const { id_sucursal } = req.user;
   try {
-    // Solo el cierre GENERAL pendiente bloquea la jornada del cajero.
-    // El delivery tiene su propio flujo (resumen-dia + cierre delivery) y no bloquea.
+    // Cierre GENERAL pendiente: bloquea la jornada del cajero de salón.
     // Se incluyen ventas 'Cerrado': si el día anterior se hizo el cierre delivery,
     // sus ventas ya están 'Cerrado' pero el cierre general sigue pendiente.
-    const results = await db.execute({
+    const generalRows = await db.execute({
       sql: `
         SELECT 1
         FROM ventas
@@ -51,7 +50,25 @@ export const verificarCierrePendiente = async (req, res) => {
         LIMIT 1`,
       args: [id_sucursal],
     });
-    return res.status(200).json({ pendiente: results.rows.length > 0 });
+
+    // Cierre DELIVERY pendiente: bloquea la jornada del cashierDelivery.
+    const deliveryRows = await db.execute({
+      sql: `
+        SELECT 1
+        FROM ventas
+        WHERE estado IN ('Completado', 'Cerrado')
+          AND DATE(fecha_hora, '-9 hours') < DATE('now', '-9 hours')
+          AND despacho = 'Delivery'
+          AND cierre_delivery = 0
+          AND id_sucursal = ?
+        LIMIT 1`,
+      args: [id_sucursal],
+    });
+
+    return res.status(200).json({
+      pendiente: generalRows.rows.length > 0,
+      pendiente_delivery: deliveryRows.rows.length > 0,
+    });
   } catch (error) {
     console.error("Error al verificar cierre pendiente:", error);
     return res.status(500).json({ mensaje: "Error interno del servidor" });
