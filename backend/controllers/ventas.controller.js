@@ -447,6 +447,7 @@ export const editarVenta = async (req, res) => {
     tasa_cambio,
     monto_total_usd,
     monto_total_bs,
+    cantidad_cajas,
     detalles_actualizados,
     info_pago,
   } = req.body;
@@ -493,6 +494,11 @@ export const editarVenta = async (req, res) => {
     if (monto_total_bs != null) {
       updates.push("monto_total_bs = ?");
       params.push(monto_total_bs);
+    }
+
+    if (cantidad_cajas != null) {
+      updates.push("cantidad_caja = ?");
+      params.push(Number(cantidad_cajas) || 0);
     }
 
     if (updates.length > 0) {
@@ -640,11 +646,12 @@ export const reembolsarVenta = async (req, res) => {
               vd.tipo_producto,
               vd.cantidad,
               vd.monto_total,
-              COALESCE(p.nombre, b.nombre, h.nombre) AS nombre_producto
+              COALESCE(p.nombre, b.nombre, h.nombre, co.nombre) AS nombre_producto
             FROM venta_detalle vd
             LEFT JOIN pizza      p ON p.id_pizza      = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
             LEFT JOIN bebidas    b ON b.id_bebida     = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
             LEFT JOIN heladeria  h ON h.id_heladeria  = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
+            LEFT JOIN combos    co ON co.id_combo     = vd.id_producto_origen AND vd.tipo_producto = 'combo'
             WHERE vd.id_venta = ?`,
       args: [id_venta],
     });
@@ -882,12 +889,13 @@ export const obtenerPedidosActivos = async (req, res) => {
             vd.monto_total,
             vd.nota,
             vd.estado AS estado_detalle,
-            COALESCE(p.nombre, b.nombre, h.nombre) AS nombre_producto,
+            COALESCE(p.nombre, b.nombre, h.nombre, co.nombre) AS nombre_producto,
             p.id_categoria_pizza 
           FROM venta_detalle vd
           LEFT JOIN pizza     p  ON p.id_pizza      = vd.id_producto_origen AND vd.tipo_producto = 'Pizza'
           LEFT JOIN bebidas   b  ON b.id_bebida     = vd.id_producto_origen AND vd.tipo_producto = 'Bebida'
           LEFT JOIN heladeria h  ON h.id_heladeria  = vd.id_producto_origen AND vd.tipo_producto = 'Helado'
+          LEFT JOIN combos    co ON co.id_combo     = vd.id_producto_origen AND vd.tipo_producto = 'Combo'
           WHERE vd.id_venta IN (${idsVentas.map(() => "?").join(", ")})`,
               args: idsVentas,
             })

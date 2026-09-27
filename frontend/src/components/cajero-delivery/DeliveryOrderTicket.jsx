@@ -1,26 +1,46 @@
-import { useApp } from "../../context/AppContext";
+import { useApp, isBoxItem } from "../../context/AppContext";
 import OrderItem from "../cajero/OrderItem";
-import { ShoppingCart, Package, Trash2, UserCheck, User, Bike } from "lucide-react";
+import {
+  ShoppingCart,
+  Package,
+  Trash2,
+  UserCheck,
+  User,
+  Bike,
+  Plus,
+  Minus,
+} from "lucide-react";
 import { useExchangeRate } from "../../hooks/useExchangeRate";
+import { useState } from "react";
 
 export default function DeliveryOrderTicket({ onCheckout, onOpenCustomer }) {
-  const { currentOrder, total, boxPrice, setIncludesBox } = useApp();
+  const { currentOrder, total, boxPrice, addBoxes } = useApp();
   const { exchangeRate } = useExchangeRate();
   const { items, pendingRemaining, customer } = currentOrder;
+
+  // Cantidad elegida en el selector
+  const [boxesToAdd, setBoxesToAdd] = useState(1);
 
   const addedTotal = items
     .filter((item) => !item.isPendingExisting)
     .reduce(
       (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
-      0
+      0,
     );
 
-  const includesBox = Boolean(currentOrder.includesBox);
-  const boxCharge = includesBox ? Number(boxPrice) || 0 : 0;
+  const unitBoxPrice = Number(boxPrice) || 0;
+  const hasBoxLine = items.some(
+    (item) => isBoxItem(item) && !item.isPendingExisting,
+  );
   const displayTotal =
-    pendingRemaining != null
-      ? pendingRemaining + addedTotal + boxCharge
-      : total + boxCharge;
+    pendingRemaining != null ? pendingRemaining + addedTotal : total;
+
+  const handleDecrease = () => setBoxesToAdd((q) => Math.max(1, q - 1));
+  const handleIncrease = () => setBoxesToAdd((q) => q + 1);
+  const handleAddBoxes = () => {
+    addBoxes(boxesToAdd);
+    setBoxesToAdd(1); // el selector vuelve a 1 tras añadir
+  };
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-slate-50">
@@ -52,9 +72,12 @@ export default function DeliveryOrderTicket({ onCheckout, onOpenCustomer }) {
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400 p-6">
             <ShoppingCart className="w-8 h-8 opacity-40 text-slate-400" />
-            <p className="text-xs text-center font-bold text-slate-600">Ticket Vacío</p>
+            <p className="text-xs text-center font-bold text-slate-600">
+              Ticket Vacío
+            </p>
             <p className="text-[11px] text-center text-slate-400">
-              Selecciona pizzas, bebidas o combos para agregarlos al pedido delivery.
+              Selecciona pizzas, bebidas o combos para agregarlos al pedido
+              delivery.
             </p>
           </div>
         ) : (
@@ -67,46 +90,71 @@ export default function DeliveryOrderTicket({ onCheckout, onOpenCustomer }) {
         <div className="bg-white border-t border-slate-100 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
           <div className="space-y-1.5 text-sm">
             {/* Control para agregar caja para delivery */}
-            {!includesBox ? (
-              <button
-                type="button"
-                onClick={() => setIncludesBox(true)}
-                className="w-full flex items-center justify-between gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-left cursor-pointer select-none hover:border-slate-400 transition-colors"
-              >
-                <span className="flex items-center gap-2 text-slate-700 font-semibold text-xs">
-                  <Package className="w-4 h-4 text-pizza-red" />
-                  Agregar caja para delivery
-                  <span className="text-xs font-normal text-slate-500">
-                    ${boxPrice.toFixed(2)}
+            {!hasBoxLine && (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                {/* Título + precio unitario */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100">
+                    <Package className="w-4 h-4 text-pizza-red" />
                   </span>
-                </span>
-                <span className="text-slate-400 text-xs font-bold">+ Añadir</span>
-              </button>
-            ) : (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <span className="flex items-center gap-2 text-slate-800 font-semibold text-xs">
-                  <Package className="w-4 h-4 text-pizza-red" />
-                  Caja para delivery
-                  <span className="text-xs font-normal text-slate-500">
-                    1 × ${boxPrice.toFixed(2)}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIncludesBox(false)}
-                  title="Quitar caja"
-                  className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 leading-tight truncate">
+                      Cajas
+                    </p>
+                    <p className="text-xs font-medium text-slate-400">
+                      ${unitBoxPrice.toFixed(2)} c/u
+                    </p>
+                  </div>
+                </div>
+
+                {/* Incrementador + botón Añadir */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center rounded-lg border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={handleDecrease}
+                      disabled={boxesToAdd <= 1}
+                      aria-label="Disminuir cantidad de cajas"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:hover:text-slate-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span
+                      className="min-w-[1.75rem] text-center text-sm font-bold text-slate-800 select-none tabular-nums"
+                      aria-live="polite"
+                    >
+                      {boxesToAdd}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleIncrease}
+                      aria-label="Aumentar cantidad de cajas"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddBoxes}
+                    className="rounded-lg bg-pizza-red px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:brightness-95 active:scale-[0.97] transition-all"
+                  >
+                    Añadir
+                  </button>
+                </div>
               </div>
             )}
 
             {/* Total USD y Bs */}
             <div className="flex justify-between items-center pt-1">
               <div>
-                <span className="text-slate-800 font-black text-sm">Total Delivery</span>
-                <span className="block text-[10px] text-slate-400">Impuestos y tasa incluidos</span>
+                <span className="text-slate-800 font-black text-sm">
+                  Total Delivery
+                </span>
+                <span className="block text-[10px] text-slate-400">
+                  Impuestos y tasa incluidos
+                </span>
               </div>
               <div className="text-right">
                 <div className="text-slate-900 font-black text-lg sm:text-xl leading-tight">

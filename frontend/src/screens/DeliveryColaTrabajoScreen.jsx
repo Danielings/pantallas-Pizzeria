@@ -95,7 +95,7 @@ function KpiCard({
           {loading ? (
             <div className="h-8 w-20 bg-slate-100 rounded-md animate-pulse" />
           ) : (
-            <h3 className="text-3xl sm:text-4xl font-black text-slate-800 leading-none whitespace-nowrap shrink-0">
+            <h3 className="text-3xl font-black text-slate-800 leading-none whitespace-nowrap shrink-0">
               {value}
             </h3>
           )}
@@ -252,7 +252,7 @@ export default function DeliveryColaTrabajoScreen() {
           label="Ventas Delivery Hoy"
           value={`$${totalRevenue.toFixed(2)}`}
           sub={`${totalTx} despachos`}
-          iconBg="bg-red-50"
+          iconBg="bg-red-40"
           iconColor="text-pizza-red"
           loading={loading}
         />
@@ -261,7 +261,7 @@ export default function DeliveryColaTrabajoScreen() {
           label="Pizzas Delivery"
           value={totalPizzas}
           sub="Unidades"
-          iconBg="bg-orange-50"
+          iconBg="bg-orange-40"
           iconColor="text-orange-500"
           loading={loading}
         />
@@ -270,7 +270,7 @@ export default function DeliveryColaTrabajoScreen() {
           label="Deliveries Activos"
           value={activos}
           sub={`${allDeliveryOrders.length} en sucursal`}
-          iconBg="bg-blue-50"
+          iconBg="bg-blue-40"
           iconColor="text-blue-500"
           loading={loading}
         />
@@ -278,8 +278,7 @@ export default function DeliveryColaTrabajoScreen() {
           icon={TrendingUp}
           label="Ticket Prom. Delivery"
           value={`$${avgTicket.toFixed(2)}`}
-          sub="Por orden"
-          iconBg="bg-emerald-50"
+          iconBg="bg-emerald-40"
           iconColor="text-emerald-500"
           loading={loading}
         />

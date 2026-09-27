@@ -290,22 +290,6 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
       // Solo enviar productos válidos (Pizza, Bebida, Helado) para evitar errores 400
       const tiposValidos = new Set(["Pizza", "Bebida", "Helado", "Combo"]);
 
-      // Construir nota con info de cajas si aplica
-      let notaFinal = observacion;
-      if (localDespacho === "Llevar" && cajasAgregadas > 0) {
-        const cajaNota = `[+${cajasAgregadas} Caja(s) para llevar]`;
-        // Evitar duplicar la nota de cajas si ya existe
-        const notaSinCajas = notaFinal
-          .replace(/\s*\[\+\d+ Caja\(s\) para llevar\]/g, "")
-          .trim();
-        notaFinal = notaSinCajas ? `${notaSinCajas} ${cajaNota}` : cajaNota;
-      } else {
-        // Limpiar nota de cajas si ya no aplica
-        notaFinal = notaFinal
-          .replace(/\s*\[\+\d+ Caja\(s\) para llevar\]/g, "")
-          .trim();
-      }
-
       const detallesParaBackend = (localDetalles || [])
         .filter((item) => tiposValidos.has(item.tipo_producto))
         .map((item, index) => ({
@@ -314,7 +298,7 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
           id_producto_origen: item.id_producto_origen,
           cantidad: item.cantidad,
           monto_total: Number((item.monto_total || 0).toFixed(2)),
-          nota: index === 0 ? notaFinal : item.nota || "",
+          nota: index === 0 ? observacion : item.nota || "",
           extras: (item.extras || []).map((extra) =>
             Number(extra.id_extras ?? extra.id ?? 0),
           ),
@@ -326,6 +310,7 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
         tasa_cambio: Number((exchangeRate || 0).toFixed(2)),
         monto_total_usd: Number(newTotal.toFixed(2)),
         monto_total_bs: Number((newTotal * (exchangeRate || 0)).toFixed(2)),
+        cantidad_cajas: Number(cajasAgregadas) || 0,
         detalles_actualizados: detallesParaBackend,
         info_pago: datosPago
           ? {
@@ -371,10 +356,7 @@ export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <>
-      <div
-        className="fixed inset-0 z-[80] flex items-center justify-center p-3 bg-slate-900/65 backdrop-blur-sm"
-        onClick={onClose}
-      >
+      <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 bg-slate-900/65 backdrop-blur-sm">
         <div
           className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden border border-slate-100"
           onClick={(e) => e.stopPropagation()}

@@ -50,13 +50,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function DeliveryCheckoutModal({ onClose }) {
-  const {
-    total,
-    currentOrder,
-    clearCart,
-    currentUser,
-    boxPrice,
-  } = useApp();
+  const { total, currentOrder, clearCart, currentUser, boxPrice } = useApp();
   const { exchangeRate } = useExchangeRate();
   const queryClient = useQueryClient();
 
@@ -102,10 +96,7 @@ export default function DeliveryCheckoutModal({ onClose }) {
   const boxItems = currentOrder.items.filter(
     (item) => isBoxItem(item) && !item.isPendingExisting,
   );
-  const soldBoxes = boxItems.reduce(
-    (sum, i) => sum + Number(i.qty || 0),
-    0,
-  );
+  const soldBoxes = boxItems.reduce((sum, i) => sum + Number(i.qty || 0), 0);
   const boxesTotalUSD = boxItems.reduce(
     (sum, i) => sum + Number(i.price || 0) * Number(i.qty || 0),
     0,
@@ -162,7 +153,7 @@ export default function DeliveryCheckoutModal({ onClose }) {
     const id = typeof value === "string" ? parseInt(value, 10) : Number(value);
     if (!Number.isInteger(id) || id <= 0) {
       throw new Error(
-        `El producto "${item.name || "sin nombre"}" no tiene un identificador válido.`
+        `El producto "${item.name || "sin nombre"}" no tiene un identificador válido.`,
       );
     }
     return id;
@@ -201,11 +192,11 @@ export default function DeliveryCheckoutModal({ onClose }) {
 
     const paymentTotalUsd = paymentsInternal.reduce(
       (sum, payment) => sum + payment.amount,
-      0
+      0,
     );
     if (paymentTotalUsd + 0.0001 < totalToUse) {
       setError(
-        "La suma de los pagos debe igualar o superar el monto total en USD."
+        "La suma de los pagos debe igualar o superar el monto total en USD.",
       );
       return;
     }
@@ -233,9 +224,7 @@ export default function DeliveryCheckoutModal({ onClose }) {
         pagos: paymentsInternal.map((payment) => ({
           metodo: mapPaymentMethodToApi(payment.method),
           monto_usd: Number(payment.amount.toFixed(2)),
-          monto_bs: Number(
-            (payment.amount * (exchangeRate || 0)).toFixed(2)
-          ),
+          monto_bs: Number((payment.amount * (exchangeRate || 0)).toFixed(2)),
           referencia: payment.reference || payment.currency,
         })),
         detalles: currentOrder.items
@@ -245,7 +234,7 @@ export default function DeliveryCheckoutModal({ onClose }) {
             id_producto_origen: getProductOriginId(item),
             cantidad: Number(item.qty || 1),
             monto_total: Number(
-              (Number(item.price || 0) * Number(item.qty || 1)).toFixed(2)
+              (Number(item.price || 0) * Number(item.qty || 1)).toFixed(2),
             ),
             nota: item.note || "",
             extras: (item.extras || []).map((extra) => Number(extra.id)),
@@ -261,7 +250,7 @@ export default function DeliveryCheckoutModal({ onClose }) {
       const response = await axios.post(
         "http://localhost:3001/api/procesar-venta",
         payload,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       if (response.data?.success) {
@@ -405,7 +394,9 @@ export default function DeliveryCheckoutModal({ onClose }) {
                       Cliente: {currentOrder.customer.name}
                     </span>
                     <span className="text-emerald-600">
-                      {currentOrder.customer.phone || currentOrder.customer.cedula || "Delivery"}
+                      {currentOrder.customer.phone ||
+                        currentOrder.customer.cedula ||
+                        "Delivery"}
                     </span>
                   </div>
                   <span className="bg-emerald-100 text-emerald-700 font-extrabold px-2 py-0.5 rounded-md text-[10px]">
@@ -461,8 +452,13 @@ export default function DeliveryCheckoutModal({ onClose }) {
                   </p>
                   <div className="flex flex-col gap-1.5 divide-y divide-slate-100">
                     {paymentsInternal.map((p, i) => (
-                      <div key={i} className="flex justify-between items-center text-sm pt-1.5">
-                        <span className="font-semibold text-slate-700">{p.label}</span>
+                      <div
+                        key={i}
+                        className="flex justify-between items-center text-sm pt-1.5"
+                      >
+                        <span className="font-semibold text-slate-700">
+                          {p.label}
+                        </span>
                         <span className="font-bold text-slate-900">
                           {currency === "Bs"
                             ? `Bs. ${(p.amount * (exchangeRate || 0)).toFixed(2)}`
@@ -473,7 +469,13 @@ export default function DeliveryCheckoutModal({ onClose }) {
                   </div>
                   <div className="flex justify-between font-extrabold text-sm border-t border-slate-200 mt-3 pt-2 text-slate-800">
                     <span>Restante por pagar</span>
-                    <span className={remainingLocalUSD > 0.01 ? "text-red-600" : "text-emerald-600"}>
+                    <span
+                      className={
+                        remainingLocalUSD > 0.01
+                          ? "text-red-600"
+                          : "text-emerald-600"
+                      }
+                    >
                       {formatDisplay(remainingLocalUSD)}
                     </span>
                   </div>
@@ -488,7 +490,11 @@ export default function DeliveryCheckoutModal({ onClose }) {
               <div className="w-full bg-slate-50 border border-slate-200 border-dashed rounded-xl p-4 sm:p-5 font-mono text-xs shadow-sm relative">
                 <div className="text-center mb-4">
                   <div className="flex justify-center items-center gap-3 mb-2">
-                    <img src={logo} alt="Logo Pizzería" className="w-16 h-auto" />
+                    <img
+                      src={logo}
+                      alt="Logo Pizzería"
+                      className="w-16 h-auto"
+                    />
                     <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center shadow-sm border border-emerald-100">
                       <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                     </div>
@@ -503,7 +509,8 @@ export default function DeliveryCheckoutModal({ onClose }) {
                     Ticket #{Math.floor(Math.random() * 10000)}
                   </p>
                   <p className="text-[10px] text-slate-400">
-                    {new Date().toLocaleDateString()} - {new Date().toLocaleTimeString()}
+                    {new Date().toLocaleDateString()} -{" "}
+                    {new Date().toLocaleTimeString()}
                   </p>
                 </div>
 
@@ -515,12 +522,16 @@ export default function DeliveryCheckoutModal({ onClose }) {
                     </div>
                     <div className="flex justify-between">
                       <span>Nombre:</span>
-                      <span className="font-bold">{currentOrder.customer.name}</span>
+                      <span className="font-bold">
+                        {currentOrder.customer.name}
+                      </span>
                     </div>
                     {currentOrder.customer.phone && (
                       <div className="flex justify-between">
                         <span>Teléfono:</span>
-                        <span className="font-medium">{currentOrder.customer.phone}</span>
+                        <span className="font-medium">
+                          {currentOrder.customer.phone}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -540,16 +551,6 @@ export default function DeliveryCheckoutModal({ onClose }) {
                       </span>
                     </div>
                   ))}
-                  {currentOrder.includesBox && (
-                    <div className="flex justify-between text-xs font-semibold text-slate-700">
-                      <span>1x Caja Delivery</span>
-                      <span>
-                        {currency === "Bs"
-                          ? `Bs. ${(boxPrice * (exchangeRate || 0)).toFixed(2)}`
-                          : `$${boxPrice.toFixed(2)}`}
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Total */}
@@ -562,7 +563,9 @@ export default function DeliveryCheckoutModal({ onClose }) {
                         : `$${paidSoFar.toFixed(2)}`}
                     </div>
                     <div className="text-slate-500 text-[10px] font-normal">
-                      {currency === "Bs" ? formatDisplay(totalToUse) : formatDisplay(totalToUse)}
+                      {currency === "Bs"
+                        ? formatDisplay(totalToUse)
+                        : formatDisplay(totalToUse)}
                     </div>
                   </div>
                 </div>
