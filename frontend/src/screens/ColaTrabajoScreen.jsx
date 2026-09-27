@@ -334,9 +334,19 @@ export default function ColaTrabajoScreen() {
                         DESPACHO_BADGES[pedido.despacho] ||
                         DESPACHO_BADGES.Local;
 
-                      // Estado más crítico
+                      // Estado más crítico (excluyendo bebidas/helados que nacen completados)
+                      const cocinaDetalles = (pedido.detalles || []).filter(
+                        (d) =>
+                          d.tipo_producto !== "Bebida" &&
+                          d.tipo_producto !== "Helado",
+                      );
+                      const detallesParaEstado =
+                        cocinaDetalles.length > 0
+                          ? cocinaDetalles
+                          : pedido.detalles || [];
                       const estados =
-                        pedido.detalles?.map((d) => d.estado_detalle) || [];
+                        detallesParaEstado.map((d) => d.estado_detalle) || [];
+
                       let estadoObj = ESTADO_BADGES.Completado;
                       if (estados.includes("Pendiente"))
                         estadoObj = ESTADO_BADGES.Pendiente;
@@ -350,8 +360,18 @@ export default function ColaTrabajoScreen() {
                         (d) => d.nota && d.nota.trim(),
                       )?.nota;
 
-                      const isReembolsable =
-                        estadoObj === ESTADO_BADGES.Pendiente;
+                      const isPendiente =
+                        estadoObj === ESTADO_BADGES.Pendiente &&
+                        !estados.includes("Horno");
+
+                      const isEnHorno =
+                        !isPendiente &&
+                        (estadoObj === ESTADO_BADGES.Horno ||
+                          estados.includes("Horno"));
+
+                      const isReembolsable = isPendiente;
+
+                      const isEditDisabled = !isPendiente;
 
                       return (
                         <tr
@@ -458,10 +478,13 @@ export default function ColaTrabajoScreen() {
 
                               {/* Dropdown Menu */}
                               {openMenuId === pedido.id_venta && (
-                                <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95">
+                                <div className="absolute right-0 z-50 mt-2 w-52 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95">
                                   <div className="py-1">
                                     <button
+                                      type="button"
+                                      disabled={isEditDisabled}
                                       onClick={() => {
+                                        if (isEditDisabled) return;
                                         setEditState({
                                           pedido: JSON.parse(
                                             JSON.stringify(pedido),
@@ -470,10 +493,36 @@ export default function ColaTrabajoScreen() {
                                         });
                                         setOpenMenuId(null);
                                       }}
-                                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                      title={
+                                        isEditDisabled
+                                          ? isEnHorno
+                                            ? "No se puede editar: el pedido ya está en el horno"
+                                            : "No se puede editar: el pedido ya está listo"
+                                          : "Editar Pedido"
+                                      }
+                                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-3 transition-colors ${
+                                        isEditDisabled
+                                          ? "text-slate-300 bg-slate-50/50 cursor-not-allowed opacity-60"
+                                          : "text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                      }`}
                                     >
-                                      <Edit3 className="w-4 h-4 text-slate-400" />
-                                      Editar Pedido
+                                      <div className="flex items-center gap-3">
+                                        <Edit3
+                                          className={`w-4 h-4 ${isEditDisabled ? "text-slate-300" : "text-slate-400"}`}
+                                        />
+                                        <span>Editar Pedido</span>
+                                      </div>
+                                      {isEditDisabled && (
+                                        <span
+                                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                            isEnHorno
+                                              ? "text-orange-700 bg-orange-100/80 border-orange-200"
+                                              : "text-emerald-700 bg-emerald-100/80 border-emerald-200"
+                                          }`}
+                                        >
+                                          {isEnHorno ? "En Horno" : "Listo"}
+                                        </span>
+                                      )}
                                     </button>
 
                                     <button
