@@ -13,6 +13,8 @@ import {
   Coins,
   Phone,
   Clock,
+  Trophy,
+  Wallet,
 } from "lucide-react";
 import {
   BarChart,
@@ -21,6 +23,10 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  CartesianGrid,
 } from "recharts";
 
 const API_BASE = "http://localhost:3001/api";
@@ -33,7 +39,8 @@ const PAYMENT_METHODS = [
     metodo: "Punto",
     label: "Punto de Venta",
     icon: CreditCard,
-    colorText: "text-purple-500",
+    color: "#8B5CF6",
+    colorText: "text-purple-600",
     colorBg: "bg-purple-100",
     colorBar: "bg-purple-500",
     colorLight: "bg-purple-50/70",
@@ -43,7 +50,8 @@ const PAYMENT_METHODS = [
     metodo: "Pago_Movil",
     label: "Pago Móvil",
     icon: Smartphone,
-    colorText: "text-blue-500",
+    color: "#3B82F6",
+    colorText: "text-blue-600",
     colorBg: "bg-blue-100",
     colorBar: "bg-blue-500",
     colorLight: "bg-blue-50/70",
@@ -53,7 +61,8 @@ const PAYMENT_METHODS = [
     metodo: "Efectivo",
     label: "Efectivo",
     icon: Banknote,
-    colorText: "text-emerald-500",
+    color: "#10B981",
+    colorText: "text-emerald-600",
     colorBg: "bg-emerald-100",
     colorBar: "bg-emerald-500",
     colorLight: "bg-emerald-50/70",
@@ -63,7 +72,8 @@ const PAYMENT_METHODS = [
     metodo: "Binance/Zelle",
     label: "Binance/Zelle",
     icon: Coins,
-    colorText: "text-amber-500",
+    color: "#F59E0B",
+    colorText: "text-amber-600",
     colorBg: "bg-amber-100",
     colorBar: "bg-amber-500",
     colorLight: "bg-amber-50/70",
@@ -74,11 +84,27 @@ const PAYMENT_METHODS = [
 const FALLBACK_METHOD = {
   label: "Otro",
   icon: Banknote,
-  colorText: "text-slate-500",
+  color: "#94A3B8",
+  colorText: "text-slate-600",
   colorBg: "bg-slate-100",
   colorBar: "bg-slate-400",
   colorLight: "bg-slate-50/70",
   colorBorder: "border-slate-100/80",
+};
+
+const getPaymentConfig = (metodoStr) => {
+  const norm = String(metodoStr || "")
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
+  if (norm.includes("punto") || norm.includes("tarjeta")) return PAYMENT_METHODS[0];
+  if (norm.includes("pago") || norm.includes("movil")) return PAYMENT_METHODS[1];
+  if (norm.includes("efectivo") || norm.includes("cash") || norm.includes("dolar")) return PAYMENT_METHODS[2];
+  if (norm.includes("binance") || norm.includes("zelle") || norm.includes("cripto")) return PAYMENT_METHODS[3];
+  return (
+    PAYMENT_METHODS.find(
+      (p) => p.metodo.toLowerCase() === String(metodoStr).toLowerCase(),
+    ) || FALLBACK_METHOD
+  );
 };
 
 const formatMoney = (value) => `$${Number(value || 0).toFixed(2)}`;
@@ -107,6 +133,67 @@ const getHeaderDate = () => {
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+};
+
+// Tooltip estilizado para la gráfica Donut de métodos de pago
+const CustomDonutTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-xl px-3.5 py-2 shadow-xl border border-slate-800 text-xs">
+        <div className="flex items-center gap-2 mb-1">
+          <div
+            className="w-2.5 h-2.5 rounded-full"
+            style={{ backgroundColor: data.color }}
+          />
+          <span className="font-bold text-slate-100">{data.name}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4 text-slate-300">
+          <span className="text-slate-400">Total cobrado:</span>
+          <span className="font-extrabold text-emerald-400 font-mono">
+            {formatMoney(data.total_usd)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-4 text-slate-400 text-[11px] mt-0.5">
+          <span>Participación:</span>
+          <span className="font-bold text-slate-200">
+            {data.cantidad} pagos ({data.percent}%)
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Tooltip estilizado para la gráfica de barras del Top 6
+const CustomTopClientTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-xl px-3.5 py-2.5 shadow-xl border border-slate-800 text-xs">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="w-5 h-5 rounded-full bg-pizza-red/20 text-pizza-red border border-pizza-red/30 flex items-center justify-center font-black text-[10px]">
+            #{data.rank}
+          </span>
+          <span className="font-bold text-slate-100">{data.fullName}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4 text-slate-300">
+          <span className="text-slate-400">Total gastado:</span>
+          <span className="font-extrabold text-emerald-400 font-mono">
+            {formatMoney(data.Gasto)}
+          </span>
+        </div>
+        {data.orders > 0 && (
+          <div className="flex items-center justify-between gap-4 text-slate-400 text-[11px] mt-0.5">
+            <span>Órdenes realizadas:</span>
+            <span className="font-bold text-slate-200">{data.orders}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+  return null;
 };
 
 export default function ClientesPrincipalesScreen() {
@@ -184,9 +271,14 @@ export default function ClientesPrincipalesScreen() {
 
   const topSpendersData = useMemo(
     () =>
-      topClients.slice(0, 6).map((c) => ({
+      topClients.slice(0, 6).map((c, index) => ({
+        rank: index + 1,
+        fullName: c.name,
         name: c.name.split(" ")[0],
+        displayName: `${index + 1}º ${c.name.split(" ")[0]}`,
         Gasto: Number(c.total || 0),
+        orders: Number(c.orders || 0),
+        cedula: c.cedula || "",
       })),
     [topClients],
   );
@@ -202,8 +294,7 @@ export default function ClientesPrincipalesScreen() {
     );
     const items = realMethods
       .map((m) => {
-        const cfg =
-          PAYMENT_METHODS.find((p) => p.metodo === m.metodo) || FALLBACK_METHOD;
+        const cfg = getPaymentConfig(m.metodo);
         return {
           ...m,
           cfg,
@@ -216,6 +307,17 @@ export default function ClientesPrincipalesScreen() {
       .sort((a, b) => b.cantidad - a.cantidad);
     return { totalPayments, items };
   }, [paymentMethods]);
+
+  const paymentChartData = useMemo(() => {
+    return paymentStats.items.map((m) => ({
+      name: m.cfg.label,
+      value: Number(m.cantidad || 0),
+      total_usd: Number(m.total_usd || 0),
+      cantidad: Number(m.cantidad || 0),
+      percent: m.percent,
+      color: m.cfg.color,
+    }));
+  }, [paymentStats]);
 
   // ─── Búsqueda dentro del Top 10 ───
   const filtered = useMemo(() => {
@@ -335,130 +437,212 @@ export default function ClientesPrincipalesScreen() {
         </div>
       </div>
 
-      {/* Cuadrícula central */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-        {/* Métodos de Pago más Usados */}
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col min-w-0">
-          <div className="flex items-center justify-between mb-6">
+      {/* Cuadrícula central: Gráficas Rediseñadas (con mayor altura vertical y presencia estilizada) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 shrink-0">
+        {/* Gráfica 1: Métodos de Pago más Usados (Donut Chart + Desglose vertical estilizado) */}
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between min-w-0">
+          <div className="flex items-center justify-between mb-3 gap-2">
             <div>
-              <h3 className="text-slate-800 font-extrabold text-base">
+              <h3 className="text-slate-800 font-extrabold text-sm sm:text-base">
                 Métodos de Pago más Usados
               </h3>
-              <p className="text-slate-400 text-xs mt-0.5">
+              <p className="text-slate-400 text-[11px] sm:text-xs mt-0.5">
                 Preferencia de cobro de los {VIP_LIMIT} clientes principales
               </p>
             </div>
             {paymentStats.totalPayments > 0 && (
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
+              <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full shrink-0 shadow-xs">
                 {paymentStats.totalPayments} pagos
               </span>
             )}
           </div>
 
-          <div className="flex flex-col gap-4 flex-1">
+          <div className="h-[270px] sm:h-[300px] flex items-center min-w-0">
             {isLoading || isPaymentsLoading ? (
-              <p className="text-slate-400 text-sm text-center py-6">
-                Cargando métodos de pago...
-              </p>
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                <div className="w-8 h-8 rounded-full border-3 border-slate-200 border-t-purple-500 animate-spin" />
+                <span className="text-xs font-medium">Cargando métodos...</span>
+              </div>
             ) : paymentStats.items.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-6">
-                Sin pagos registrados
-              </p>
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1.5">
+                <CreditCard className="w-10 h-10 opacity-30" />
+                <span className="text-xs font-medium">Sin pagos registrados</span>
+              </div>
             ) : (
-              paymentStats.items.map((m) => {
-                const Icon = m.cfg.icon;
-                return (
-                  <div
-                    key={m.metodo}
-                    className={`flex flex-col gap-2 p-4 rounded-xl border ${m.cfg.colorLight} ${m.cfg.colorBorder}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${m.cfg.colorBg}`}
+              <div className="w-full h-full flex flex-col sm:flex-row items-center gap-4 sm:gap-6 min-w-0">
+                {/* Donut Ring grande y destacado */}
+                <div className="relative w-[180px] h-[180px] sm:w-[210px] sm:h-[210px] shrink-0 flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={paymentChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={92}
+                        paddingAngle={4}
+                        dataKey="value"
+                        stroke="none"
                       >
-                        <Icon className={`w-5 h-5 ${m.cfg.colorText}`} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-slate-800">
-                          {m.cfg.label}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {m.cantidad} pago(s) · {m.ventas} venta(s)
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-extrabold text-slate-800">
-                          {formatMoney(m.total_usd)}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-semibold">
-                          {m.percent}%
-                        </p>
-                      </div>
-                    </div>
-                    <div className="h-2 rounded-full bg-white overflow-hidden">
-                      <div
-                        className={`h-full ${m.cfg.colorBar} rounded-full transition-all duration-700`}
-                        style={{ width: `${Math.max(2, m.percent)}%` }}
-                      />
-                    </div>
+                        {paymentChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomDonutTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                    <Wallet className="w-5 h-5 text-slate-400 mb-1" />
+                    <span className="text-2xl font-black text-slate-800 leading-none">
+                      {paymentStats.totalPayments}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                      cobros
+                    </span>
                   </div>
-                );
-              })
+                </div>
+
+                {/* Desglose vertical con micro-barras y detalles completos */}
+                <div className="flex-1 w-full flex flex-col justify-center gap-3 sm:gap-3.5 min-w-0 pr-1">
+                  {paymentStats.items.map((m) => {
+                    const Icon = m.cfg.icon;
+                    return (
+                      <div key={m.metodo} className="group flex flex-col gap-1.5 min-w-0">
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 ${m.cfg.colorBg}`}
+                            >
+                              <Icon className={`w-4 h-4 ${m.cfg.colorText}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-800 truncate text-xs sm:text-sm">
+                                {m.cfg.label}
+                              </p>
+                              <p className="text-[10px] text-slate-400 font-medium">
+                                {m.cantidad} {m.cantidad === 1 ? "pago" : "pagos"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span className="font-black text-slate-800 text-xs sm:text-sm font-mono">
+                                {formatMoney(m.total_usd)}
+                              </span>
+                              <span
+                                className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md"
+                                style={{
+                                  backgroundColor: `${m.cfg.color}18`,
+                                  color: m.cfg.color,
+                                }}
+                              >
+                                {m.percent}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${Math.max(3, m.percent)}%`,
+                              backgroundColor: m.cfg.color,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Top 6 Mejores Clientes */}
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-6">
+        {/* Gráfica 2: Top 6 Mejores Clientes (Gráfica de Barras estilizada con altura vertical) */}
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col justify-between min-w-0">
+          <div className="flex items-center justify-between mb-3 gap-2">
             <div>
-              <h3 className="text-slate-800 font-extrabold text-base">
+              <h3 className="text-slate-800 font-extrabold text-sm sm:text-base">
                 Top 6 Mejores Clientes
               </h3>
-              <p className="text-slate-400 text-xs mt-0.5">
+              <p className="text-slate-400 text-[11px] sm:text-xs mt-0.5">
                 Personas con mayor volumen de compras acumulado
               </p>
             </div>
+            {topClients.length > 0 && (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-full shadow-xs shrink-0">
+                <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                <span className="hidden sm:inline text-amber-600/90 font-semibold">
+                  Líder:
+                </span>
+                <span className="truncate max-w-[90px]">
+                  {topClients[0]?.name.split(" ")[0]}
+                </span>
+              </div>
+            )}
           </div>
 
-          <div className="flex-1 h-[200px] sm:h-[240px] min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={topSpendersData}
-                margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-              >
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: "#94a3b8", fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "#94a3b8", fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `$${v}`}
-                />
-                <Tooltip
-                  cursor={{ fill: "#f8fafc" }}
-                  contentStyle={{
-                    borderRadius: "12px",
-                    border: "1px solid #f1f5f9",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                    color: "#1e293b",
-                  }}
-                  itemStyle={{ color: "#EA2A33" }}
-                  formatter={(value) => [formatMoney(value), "Gasto"]}
-                />
-                <Bar
-                  dataKey="Gasto"
-                  fill="#EA2A33"
-                  radius={[4, 4, 0, 0]}
-                  barSize={30}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-[270px] sm:h-[300px] w-full min-w-0">
+            {isLoading ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                <div className="w-8 h-8 rounded-full border-3 border-slate-200 border-t-pizza-red animate-spin" />
+                <span className="text-xs font-medium">Cargando gráfico...</span>
+              </div>
+            ) : topSpendersData.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-1.5">
+                <Users className="w-10 h-10 opacity-30" />
+                <span className="text-xs font-medium">Sin datos de compras</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={topSpendersData}
+                  margin={{ top: 25, right: 12, left: -16, bottom: 5 }}
+                >
+                  <defs>
+                    <linearGradient id="clientBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#EA2A33" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#FB7185" stopOpacity={0.7} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f1f5f9"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="displayName"
+                    tick={{ fill: "#64748b", fontSize: 11, fontWeight: 700 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: "#94a3b8", fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `$${v}`}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(241, 245, 249, 0.7)", radius: 8 }}
+                    content={<CustomTopClientTooltip />}
+                  />
+                  <Bar
+                    dataKey="Gasto"
+                    fill="url(#clientBarGrad)"
+                    radius={[8, 8, 2, 2]}
+                    maxBarSize={36}
+                    label={{
+                      position: "top",
+                      fill: "#64748b",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      formatter: (v) => formatMoney(v),
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>

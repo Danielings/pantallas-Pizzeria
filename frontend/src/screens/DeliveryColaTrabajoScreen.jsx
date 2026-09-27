@@ -385,9 +385,19 @@ export default function DeliveryColaTrabajoScreen() {
                     paginatedPedidos.map((pedido) => {
                       const num = numMap[pedido.id_venta] ?? 1;
 
-                      // Determinar estado más relevante
+                      // Determinar estado más relevante (excluyendo bebidas/helados que nacen completados)
+                      const cocinaDetalles = (pedido.detalles || []).filter(
+                        (d) =>
+                          d.tipo_producto !== "Bebida" &&
+                          d.tipo_producto !== "Helado",
+                      );
+                      const detallesParaEstado =
+                        cocinaDetalles.length > 0
+                          ? cocinaDetalles
+                          : pedido.detalles || [];
                       const estados =
-                        pedido.detalles?.map((d) => d.estado_detalle) || [];
+                        detallesParaEstado.map((d) => d.estado_detalle) || [];
+
                       let estadoObj = ESTADO_BADGES.Completado;
                       if (estados.includes("Pendiente"))
                         estadoObj = ESTADO_BADGES.Pendiente;
@@ -405,6 +415,17 @@ export default function DeliveryColaTrabajoScreen() {
                         (d) => d.nota,
                       );
                       const notaTexto = primerDetalleConNota?.nota || "";
+
+                      const isPendiente =
+                        estadoObj === ESTADO_BADGES.Pendiente &&
+                        !estados.includes("Horno");
+
+                      const isEnHorno =
+                        !isPendiente &&
+                        (estadoObj === ESTADO_BADGES.Horno ||
+                          estados.includes("Horno"));
+
+                      const isEditDisabled = !isPendiente;
 
                       return (
                         <tr
@@ -507,11 +528,23 @@ export default function DeliveryColaTrabajoScreen() {
                             <div className="flex items-center justify-center gap-1.5">
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setEditState({ pedido, displayNum: num })
+                                disabled={isEditDisabled}
+                                onClick={() => {
+                                  if (isEditDisabled) return;
+                                  setEditState({ pedido, displayNum: num });
+                                }}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  isEditDisabled
+                                    ? "text-slate-300 opacity-40 cursor-not-allowed bg-slate-50"
+                                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
+                                }`}
+                                title={
+                                  isEditDisabled
+                                    ? isEnHorno
+                                      ? "No se puede editar: el pedido ya está en el horno"
+                                      : "No se puede editar: el pedido ya está listo o despachado"
+                                    : "Editar pedido"
                                 }
-                                className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
-                                title="Editar pedido"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
