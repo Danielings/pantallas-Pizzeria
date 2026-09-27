@@ -628,7 +628,7 @@ export const obtenerCajeros = async (req, res) => {
       sql: `SELECT u.id_usuario, u.nombre_completo, u.email, u.rol, p.pin 
        FROM usuarios u
        LEFT JOIN pin p ON u.id_usuario = p.id_usuario
-       WHERE u.estado = 'Activo'
+       WHERE u.estado = 'Activo' AND u.rol IN  ('cashier','cashierDelivery')
        ORDER BY u.rol, u.nombre_completo`,
     });
     const cajeros = cajero.rows || [];
