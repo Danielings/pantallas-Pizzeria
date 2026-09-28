@@ -296,7 +296,7 @@ export function OrderCard({
                 >
                   <span>{item.name}</span>
                 </p>
-                {item.size && (
+                {(item.size || item.description) && (
                   <p
                     className={`text-pizza-muted ${
                       compactText
@@ -304,7 +304,7 @@ export function OrderCard({
                         : "text-sm 3xl:text-base font-medium"
                     }`}
                   >
-                    {item.size}
+                    {item.description || item.size}
                   </p>
                 )}
                 {item.extras && item.extras.length > 0 && (

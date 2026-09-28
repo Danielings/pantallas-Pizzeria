@@ -23,7 +23,8 @@ const obtenerDetallesCocinaBatch = async (ventas, estado) => {
         vd.tipo_producto,
         vd.estado AS estado_detalle,
         p.nombre AS nombre_producto,
-        cp.categoria AS categoria_pizza
+        cp.categoria AS categoria_pizza,
+        NULL AS combo_descripcion
       FROM venta_detalle vd
       INNER JOIN pizza p ON p.id_pizza = vd.id_producto_origen
       LEFT JOIN categoria_pizza cp ON cp.id_categoria_pizza = p.id_categoria_pizza
@@ -41,7 +42,8 @@ const obtenerDetallesCocinaBatch = async (ventas, estado) => {
         'Combo' AS tipo_producto,
         vd.estado AS estado_detalle,
         c.nombre AS nombre_producto,
-        NULL AS categoria_pizza
+        NULL AS categoria_pizza,
+        c.descripcion AS combo_descripcion
       FROM venta_detalle vd
       INNER JOIN combos c ON c.id_combo = vd.id_producto_origen
       WHERE vd.id_venta IN (${marcas})
