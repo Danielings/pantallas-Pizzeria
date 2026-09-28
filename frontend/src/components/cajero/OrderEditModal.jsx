@@ -52,6 +52,11 @@ const SIZE_TO_CATEGORY = {
 
 const DESPACHOS_CON_CAJA = ["Llevar", "Delivery", "Pick Up"];
 
+const resolveDisplayName = (item) => {
+  const it = item ?? {};
+  return it.nombre_producto || it.name || it.nombre || "Producto";
+};
+
 export default function OrderEditModal({ pedido = {}, displayNum, onClose }) {
   const safePedido = pedido ?? {};
   const { exchangeRate } = useExchangeRate();
