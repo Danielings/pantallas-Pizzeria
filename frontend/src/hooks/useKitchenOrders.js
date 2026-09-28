@@ -149,6 +149,7 @@ const adaptVenta = (venta, status) => ({
   items: (venta.detalles || []).map((detalle) => ({
     id_detalle: detalle.id_detalle,
     name: detalle.nombre_producto,
+    description: detalle.combo_descripcion || "",
     qty: detalle.cantidad,
     note: detalle.nota,
     size: detalle.categoria_pizza,
