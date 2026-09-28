@@ -13,7 +13,6 @@ const GENERIC_MESSAGE = "Enlace de recuperación enviado";
 
 //-------Recuperar Contraseña
 export const recuperarPassword = async (req, res) => {
-  console.log("[recuperar-password] Solicitud recibida");
   const { email } = req.body;
 
   if (!email || typeof email !== "string" || !email.trim()) {
@@ -230,8 +229,6 @@ export const login = async (req, res) => {
       estado: usuario.estado,
       id_sucursal: usuario.id_sucursal,
     };
-
-    console.log(`Sesión iniciada para: ${usuario.email}`);
 
     return res.status(200).json({
       message: "Login exitoso",

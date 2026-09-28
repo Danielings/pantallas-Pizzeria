@@ -1,4 +1,5 @@
 import db from "../config/turso.js";
+import { sendCierreEmail } from "../config/mailer.js";
 
 // Verificar si hay pedidos pendientes en la cola de trabajo
 export const verificarPedidosPendientes = async (req, res) => {
@@ -713,5 +714,48 @@ export const actualizarPinCajero = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, mensaje: "Error interno del servidor" });
+  }
+};
+
+// ── Enviar por correo el PDF del cierre recién generado ──
+export const enviarCierreEmail = async (req, res) => {
+  const { pdf_base64, nombre_archivo, asunto, to } = req.body || {};
+  const destino = String(to || "pizzerianikoficial@gmail.com").trim();
+
+  if (!pdf_base64) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: "El PDF del cierre es obligatorio (pdf_base64).",
+    });
+  }
+
+  const buffer = Buffer.from(String(pdf_base64), "base64");
+  if (
+    buffer.length < 500 ||
+    buffer.subarray(0, 4).toString("ascii") !== "%PDF"
+  ) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: "El PDF del cierre está vacío o no es un PDF válido.",
+    });
+  }
+
+  try {
+    await sendCierreEmail({
+      to: destino,
+      subject: String(asunto || "Cierre del día"),
+      pdfBase64: String(pdf_base64),
+      fileName: String(nombre_archivo || `Cierre_${Date.now()}.pdf`),
+    });
+    return res.json({
+      ok: true,
+      success: true,
+      mensaje: "Cierre enviado por correo correctamente.",
+    });
+  } catch (error) {
+    console.error("Error enviando el cierre por correo:", error);
+    return res
+      .status(500)
+      .json({ ok: false, mensaje: error.message || "No se pudo enviar el correo." });
   }
 };
