@@ -36,63 +36,6 @@ const obtenerDetallesCocinaBatch = async (ventas, estado) => {
       SELECT
         vd.id_venta,
         vd.id_detalle,
-        vd.cantidad * cd.cantidad AS cantidad,
-        vd.nota,
-        'Pizza' AS tipo_producto,
-        vd.estado AS estado_detalle,
-        p.nombre AS nombre_producto,
-        cp.categoria AS categoria_pizza
-      FROM venta_detalle vd
-      INNER JOIN combo_detalle cd ON cd.id_combo = vd.id_producto_origen
-      INNER JOIN pizza p ON p.id_pizza = cd.id_pizza
-      LEFT JOIN categoria_pizza cp ON cp.id_categoria_pizza = p.id_categoria_pizza
-      WHERE vd.id_venta IN (${marcas})
-        AND vd.estado = ?
-        AND (
-          vd.tipo_producto = 'Combo'
-          OR (
-            vd.tipo_producto = 'Pizza'
-            AND NOT EXISTS (
-              SELECT 1
-              FROM pizza pizza_existente
-              WHERE pizza_existente.id_pizza = vd.id_producto_origen
-            )
-          )
-        )
-
-      UNION ALL
-
-      SELECT
-        vd.id_venta,
-        vd.id_detalle,
-        vd.cantidad * cd.cantidad AS cantidad,
-        vd.nota,
-        'Bebida' AS tipo_producto,
-        vd.estado AS estado_detalle,
-        b.nombre AS nombre_producto,
-        NULL AS categoria_pizza
-      FROM venta_detalle vd
-      INNER JOIN combo_detalle cd ON cd.id_combo = vd.id_producto_origen
-      INNER JOIN bebidas b ON b.id_bebida = cd.id_bebida
-      WHERE vd.id_venta IN (${marcas})
-        AND vd.estado = ?
-        AND (
-          vd.tipo_producto = 'Combo'
-          OR (
-            vd.tipo_producto = 'Pizza'
-            AND NOT EXISTS (
-              SELECT 1
-              FROM pizza pizza_existente
-              WHERE pizza_existente.id_pizza = vd.id_producto_origen
-            )
-          )
-        )
-
-      UNION ALL
-
-      SELECT
-        vd.id_venta,
-        vd.id_detalle,
         vd.cantidad,
         vd.nota,
         'Combo' AS tipo_producto,
@@ -107,7 +50,7 @@ const obtenerDetallesCocinaBatch = async (ventas, estado) => {
 
       ORDER BY id_detalle ASC
     `,
-    [...idsVentas, estado, ...idsVentas, estado, ...idsVentas, estado, ...idsVentas, estado],
+    [...idsVentas, estado, ...idsVentas, estado],
   );
 };
 
