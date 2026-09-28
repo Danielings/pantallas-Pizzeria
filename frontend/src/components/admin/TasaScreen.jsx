@@ -93,9 +93,11 @@ export default function TasaScreen() {
   const handleUnanchor = async () => {
     setSaving(true);
     try {
-      const { data } = await axios.put(`${API_BASE}/tasa/desanclar`, {
-        withCredentials: true,
-      });
+      const { data } = await axios.put(
+        `${API_BASE}/tasa/desanclar`,
+        {},
+        { withCredentials: true },
+      );
       setRate(data.data);
       setManualRate(String(data.data.tasa_sistema));
       updateExchangeRate(data.data.tasa_sistema);
