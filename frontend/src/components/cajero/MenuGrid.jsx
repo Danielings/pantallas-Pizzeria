@@ -54,8 +54,8 @@ export default function MenuGrid({ category }) {
 
   const allPizzas = activeProducts.filter((p) => p.category === "pizzas");
   const normal = allPizzas.filter((p) => p.pizzaCategory === "Normal");
-  const grande = allPizzas.filter(
-    (p) => p.pizzaCategory === "Grande" || p.pizzaCategory === "Familiar",
+  const familiar = allPizzas.filter(
+    (p) => p.pizzaCategory === "Familiar" || p.pizzaCategory === "Familiar",
   );
   const gigantes = allPizzas.filter((p) => p.pizzaCategory === "Gigante");
   const combos = activeProducts.filter((p) => p.category === "combos");
@@ -66,8 +66,8 @@ export default function MenuGrid({ category }) {
     case "Normal":
       displayedProducts = normal;
       break;
-    case "Grande":
-      displayedProducts = grande;
+    case "Familiar":
+      displayedProducts = familiar;
       break;
     case "bebidas":
     case "Bebidas": // Agregado por seguridad si la prop viene con mayúscula

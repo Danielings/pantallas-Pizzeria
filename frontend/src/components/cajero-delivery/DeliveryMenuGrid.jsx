@@ -50,9 +50,7 @@ export default function DeliveryMenuGrid({ category }) {
   let displayedProducts = [];
   const allPizzas = activeProducts.filter((p) => p.category === "pizzas");
   const normal = allPizzas.filter((p) => p.pizzaCategory === "Normal");
-  const grande = allPizzas.filter(
-    (p) => p.pizzaCategory === "Grande" || p.pizzaCategory === "Familiar"
-  );
+  const familiar = allPizzas.filter((p) => p.pizzaCategory === "Familiar");
   const gigantes = allPizzas.filter((p) => p.pizzaCategory === "Gigante");
   const combos = activeProducts.filter((p) => p.category === "combos");
   const drinks = activeProducts.filter((p) => p.category === "drinks");
@@ -62,8 +60,8 @@ export default function DeliveryMenuGrid({ category }) {
     case "Normal":
       displayedProducts = normal;
       break;
-    case "Grande":
-      displayedProducts = grande;
+    case "Familiar":
+      displayedProducts = familiar;
       break;
     case "bebidas":
     case "Bebidas":
@@ -152,7 +150,9 @@ export default function DeliveryMenuGrid({ category }) {
 
           {!isLoading && displayedProducts.length === 0 && (
             <div className="col-span-full py-12 text-center text-slate-400">
-              <p className="text-xs">No hay productos activos en esta categoría.</p>
+              <p className="text-xs">
+                No hay productos activos en esta categoría.
+              </p>
             </div>
           )}
         </div>
