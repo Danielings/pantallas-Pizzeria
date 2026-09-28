@@ -305,9 +305,6 @@ export default function ClientesScreen() {
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-block text-[8px] sm:text-[9px] font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
-            USD acumulado
-          </span>
         </div>
 
         {/* Ticket Promedio */}

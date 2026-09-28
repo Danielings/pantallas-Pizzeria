@@ -450,9 +450,6 @@ export default function CierresAdminScreen() {
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 sm:px-2 py-0.5 rounded-full">
-            Hora
-          </span>
         </div>
 
         {/* Promedio de $ por Cierre */}
@@ -949,7 +946,7 @@ export default function CierresAdminScreen() {
                       Tipo de Cierre
                     </p>
                     <p className="text-sm font-black text-slate-800 truncate">
-                      Cierre Caja General (Salón / Mostrador)
+                      Cierre Caja General
                     </p>
                   </div>
                   <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white text-slate-700 border border-slate-200 shrink-0">
