@@ -277,8 +277,10 @@ export default function CierreScreen() {
       const newCierreId = res.data?.id_cierre;
 
       // Auto-descargar PDF Profesional del Cierre
+      let pdfBlob = null;
+      let pdfFileName = "";
       try {
-        await exportCierrePDF({
+        const pdf = await exportCierrePDF({
           id_cierre: newCierreId,
           id_sucursal: data?.id_sucursal,
           sucursal: data?.sucursal,
@@ -301,8 +303,47 @@ export default function CierreScreen() {
           tipo_cierre: esCierreDelivery ? "delivery" : "general",
           reembolsos: data.reembolsos || null,
         });
+        pdfBlob = pdf?.blob || pdf || null;
+        pdfFileName = pdf?.fileName || "";
       } catch (pdfError) {
         console.error("Error al generar PDF del cierre:", pdfError);
+      }
+
+      // Enviar el PDF del cierre por correo
+      if (pdfBlob && pdfBlob.size > 0) {
+        try {
+          const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve(String(reader.result).split(",")[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(pdfBlob);
+          });
+
+          const fechaHora = new Date().toLocaleString("es-VE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+
+          await axios.post(
+            `${API}/cierre/enviar-email`,
+            {
+              pdf_base64: base64,
+              asunto: `Cierre del día ${fechaHora}`,
+              nombre_archivo:
+                pdfFileName || `Cierre_${esCierreDelivery ? "delivery" : "caja"}.pdf`,
+            },
+            { withCredentials: true },
+          );
+        } catch (emailError) {
+          console.error("Error al enviar el cierre por correo:", emailError);
+        }
+      } else {
+        console.error("PDF vacío, no se envió el correo del cierre.");
       }
 
       setClaveCierre("");

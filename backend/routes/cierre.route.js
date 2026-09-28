@@ -7,6 +7,7 @@ import {
   obtenerHistorialCierres,
   obtenerCajeros,
   actualizarPinCajero,
+  enviarCierreEmail,
 } from "../controllers/cierre.controller.js";
 import verificarToken from "../middleware/verificarToken.js";
 import esAdmin from "../middleware/esAdmin.js";
@@ -25,5 +26,6 @@ router.get("/cierre/historial", obtenerHistorialCierres);
 router.get("/cierre/cajeros", obtenerCajeros);
 router.put("/cierre/cajero-pin", verificarToken, esAdmin, actualizarPinCajero);
 router.post("/cierre-caja", verificarToken, esCajero, cerrarCaja);
+router.post("/cierre/enviar-email", verificarToken, esCajero, enviarCierreEmail);
 
 export default router;

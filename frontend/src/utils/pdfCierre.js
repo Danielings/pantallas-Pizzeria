@@ -516,8 +516,24 @@ export const exportCierrePDF = async (cierre) => {
     doc.text(`Pág ${i} de ${totalPaginas}`, 196, 285, { align: "right" });
   }
 
-  // Save
-  doc.save(
-    `Cierre_${esDelivery ? "Delivery_" : "Salon_"}${sucursalNombre.replace(/\s+/g, "_")}_#${cierre.id_cierre || "N_A"}_${formattedDate.replace(/\//g, "-")}.pdf`,
-  );
+  // Nombre de archivo: Cierre_caja_28-09-2026 (o Cierre_delivery_...)
+  const fechaArchivo = cierre.fecha_hora ? new Date(cierre.fecha_hora) : new Date();
+  const dd = String(fechaArchivo.getDate()).padStart(2, "0");
+  const mm = String(fechaArchivo.getMonth() + 1).padStart(2, "0");
+  const yyyy = fechaArchivo.getFullYear();
+  const fileName = `Cierre_${esDelivery ? "delivery" : "caja"}_${dd}-${mm}-${yyyy}.pdf`;
+
+  const blob = doc.output("blob");
+
+  // Descarga con el MISMO blob que se devuelve para el correo
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  return { blob, fileName };
 };
